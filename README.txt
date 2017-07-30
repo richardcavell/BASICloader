@@ -24,7 +24,3 @@ The output of this program will therefore typically look like the old
 "type-in" programs from 1980s computer magazines.
 
 Richard Cavell
-
-
-
-
