@@ -3,3 +3,5 @@ LOADER.BAS
 LOADER
 loader.bas
 loader.prg
+loader.d64
+*.bin
