@@ -59,17 +59,14 @@ fail(const char *fmt,...)
   exit(EXIT_FAILURE);
 }
 
-static unsigned int line = MIN_BASIC_LINE_NUMBER;
-static unsigned int step = DEFAULT_BASIC_LINE_STEP_SIZE;
-
 static unsigned int
-get_line_number(void)
+get_line_number(unsigned int *line, unsigned int step)
 {
-  unsigned int old_line = line;
+  unsigned int old_line = *line;
 
-  line += step;
+  *line += step;
 
-  if (line > MAX_BASIC_LINE_NUMBER || line < old_line)
+  if (*line > MAX_BASIC_LINE_NUMBER || *line < old_line)
     fail("Line number overflow"); /* Program is probably too long anyway*/
 
   return old_line;
@@ -99,7 +96,8 @@ emit(FILE *fp, const char *fmt, ...)
 }
 
 static void
-emit_datum(FILE *fp, unsigned char c, enum machine_type machine)
+emit_datum(FILE *fp, unsigned int *line, unsigned int step,
+           unsigned char c, enum machine_type machine)
 {
   static unsigned int length = (unsigned int) -1;
   unsigned int max_basic_line_length = 0;
@@ -121,13 +119,13 @@ emit_datum(FILE *fp, unsigned char c, enum machine_type machine)
 
   if (length == (unsigned int) -1)
   {
-    length = emit(fp, "%u %s", get_line_number(),
+    length = emit(fp, "%u %s", get_line_number(line, step),
                       (machine == c64petcat) ? "data" : "DATA" );
   }
   else if (length > BASIC_LINE_WRAP_POS)
   {
     emit(fp, "\n");
-    length = emit(fp, "%u %s", get_line_number(),
+    length = emit(fp, "%u %s", get_line_number(line, step),
                       (machine == c64petcat) ? "data" : "DATA" );
   }
   else
@@ -142,11 +140,12 @@ emit_datum(FILE *fp, unsigned char c, enum machine_type machine)
 }
 
 static void
-emit_line(FILE *fp, const char *fmt, ...)
+emit_line(FILE *fp, unsigned int *line, unsigned int step,
+          const char *fmt, ...)
 {
   va_list ap;
 
-  (void) emit(fp, "%d ", get_line_number());
+  (void) emit(fp, "%d ", get_line_number(line, step));
 
   va_start(ap, fmt);
   if (vfprintf(fp, fmt, ap) < 0)
@@ -347,6 +346,8 @@ int main(int argc, char *argv[])
   FILE *ofp = NULL;
   char *fname = NULL;
   char *ofname = NULL;
+  unsigned int line = MIN_BASIC_LINE_NUMBER;
+  unsigned int step = DEFAULT_BASIC_LINE_STEP_SIZE;
   unsigned short int start = 0;
   unsigned short int end   = 0;
   unsigned short int exec  = 0;
@@ -477,23 +478,28 @@ int main(int argc, char *argv[])
   }
 
   if (machine == cocoext)
-    emit_line(ofp, "CLEAR200,%d", start - 1);
+    emit_line(ofp, &line, step, "CLEAR200,%d", start - 1);
 
   switch(machine)
   {
     case coco:
     case cocoext:
-           emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
-                   "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
+           emit_line(ofp, &line, step,
+                     "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
+                     "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
            break;
     case c64:
-           emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A", start, end);
-           emit_line(ofp, "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
+           emit_line(ofp, &line, step,
+                     "FORP=%dTO%d:READA:POKEP,A", start, end);
+           emit_line(ofp, &line, step,
+                     "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
                                                                     exec);
            break;
     case c64petcat:
-           emit_line(ofp, "forp=%dto%d:reada:pokep,a", start, end);
-           emit_line(ofp, "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
+           emit_line(ofp, &line, step,
+                     "forp=%dto%d:reada:pokep,a", start, end);
+           emit_line(ofp, &line, step,
+                     "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
                                                                     exec);
            break;
     default:
@@ -509,7 +515,7 @@ int main(int argc, char *argv[])
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
 
-    emit_datum(ofp, d, machine);
+    emit_datum(ofp, &line, step, d, machine);
   }
 
   (void) emit(ofp, "\n");
