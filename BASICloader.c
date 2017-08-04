@@ -16,12 +16,12 @@ enum machine_type {
   coco,
   cocoext,
   c64,
-  c64vice
+  c64petcat
 };
 
 #define DEFAULT_MACHINE                      coco
 #define C64_DEFAULT_OUTPUT_FILENAME          "LOADER"
-#define C64VICE_DEFAULT_OUTPUT_FILENAME      "loader"
+#define C64PETCAT_DEFAULT_OUTPUT_FILENAME    "loader.bas"
 #define COCO_DEFAULT_OUTPUT_FILENAME         "LOADER.BAS"
 
 #define MIN_BASIC_LINE_NUMBER                0
@@ -112,7 +112,7 @@ emit_datum(FILE *fp, unsigned char c, enum machine_type machine)
            break;
 
     case c64:
-    case c64vice:
+    case c64petcat:
            max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
            break;
     default:
@@ -121,12 +121,14 @@ emit_datum(FILE *fp, unsigned char c, enum machine_type machine)
 
   if (length == (unsigned int) -1)
   {
-    length = emit(fp, "%u DATA", get_line_number());
+    length = emit(fp, "%u %s", get_line_number(),
+                      (machine == c64petcat) ? "data" : "DATA" );
   }
   else if (length > BASIC_LINE_WRAP_POS)
   {
     emit(fp, "\n");
-    length = emit(fp, "%u DATA", get_line_number());
+    length = emit(fp, "%u %s", get_line_number(),
+                      (machine == c64petcat) ? "data" : "DATA" );
   }
   else
   {
@@ -248,10 +250,10 @@ get_m_arg(char **pargv[], const char *shrt, const char *lng,
     if (*machine != default_machine)
       fail("You can only set option %s once", (*pargv)[0]);
 
-         if (strcmp((*pargv)[1], "coco") == 0)    *machine = coco;
-    else if (strcmp((*pargv)[1], "cocoext") == 0) *machine = cocoext;
-    else if (strcmp((*pargv)[1], "c64") == 0)     *machine = c64;
-    else if (strcmp((*pargv)[1], "c64vice") == 0) *machine = c64vice;
+         if (strcmp((*pargv)[1], "coco") == 0)      *machine = coco;
+    else if (strcmp((*pargv)[1], "cocoext") == 0)   *machine = cocoext;
+    else if (strcmp((*pargv)[1], "c64") == 0)       *machine = c64;
+    else if (strcmp((*pargv)[1], "c64petcat") == 0) *machine = c64petcat;
     else fail("Unknown parameter to %s", (*pargv)[0]);
 
     ++(*pargv);
@@ -283,7 +285,7 @@ help(void)
   puts("https://github.com/richardcavell/BASICloader");
   puts("Usage: BASICloader [options] [filename]");
   puts("-o --output    Output file");
-  puts("-m --machine   Target machine (coco, cocoext, c64, c64vice)");
+  puts("-m --machine   Target machine (coco, cocoext, c64, c64petcat)");
   puts("-s --start     Start location");
   puts("-e --exec      Exec location");
   puts("-w --warnings  Warn about RAM requirements (coco/cocoext)");
@@ -310,9 +312,10 @@ info(void)
   printf("The default machine is : ");
   switch(DEFAULT_MACHINE)
   {
-    case coco:    printf("coco\n");    break;
-    case cocoext: printf("cocoext\n"); break;
-    case c64:     printf("c64\n");     break;
+    case coco:      printf("coco\n");      break;
+    case cocoext:   printf("cocoext\n");   break;
+    case c64:       printf("c64\n");       break;
+    case c64petcat: printf("c64petcat\n"); break;
   }
   puts("");
   puts("Available target architectures are :");
@@ -329,11 +332,10 @@ info(void)
   puts("                The program will use uppercase throughout");
   puts("                Default output filename: LOADER");
   puts("");
-  puts("      c64vice   Commodore 64 (or any compatible computer)");
+  puts("    c64petcat   Commodore 64 (or any compatible computer)");
   puts("                The program will use lowercase throughout");
-  puts("                Default output filename: loader");
-  puts("");
-  puts("                If you intend to use petcat on the output, use c64vice.");
+  puts("                Default output filename: loader.bas");
+  puts("                Then run $ petcat -w2 -o loader.prg loader.bas");
   puts("");
 
   exit(EXIT_SUCCESS);
@@ -399,8 +401,8 @@ int main(int argc, char *argv[])
       case c64:
              ofname = C64_DEFAULT_OUTPUT_FILENAME;
              break;
-      case c64vice:
-             ofname = C64VICE_DEFAULT_OUTPUT_FILENAME;
+      case c64petcat:
+             ofname = C64PETCAT_DEFAULT_OUTPUT_FILENAME;
              break;
       default:
              fail("Internal error");
@@ -410,7 +412,7 @@ int main(int argc, char *argv[])
   {
          if (machine == coco || machine == cocoext)
                start = COCO_DEFAULT_START_ADDRESS;
-    else if (machine == c64 || machine == c64vice)
+    else if (machine == c64 || machine == c64petcat)
                start = C64_DEFAULT_START_ADDRESS;
   }
 
@@ -486,7 +488,7 @@ int main(int argc, char *argv[])
            emit_line(ofp, "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
                                                                     exec);
            break;
-    case c64vice:
+    case c64petcat:
            emit_line(ofp, "forp=%dto%d:reada:pokep,a", start, end);
            emit_line(ofp, "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
                                                                     exec);

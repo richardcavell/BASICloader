@@ -2,30 +2,37 @@ BASICloader
 Version : in development, don't use it yet
 (c) 2017 Richard John Foster Cavell
 
-BASICloader reads in a TRS-80 Color Computer 2 machine language program,
-and creates a COLOR BASIC program that will construct that machine language
-program in memory, and then execute it.
+BASICloader reads in a machine language program, and creates a BASIC
+program that will construct that machine language program in memory,
+and then execute it.
 
 The BASICloader program is designed to be run on any operating system
 that has a command line. It should work on any UNIX-like operating system,
-such as Linux or MacOS, or Windows if you have a command line in your
-Windows installation. It is written in standard C (C89) and does not rely
+Linux, MacOS, or Windows. It is written in standard C (C89) and does not rely
 on any external libraries or header files outside of the standard C library.
-You might have to customize the build system if you do not have GNU Make
+You might have to compile it by hand if you do not have GNU Make
 on your operating system.
 
 BASICloader reads in any machine language program designed to be run on the
-TRS-80 Color Computer 2 with 64 kilobytes. This machine language program must
-be valid raw 6809 or 6309 code (the kind produced by asm6809 using the -b
-option). 
+TRS-80 Color Computer, Tano Dragon, or Commodore 64 (or a machine that is
+similar to these).  This machine language program must be (for Coco/Dragon)
+valid raw 6809 or 6309 code (the kind produced by asm6809 using the -b
+option), or (for the Commodore 64) raw 6502 code.
 
-BASICloader outputs a COLOR BASIC program that can be run on a Color Computer
-2. This BASIC program incorporates the machine language program as data.
+BASICloader outputs a BASIC program that can be run on the target machine.
+This BASIC program incorporates the machine language program as data.
 If run, it will poke the machine language program into the correct memory
 locations, checking that it is doing so correctly, and then it will execute
 the program.
 
 The output of this program will therefore typically look like the old
 "type-in" programs from 1980s computer magazines.
+
+If you use c64petcat as the target architecture, you can easily convert the
+output into a program that will load on a C64, or on the VICE emulator. Run:
+
+  $ petcat -w2 -o loader.prg loader.bas
+
+(and replace loader.bas with the name of the output of this program)
 
 Richard Cavell
