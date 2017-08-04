@@ -52,7 +52,7 @@ static unsigned int line = MIN_BASIC_LINE_NUMBER;
 static unsigned int step = DEFAULT_BASIC_LINE_STEP_SIZE;
 
 static unsigned int
-get_line(void)
+get_line_number(void)
 {
   unsigned int old_line = line;
 
@@ -67,7 +67,7 @@ get_line(void)
 static void
 emit_fail(void)
 {
-  fail("Couldn't write to output file");
+  fail("Couldn't write to output file. Error number %d", errno);
 }
 
 static unsigned int
@@ -94,12 +94,12 @@ emit_datum(FILE *fp, unsigned char c)
 
   if (length == (unsigned int) -1)
   {
-    length = emit(fp, "%u DATA", get_line());
+    length = emit(fp, "%u DATA", get_line_number());
   }
   else if (length > BASIC_LINE_WRAP_POS)
   {
     emit(fp, "\n");
-    length = emit(fp, "%u DATA", get_line());
+    length = emit(fp, "%u DATA", get_line_number());
   }
   else
   {
@@ -117,7 +117,7 @@ emit_line(FILE *fp, const char *fmt, ...)
 {
   va_list ap;
 
-  (void) emit(fp, "%d ", get_line());
+  (void) emit(fp, "%d ", get_line_number());
 
   va_start(ap, fmt);
   if (vfprintf(fp, fmt, ap) < 0)
@@ -314,6 +314,9 @@ int main(int argc, char *argv[])
 
   size = ftell(fp);
 
+  if (fseek(fp, 0L, SEEK_SET) < 0)
+    fail("Could not rewind file %s", fname);
+
   if (size < 0)
     fail("Could not operate on file %s. Error number %d", fname, errno);
 
@@ -358,7 +361,7 @@ int main(int argc, char *argv[])
   emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
             "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
 
-  while ((c = getchar()) != EOF)
+  while ((c = fgetc(fp)) != EOF)
   {
     unsigned char d = (unsigned char) c;
 
@@ -366,9 +369,10 @@ int main(int argc, char *argv[])
     if (d > UCHAR_MAX_8_BIT)
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
-
-    emit_datum(fp, d);
+    emit_datum(ofp, d);
   }
+
+  (void) emit(ofp, "\n");
 
   if (fclose(fp) != 0)
     fail("Couldn't close file %s", fname);
