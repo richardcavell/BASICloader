@@ -335,7 +335,6 @@ info(void)
   puts("    c64petcat   Commodore 64 (or any compatible computer)");
   puts("                The program will use lowercase throughout");
   puts("                Default output filename: loader.bas");
-  puts("                Then run $ petcat -w2 -o loader.prg loader.bas");
   puts("");
 
   exit(EXIT_SUCCESS);

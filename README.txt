@@ -28,11 +28,16 @@ the program.
 The output of this program will therefore typically look like the old
 "type-in" programs from 1980s computer magazines.
 
-If you use c64petcat as the target architecture, you can easily convert the
-output into a program that will load on a C64, or on the VICE emulator. Run:
+If you want to use the output on an emulated Coco or Dragon using XRoar:
 
-  $ petcat -w2 -o loader.prg loader.bas
+    $ ./BASICloader --machine coco XXX.bin
+    $ xroar -run LOADER.BAS
 
-(and replace loader.bas with the name of the output of this program)
+If you want to use the output on an emulated C64 using VICE:
+
+    $ ./BASICloader --machine c64petcat XXX.bin
+    $ petcat -w2 -o loader.prg loader.bas
+    $ c1541 -format loader,"88 2a" d64 loader.d64 -write loader.prg loader
+    $ x64 -autostart loader.d64
 
 Richard Cavell
