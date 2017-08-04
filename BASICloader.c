@@ -35,7 +35,7 @@ enum machine_type {
 #define UCHAR_MAX_8_BIT                      255
 
 #define C64_DEFAULT_START_ADDRESS            0x8000
-#define COCO_DEFAULT_START_ADDRESS           0x3f00
+#define COCO_DEFAULT_START_ADDRESS           0x3e00
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE     65536
 #define HIGHEST_RAM_ADDRESS                  0xffff
 #define HIGHEST_32K_ADDRESS                  0x7fff
@@ -321,11 +321,11 @@ info(void)
   puts("Available target architectures are :");
   puts("");
   puts("         coco   TRS-80 Color Computer (any version)");
-  puts("                or Tano Dragon (any version)");
+  puts("                or Dragon (any version)");
   puts("                Default output filename: LOADER.BAS");
   puts("");
-  puts("      cocoext   TRS-80 Color Computer (any version) with Extended BASIC");
-  puts("                or Tano Dragon");
+  puts("      cocoext   TRS-80 Color Computer 1 or 2 with Extended BASIC");
+  puts("                or Color Computer 3 (any version) or Dragon (any version)");
   puts("                Default output filename: LOADER.BAS");
   puts("");
   puts("          c64   Commodore 64 (or any compatible computer)");
@@ -418,6 +418,10 @@ int main(int argc, char *argv[])
 
   if (exec == 0)
     exec = start;
+
+  if (warnings && (exec < start || exec > end))
+    puts("Warning: The exec location given is not within the start"
+         " and end of the binary blob that will be loaded into memory.");
 
   errno = 0;
 
