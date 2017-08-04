@@ -11,20 +11,31 @@
 #include <limits.h>
 #include <errno.h>
 
-#define DEFAULT_OUTPUT_FILENAME              "LOADER.BAS"
+enum machine_type {
+  default_machine = 0,
+  coco,
+  cocoext,
+  c64,
+  c64vice
+};
+
+#define DEFAULT_MACHINE                      coco
+#define C64_DEFAULT_OUTPUT_FILENAME          "LOADER"
+#define C64VICE_DEFAULT_OUTPUT_FILENAME      "loader"
+#define COCO_DEFAULT_OUTPUT_FILENAME         "LOADER.BAS"
 
 #define MIN_BASIC_LINE_NUMBER                0
 #define MAX_BASIC_LINE_NUMBER                63999
 #define DEFAULT_BASIC_LINE_STEP_SIZE         1
 
-#define COCO_MAX_BASIC_LINE_LENGTH           249
 #define C64_MAX_BASIC_LINE_LENGTH            79
-#define MAX_BASIC_LINE_LENGTH                COCO_MAX_BASIC_LINE_LENGTH
+#define COCO_MAX_BASIC_LINE_LENGTH           249
 #define BASIC_LINE_WRAP_POS                  70
 
 #define UCHAR_MAX_8_BIT                      255
 
-#define DEFAULT_START_ADDRESS                0x3f00
+#define C64_DEFAULT_START_ADDRESS            0x8000
+#define COCO_DEFAULT_START_ADDRESS           0x3f00
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE     65536
 #define HIGHEST_RAM_ADDRESS                  0xffff
 #define HIGHEST_32K_ADDRESS                  0x7fff
@@ -88,9 +99,25 @@ emit(FILE *fp, const char *fmt, ...)
 }
 
 static void
-emit_datum(FILE *fp, unsigned char c)
+emit_datum(FILE *fp, unsigned char c, enum machine_type machine)
 {
   static unsigned int length = (unsigned int) -1;
+  unsigned int max_basic_line_length = 0;
+
+  switch(machine)
+  {
+    case coco:
+    case cocoext:
+           max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
+           break;
+
+    case c64:
+    case c64vice:
+           max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
+           break;
+    default:
+           fail("Internal error");
+  }
 
   if (length == (unsigned int) -1)
   {
@@ -108,7 +135,7 @@ emit_datum(FILE *fp, unsigned char c)
 
   length += emit(fp, "%u", c);
 
-  if (length > MAX_BASIC_LINE_LENGTH)
+  if (length > max_basic_line_length)
     fail("Internal error: BASIC maximum line length exceeded");
 }
 
@@ -210,6 +237,32 @@ get_str_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static int
+get_m_arg(char **pargv[], const char *shrt, const char *lng,
+          enum machine_type *machine)
+{
+  if (match_arg((*pargv)[0], shrt, lng))
+  {
+    if ((*pargv)[1] == NULL)
+      fail("You must supply a string argument to %s", (*pargv)[0]);
+
+    if (*machine != default_machine)
+      fail("You can only set option %s once", (*pargv)[0]);
+
+         if (strcmp((*pargv)[1], "coco") == 0)    *machine = coco;
+    else if (strcmp((*pargv)[1], "cocoext") == 0) *machine = cocoext;
+    else if (strcmp((*pargv)[1], "c64") == 0)     *machine = c64;
+    else if (strcmp((*pargv)[1], "c64vice") == 0) *machine = c64vice;
+    else fail("Unknown parameter to %s", (*pargv)[0]);
+
+    ++(*pargv);
+
+    return 1;
+  }
+
+  return 0;
+}
+
+static int
 get_sw_arg(const char *arg, const char *shrt, const char *lng,
            int *sw)
 {
@@ -227,15 +280,17 @@ help(void)
 {
   puts("BASICloader (under development)");
   puts("(c) 2017 Richard Cavell");
+  puts("https://github.com/richardcavell/BASICloader");
   puts("Usage: BASICloader [options] [filename]");
   puts("-o --output    Output file");
+  puts("-m --machine   Target machine (coco, cocoext, c64, c64vice)");
   puts("-s --start     Start location");
   puts("-e --exec      Exec location");
-  puts("-x --extended  Assume Extended BASIC");
-  puts("-w --warnings  Warn about RAM requirements");
+  puts("-w --warnings  Warn about RAM requirements (coco/cocoext)");
   puts("-h --help      Help");
+  puts("-i --info      Info");
   puts("-v --version   Version");
-  puts("If no output filename is specified, the default is LOADER.BAS");
+
   exit(EXIT_SUCCESS);
 }
 
@@ -246,8 +301,47 @@ version(void)
   exit(EXIT_SUCCESS);
 }
 
+static void
+info(void)
+{
+  puts("BASICloader reads in a binary file and constructs a BASIC program");
+  puts("that will poke that binary file into memory and then execute it.");
+  puts("");
+  printf("The default machine is : ");
+  switch(DEFAULT_MACHINE)
+  {
+    case coco:    printf("coco\n");    break;
+    case cocoext: printf("cocoext\n"); break;
+    case c64:     printf("c64\n");     break;
+  }
+  puts("");
+  puts("Available target architectures are :");
+  puts("");
+  puts("         coco   TRS-80 Color Computer (any version)");
+  puts("                or Tano Dragon (any version)");
+  puts("                Default output filename: LOADER.BAS");
+  puts("");
+  puts("      cocoext   TRS-80 Color Computer (any version) with Extended BASIC");
+  puts("                or Tano Dragon");
+  puts("                Default output filename: LOADER.BAS");
+  puts("");
+  puts("          c64   Commodore 64 (or any compatible computer)");
+  puts("                The program will use uppercase throughout");
+  puts("                Default output filename: LOADER");
+  puts("");
+  puts("      c64vice   Commodore 64 (or any compatible computer)");
+  puts("                The program will use lowercase throughout");
+  puts("                Default output filename: loader");
+  puts("");
+  puts("                If you intend to use petcat on the output, use c64vice.");
+  puts("");
+
+  exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char *argv[])
 {
+  enum machine_type machine = default_machine;
   FILE *fp = NULL;
   FILE *ofp = NULL;
   char *fname = NULL;
@@ -256,7 +350,6 @@ int main(int argc, char *argv[])
   unsigned short int end   = 0;
   unsigned short int exec  = 0;
   long int size = 0;
-  int extended = 0;
   int warnings = 0;
   int c = 0;
 
@@ -269,11 +362,13 @@ int main(int argc, char *argv[])
              help();
       else if (    match_arg (argv[0], "-v", "--version"))
              version();
+      else if (    match_arg (argv[0], "-i", "--info"))
+             info();
       else if (
                    get_str_arg (&argv, "-o", "--output",   &ofname)
                 || get_shrt_arg(&argv, "-s", "--start",    &start)
                 || get_shrt_arg(&argv, "-e", "--exec",     &exec)
-                || get_sw_arg(argv[0], "-x", "--extended", &extended)
+                || get_m_arg   (&argv, "-m", "--machine",  &machine)
                 || get_sw_arg(argv[0], "-w", "--warnings", &warnings)
               )
             ;
@@ -288,14 +383,36 @@ int main(int argc, char *argv[])
            }
     }
 
+  if (machine == default_machine)
+    machine = DEFAULT_MACHINE;
+
   if (fname == NULL)
     fail("You must specify an input file");
 
   if (ofname == NULL)
-    ofname = DEFAULT_OUTPUT_FILENAME;
+      switch(machine)
+      {
+      case coco:
+      case cocoext:
+             ofname = COCO_DEFAULT_OUTPUT_FILENAME;
+             break;
+      case c64:
+             ofname = C64_DEFAULT_OUTPUT_FILENAME;
+             break;
+      case c64vice:
+             ofname = C64VICE_DEFAULT_OUTPUT_FILENAME;
+             break;
+      default:
+             fail("Internal error");
+      }
 
   if (start == 0)
-    start = DEFAULT_START_ADDRESS;
+  {
+         if (machine == coco || machine == cocoext)
+               start = COCO_DEFAULT_START_ADDRESS;
+    else if (machine == c64 || machine == c64vice)
+               start = C64_DEFAULT_START_ADDRESS;
+  }
 
   if (exec == 0)
     exec = start;
@@ -314,14 +431,17 @@ int main(int argc, char *argv[])
 
   size = ftell(fp);
 
-  if (fseek(fp, 0L, SEEK_SET) < 0)
-    fail("Could not rewind file %s", fname);
-
   if (size < 0)
     fail("Could not operate on file %s. Error number %d", fname, errno);
 
+  if (size == 0)
+    fail("File %s is empty", fname);
+
   if (size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
     fail("Input file %s is too large", fname);
+
+  if (fseek(fp, 0L, SEEK_SET) < 0)
+    fail("Could not rewind file %s", fname);
 
   ofp = fopen(ofname, "w");
 
@@ -338,28 +458,42 @@ int main(int argc, char *argv[])
   {
     fail("The program would overflow the 64K RAM limit");
   }
-  else if (warnings && end > HIGHEST_32K_ADDRESS)
+  else if ( warnings &&
+            (machine == coco || machine == cocoext) )
   {
-    puts("Warning: Program requires at least 32K of RAM");
-  }
-  else if (warnings && end > HIGHEST_16K_ADDRESS)
-  {
-    puts("Warning: Program requires at least 16K of RAM");
-  }
-  else if (warnings && end > HIGHEST_8K_ADDRESS)
-  {
-    puts("Warning: Program requires at least 8K of RAM");
-  }
-  else if (warnings && end > HIGHEST_4K_ADDRESS)
-  {
-    puts("Warning: Program requires at least 4K of RAM");
+    if (end > HIGHEST_32K_ADDRESS)
+      puts("Warning: Program requires at least 32K of RAM");
+    else if (end > HIGHEST_16K_ADDRESS)
+      puts("Warning: Program requires at least 16K of RAM");
+    else if (end > HIGHEST_8K_ADDRESS)
+      puts("Warning: Program requires at least 8K of RAM");
+    else if (end > HIGHEST_4K_ADDRESS)
+      puts("Warning: Program requires at least 4K of RAM");
   }
 
-  if (extended)
+  if (machine == cocoext)
     emit_line(ofp, "CLEAR200,%d", start - 1);
 
-  emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
-            "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
+  switch(machine)
+  {
+    case coco:
+    case cocoext:
+           emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
+                   "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
+           break;
+    case c64:
+           emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A", start, end);
+           emit_line(ofp, "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
+                                                                    exec);
+           break;
+    case c64vice:
+           emit_line(ofp, "forp=%dto%d:reada:pokep,a", start, end);
+           emit_line(ofp, "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
+                                                                    exec);
+           break;
+    default:
+           fail("Internal error");
+  }
 
   while ((c = fgetc(fp)) != EOF)
   {
@@ -369,7 +503,8 @@ int main(int argc, char *argv[])
     if (d > UCHAR_MAX_8_BIT)
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
-    emit_datum(ofp, d);
+
+    emit_datum(ofp, d, machine);
   }
 
   (void) emit(ofp, "\n");
