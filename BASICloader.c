@@ -17,9 +17,12 @@
 #define MAX_BASIC_LINE_NUMBER                63999
 #define DEFAULT_BASIC_LINE_STEP_SIZE         1
 
-#define COCO_MAX_BASIC_LINE_LENGTH           240
-#define C64_MAX_BASIC_LINE_LENGTH            75
+#define COCO_MAX_BASIC_LINE_LENGTH           249
+#define C64_MAX_BASIC_LINE_LENGTH            79
 #define MAX_BASIC_LINE_LENGTH                COCO_MAX_BASIC_LINE_LENGTH
+#define BASIC_LINE_WRAP_POS                  70
+
+#define UCHAR_MAX_8_BIT                      255
 
 #define DEFAULT_START_ADDRESS                0x3f00
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE     65536
@@ -62,28 +65,67 @@ get_line(void)
 }
 
 static void
+emit_fail(void)
+{
+  fail("Couldn't write to output file");
+}
+
+static unsigned int
+emit(FILE *fp, const char *fmt, ...)
+{
+  int bytes = 0;
+  va_list ap;
+
+  va_start (ap,fmt);
+
+  bytes = vfprintf(fp, fmt, ap);
+  if (bytes < 0)
+    emit_fail();
+
+  va_end(ap);
+
+  return (unsigned int) bytes;
+}
+
+static void
+emit_datum(FILE *fp, unsigned char c)
+{
+  static unsigned int length = (unsigned int) -1;
+
+  if (length == (unsigned int) -1)
+  {
+    length = emit(fp, "%u DATA", get_line());
+  }
+  else if (length > BASIC_LINE_WRAP_POS)
+  {
+    emit(fp, "\n");
+    length = emit(fp, "%u DATA", get_line());
+  }
+  else
+  {
+    length += emit(fp, ",");
+  }
+
+  length += emit(fp, "%u", c);
+
+  if (length > MAX_BASIC_LINE_LENGTH)
+    fail("Internal error: BASIC maximum line length exceeded");
+}
+
+static void
 emit_line(FILE *fp, const char *fmt, ...)
 {
   va_list ap;
 
-  if (fprintf(fp, "%d ", get_line()) < 0)
-    fail("Couldn't write to file");
+  (void) emit(fp, "%d ", get_line());
 
   va_start(ap, fmt);
   if (vfprintf(fp, fmt, ap) < 0)
-    fail("Couldn't write to file");
+    emit_fail();
   va_end(ap);
 
-  if (fprintf(fp, "\n") < 0)
-    fail("Couldn't write to file");
+  (void) emit(fp, "\n");
 }
-
-/*
-static void
-emit_datum(FILE *fp, unsigned char c)
-{
-}
-*/
 
 static unsigned short int
 get_short(const char *s, int *ok)
@@ -216,6 +258,7 @@ int main(int argc, char *argv[])
   long int size = 0;
   int extended = 0;
   int warnings = 0;
+  int c = 0;
 
   (void) argc; /* Suppress compiler warning about unused variable */
 
@@ -314,6 +357,18 @@ int main(int argc, char *argv[])
 
   emit_line(ofp, "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
             "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
+
+  while ((c = getchar()) != EOF)
+  {
+    unsigned char d = (unsigned char) c;
+
+#if (UCHAR_MAX != UCHAR_MAX_8_BIT)
+    if (d > UCHAR_MAX_8_BIT)
+      fail("Input file contains a value that's too high for an 8-bit machine");
+#endif
+
+    emit_datum(fp, d);
+  }
 
   if (fclose(fp) != 0)
     fail("Couldn't close file %s", fname);
