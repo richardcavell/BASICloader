@@ -89,12 +89,12 @@ get_line_number(unsigned int *line, unsigned int step)
 
   *line += step;
 
+  if (*line < old_line)
+    fail("Line number overflow");
+
     /* Program is probably too long anyway*/
   if (old_line > MAX_BASIC_LINE_NUMBER)
     fail("The BASIC line numbers have become too large");
-
-  if (*line < old_line)
-    fail("Line number overflow");
 
   return old_line;
 }
