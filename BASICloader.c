@@ -20,28 +20,28 @@ enum machine_type {
 };
 
 #define DEFAULT_MACHINE                      coco
-#define C64_DEFAULT_OUTPUT_FILENAME          "LOADER"
+#define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER"
 #define C64PETCAT_DEFAULT_OUTPUT_FILENAME    "loader.bas"
-#define COCO_DEFAULT_OUTPUT_FILENAME         "LOADER.BAS"
+#define      COCO_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 
-#define MIN_BASIC_LINE_NUMBER                0
-#define MAX_BASIC_LINE_NUMBER                63999
+#define     MIN_BASIC_LINE_NUMBER            0
+#define     MAX_BASIC_LINE_NUMBER            63999
 #define DEFAULT_BASIC_LINE_STEP_SIZE         1
 
-#define C64_MAX_BASIC_LINE_LENGTH            79
+#define  C64_MAX_BASIC_LINE_LENGTH           79
 #define COCO_MAX_BASIC_LINE_LENGTH           249
-#define BASIC_LINE_WRAP_POS                  70
+#define          BASIC_LINE_WRAP_POS         70
 
 #define UCHAR_MAX_8_BIT                      255
 
-#define C64_DEFAULT_START_ADDRESS            0x8000
+#define  C64_DEFAULT_START_ADDRESS           0x8000
 #define COCO_DEFAULT_START_ADDRESS           0x3e00
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE     65536
 #define HIGHEST_RAM_ADDRESS                  0xffff
 #define HIGHEST_32K_ADDRESS                  0x7fff
 #define HIGHEST_16K_ADDRESS                  0x3fff
-#define HIGHEST_8K_ADDRESS                   0x1fff
-#define HIGHEST_4K_ADDRESS                   0x0fff
+#define  HIGHEST_8K_ADDRESS                  0x1fff
+#define  HIGHEST_4K_ADDRESS                  0x0fff
 
 static void
 fail(const char *fmt,...)
@@ -57,19 +57,6 @@ fail(const char *fmt,...)
   (void) fprintf(stderr, "\n");
 
   exit(EXIT_FAILURE);
-}
-
-static unsigned int
-get_line_number(unsigned int *line, unsigned int step)
-{
-  unsigned int old_line = *line;
-
-  *line += step;
-
-  if (*line > MAX_BASIC_LINE_NUMBER || *line < old_line)
-    fail("Line number overflow"); /* Program is probably too long anyway*/
-
-  return old_line;
 }
 
 static void
@@ -93,6 +80,23 @@ emit(FILE *fp, const char *fmt, ...)
   va_end(ap);
 
   return (unsigned int) bytes;
+}
+
+static unsigned int
+get_line_number(unsigned int *line, unsigned int step)
+{
+  unsigned int old_line = *line;
+
+  *line += step;
+
+    /* Program is probably too long anyway*/
+  if (old_line > MAX_BASIC_LINE_NUMBER)
+    fail("The BASIC line numbers have become too large");
+
+  if (*line < old_line)
+    fail("Line number overflow");
+
+  return old_line;
 }
 
 static void
