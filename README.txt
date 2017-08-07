@@ -13,9 +13,9 @@ or almost any other operating system that can compile standard C.
 It is written in standard C (C89) and does not rely on any external
 libraries or header files outside of the standard C library. The Makefile
 is intended for GNU Make. If you don't have GNU Make, you will have to
-compile BASICloader manually.
+compile BASICloader manually. This won't be difficult.
 
-Currently BASICloader supports the following computers:
+Currently BASICloader supports the following target computers:
 
   * TRS-80 Color Computer 1 and 2
   * TRS-80 Color Computer 1 and 2 with Extended Color BASIC
@@ -26,23 +26,23 @@ Currently BASICloader supports the following computers:
 A number of computer models that are similar to the above machines may
 be able to run the output as well.
 
-BASICloader outputs a BASIC program that can be run on the target machine.
-This BASIC program incorporates the machine language program as data.
-If run, the BASIC program will poke the machine language program into
-the correct memory locations, checking that it is doing so correctly,
-and then it will execute the program.
+This BASIC program output by BASICloader incorporates the machine language
+program as data. If run on the target machine, it will poke the machine
+language program into the correct memory locations, checking that it is
+doing so correctly, and then it will execute the program.
 
-The BASIC program output by BASICloader will therefore look like the old
-"type-in" programs from 1980s computer magazines.
+The output of BASICloader will therefore look like the old "type-in"
+programs from 1980s computer magazines.
 
-If you want to use the output on an emulated Coco or Dragon using XRoar:
+If you want to use the output on an emulated Color Computer or Dragon using
+XRoar, try these commands:
 
     $ ./BASICloader --machine coco XXX.bin
     $ xroar -run LOADER.BAS
 
 If you want to use the output on an emulated C64 using VICE:
 
-    $ ./BASICloader --machine c64petcat XXX.bin
+    $ ./BASICloader --machine c64lowercase XXX.bin
     $ petcat -w2 -o loader.prg loader.bas
     $ c1541 -format loader,"88 2a" d64 loader.d64 -write loader.prg loader
     $ x64 -autostart loader.d64
