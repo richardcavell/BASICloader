@@ -312,7 +312,7 @@ info(void)
   puts("BASICloader reads in a binary file and constructs a BASIC program");
   puts("that will poke that binary file into memory and then execute it.");
   puts("");
-  printf("The default machine is : ");
+  printf("The default target is : ");
   switch(DEFAULT_MACHINE)
   {
     case coco:      printf("coco\n");      break;
@@ -323,12 +323,12 @@ info(void)
   puts("");
   puts("Available target architectures are :");
   puts("");
-  puts("         coco   TRS-80 Color Computer (any version)");
-  puts("                or Dragon (any version)");
+  puts("         coco   TRS-80 Color Computer (any model)");
+  puts("                or Dragon (any model)");
   puts("                Default output filename: LOADER.BAS");
   puts("");
   puts("      cocoext   TRS-80 Color Computer 1 or 2 with Extended BASIC");
-  puts("                or Color Computer 3 (any version) or Dragon (any version)");
+  puts("                or Color Computer 3 (any version) or Dragon (any model)");
   puts("                Default output filename: LOADER.BAS");
   puts("");
   puts("          c64   Commodore 64 (or any compatible computer)");
