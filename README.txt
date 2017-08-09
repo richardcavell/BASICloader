@@ -34,6 +34,9 @@ doing so correctly, and then it will execute the program.
 The output of BASICloader will therefore look like the old "type-in"
 programs from 1980s computer magazines.
 
+If there is any intellectual property right in the output of this program,
+then I license that to you as well, under a free license.
+
 If you want to use the output on an emulated Color Computer or Dragon using
 XRoar, try these commands:
 
