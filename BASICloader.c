@@ -16,32 +16,33 @@ enum machine_type {
   coco,
   cocoext,
   c64,
-  c64petcat
+  c64lc
 };
 
-#define DEFAULT_MACHINE                      coco
-#define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER"
-#define C64PETCAT_DEFAULT_OUTPUT_FILENAME    "loader.bas"
+#define           DEFAULT_MACHINE            coco
+
+#define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
+#define     C64LC_DEFAULT_OUTPUT_FILENAME    "loader.bas"
 #define      COCO_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 
-#define     MIN_BASIC_LINE_NUMBER            0
-#define     MAX_BASIC_LINE_NUMBER            63999
-#define DEFAULT_BASIC_LINE_STEP_SIZE         1
+#define         MIN_BASIC_LINE_NUMBER        0
+#define         MAX_BASIC_LINE_NUMBER        63999
+#define     DEFAULT_BASIC_LINE_STEP_SIZE     1
 
-#define  C64_MAX_BASIC_LINE_LENGTH           79
-#define COCO_MAX_BASIC_LINE_LENGTH           249
-#define          BASIC_LINE_WRAP_POS         70
+#define     C64_MAX_BASIC_LINE_LENGTH        79
+#define    COCO_MAX_BASIC_LINE_LENGTH        249
+#define             BASIC_LINE_WRAP_POS      70
 
-#define UCHAR_MAX_8_BIT                      255
+#define       C64_DEFAULT_START_ADDRESS      0x8000
+#define      COCO_DEFAULT_START_ADDRESS      0x3e00
+#define   MAX_MACHINE_LANGUAGE_BINARY_SIZE   65536
+#define         HIGHEST_RAM_ADDRESS          0xffff
+#define         HIGHEST_32K_ADDRESS          0x7fff
+#define         HIGHEST_16K_ADDRESS          0x3fff
+#define          HIGHEST_8K_ADDRESS          0x1fff
+#define          HIGHEST_4K_ADDRESS          0x0fff
 
-#define  C64_DEFAULT_START_ADDRESS           0x8000
-#define COCO_DEFAULT_START_ADDRESS           0x3e00
-#define MAX_MACHINE_LANGUAGE_BINARY_SIZE     65536
-#define HIGHEST_RAM_ADDRESS                  0xffff
-#define HIGHEST_32K_ADDRESS                  0x7fff
-#define HIGHEST_16K_ADDRESS                  0x3fff
-#define  HIGHEST_8K_ADDRESS                  0x1fff
-#define  HIGHEST_4K_ADDRESS                  0x0fff
+#define            UCHAR_MAX_8_BIT           255
 
 static void
 fail(const char *fmt,...)
@@ -114,7 +115,7 @@ emit_datum(FILE *fp, unsigned int *line, unsigned int step,
            break;
 
     case c64:
-    case c64petcat:
+    case c64lc:
            max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
            break;
     default:
@@ -124,13 +125,13 @@ emit_datum(FILE *fp, unsigned int *line, unsigned int step,
   if (length == (unsigned int) -1)
   {
     length = emit(fp, "%u %s", get_line_number(line, step),
-                      (machine == c64petcat) ? "data" : "DATA" );
+                      (machine == c64lc) ? "data" : "DATA" );
   }
   else if (length > BASIC_LINE_WRAP_POS)
   {
     emit(fp, "\n");
     length = emit(fp, "%u %s", get_line_number(line, step),
-                      (machine == c64petcat) ? "data" : "DATA" );
+                      (machine == c64lc) ? "data" : "DATA" );
   }
   else
   {
@@ -256,7 +257,7 @@ get_m_arg(char **pargv[], const char *shrt, const char *lng,
          if (strcmp((*pargv)[1], "coco") == 0)      *machine = coco;
     else if (strcmp((*pargv)[1], "cocoext") == 0)   *machine = cocoext;
     else if (strcmp((*pargv)[1], "c64") == 0)       *machine = c64;
-    else if (strcmp((*pargv)[1], "c64petcat") == 0) *machine = c64petcat;
+    else if (strcmp((*pargv)[1], "c64lc") == 0) *machine = c64lc;
     else fail("Unknown parameter to %s", (*pargv)[0]);
 
     ++(*pargv);
@@ -288,7 +289,7 @@ help(void)
   puts("https://github.com/richardcavell/BASICloader");
   puts("Usage: BASICloader [options] [filename]");
   puts("-o --output    Output file");
-  puts("-m --machine   Target machine (coco, cocoext, c64, c64petcat)");
+  puts("-m --machine   Target machine (coco, cocoext, c64, c64lc)");
   puts("-s --start     Start location");
   puts("-e --exec      Exec location");
   puts("-w --warnings  Warn about RAM requirements (coco/cocoext)");
@@ -318,7 +319,7 @@ info(void)
     case coco:      printf("coco\n");      break;
     case cocoext:   printf("cocoext\n");   break;
     case c64:       printf("c64\n");       break;
-    case c64petcat: printf("c64petcat\n"); break;
+    case c64lc:     printf("c64lc\n"); break;
   }
   puts("");
   puts("Available target architectures are :");
@@ -335,7 +336,7 @@ info(void)
   puts("                The program will use uppercase throughout");
   puts("                Default output filename: LOADER");
   puts("");
-  puts("    c64petcat   Commodore 64 (or any compatible computer)");
+  puts("        c64lc   Commodore 64 (or any compatible computer)");
   puts("                The program will use lowercase throughout");
   puts("                Default output filename: loader.bas");
   puts("");
@@ -405,8 +406,8 @@ int main(int argc, char *argv[])
       case c64:
              ofname = C64_DEFAULT_OUTPUT_FILENAME;
              break;
-      case c64petcat:
-             ofname = C64PETCAT_DEFAULT_OUTPUT_FILENAME;
+      case c64lc:
+             ofname = C64LC_DEFAULT_OUTPUT_FILENAME;
              break;
       default:
              fail("Internal error");
@@ -416,7 +417,7 @@ int main(int argc, char *argv[])
   {
          if (machine == coco || machine == cocoext)
                start = COCO_DEFAULT_START_ADDRESS;
-    else if (machine == c64 || machine == c64petcat)
+    else if (machine == c64 || machine == c64lc)
                start = C64_DEFAULT_START_ADDRESS;
   }
 
@@ -499,7 +500,7 @@ int main(int argc, char *argv[])
                      "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
                                                                     exec);
            break;
-    case c64petcat:
+    case c64lc:
            emit_line(ofp, &line, step,
                      "forp=%dto%d:reada:pokep,a", start, end);
            emit_line(ofp, &line, step,
