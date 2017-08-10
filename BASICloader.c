@@ -84,14 +84,18 @@ emit(FILE *fp, const char *fmt, ...)
 }
 
 static unsigned int
-get_line_number(unsigned int *line, unsigned int step)
+get_line_number(unsigned int *line, unsigned int *line_number_overflow,
+                unsigned int step)
 {
   unsigned int old_line = *line;
+
+  if (*line_number_overflow)
+    fail("Line number overflow");
 
   *line += step;
 
   if (*line < old_line)
-    fail("Line number overflow");
+    *line_number_overflow = 1;
 
     /* Program is probably too long anyway*/
   if (old_line > MAX_BASIC_LINE_NUMBER)
@@ -101,8 +105,8 @@ get_line_number(unsigned int *line, unsigned int step)
 }
 
 static void
-emit_datum(FILE *fp, unsigned int *line, unsigned int step,
-           unsigned char c, enum machine_type machine)
+emit_datum(FILE *fp, unsigned int *line, unsigned int *line_number_overflow,
+           unsigned int step, unsigned char c, enum machine_type machine)
 {
   static unsigned int length = (unsigned int) -1;
   unsigned int max_basic_line_length = 0;
@@ -124,13 +128,15 @@ emit_datum(FILE *fp, unsigned int *line, unsigned int step,
 
   if (length == (unsigned int) -1)
   {
-    length = emit(fp, "%u %s", get_line_number(line, step),
+    length = emit(fp, "%u %s",
+                  get_line_number(line, line_number_overflow, step),
                       (machine == c64lc) ? "data" : "DATA" );
   }
   else if (length > BASIC_LINE_WRAP_POS)
   {
     emit(fp, "\n");
-    length = emit(fp, "%u %s", get_line_number(line, step),
+    length = emit(fp, "%u %s",
+                  get_line_number(line, line_number_overflow, step),
                       (machine == c64lc) ? "data" : "DATA" );
   }
   else
@@ -145,12 +151,12 @@ emit_datum(FILE *fp, unsigned int *line, unsigned int step,
 }
 
 static void
-emit_line(FILE *fp, unsigned int *line, unsigned int step,
-          const char *fmt, ...)
+emit_line(FILE *fp, unsigned int *line, unsigned int *line_number_overflow,
+          unsigned int step, const char *fmt, ...)
 {
   va_list ap;
 
-  (void) emit(fp, "%d ", get_line_number(line, step));
+  (void) emit(fp, "%d ", get_line_number(line, line_number_overflow, step));
 
   va_start(ap, fmt);
   if (vfprintf(fp, fmt, ap) < 0)
@@ -352,6 +358,7 @@ int main(int argc, char *argv[])
   char *fname = NULL;
   char *ofname = NULL;
   unsigned int line = MIN_BASIC_LINE_NUMBER;
+  unsigned int line_number_overflow = 0;
   unsigned int step = DEFAULT_BASIC_LINE_STEP_SIZE;
   unsigned short int start = 0;
   unsigned short int end   = 0;
@@ -483,27 +490,28 @@ int main(int argc, char *argv[])
   }
 
   if (machine == cocoext)
-    emit_line(ofp, &line, step, "CLEAR200,%d", start - 1);
+    emit_line(ofp, &line, &line_number_overflow, step,
+                   "CLEAR200,%d", start - 1);
 
   switch(machine)
   {
     case coco:
     case cocoext:
-           emit_line(ofp, &line, step,
+           emit_line(ofp, &line, &line_number_overflow, step,
                      "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
                      "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
            break;
     case c64:
-           emit_line(ofp, &line, step,
+           emit_line(ofp, &line, &line_number_overflow, step,
                      "FORP=%dTO%d:READA:POKEP,A", start, end);
-           emit_line(ofp, &line, step,
+           emit_line(ofp, &line, &line_number_overflow, step,
                      "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
                                                                     exec);
            break;
     case c64lc:
-           emit_line(ofp, &line, step,
+           emit_line(ofp, &line, &line_number_overflow, step,
                      "forp=%dto%d:reada:pokep,a", start, end);
-           emit_line(ofp, &line, step,
+           emit_line(ofp, &line, &line_number_overflow, step,
                      "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
                                                                     exec);
            break;
@@ -520,7 +528,7 @@ int main(int argc, char *argv[])
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
 
-    emit_datum(ofp, &line, step, d, machine);
+    emit_datum(ofp, &line, &line_number_overflow, step, d, machine);
   }
 
   (void) emit(ofp, "\n");
