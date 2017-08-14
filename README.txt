@@ -43,15 +43,21 @@ The output of this program is licensed to you under the following license:
 
 You should not allow people to assume that you wrote the BASIC code yourself.
 
-If you want to use the output on an emulated Color Computer or Dragon using
-XRoar, try these commands:
+If you want to use the output on an emulated Color Computer using XRoar,
+try these commands:
 
     $ ./BASICloader --machine coco XXX.bin
-    $ xroar -run LOADER.BAS
+    $ xroar -machine coco2b -run LOADER.BAS
+
+If you want to use the output on an emulated Dragon 64 using XRoar,
+try these commands:
+
+    $ ./BASICloader --machine coco XXX.bin
+    $ xroar -machine dragon64 -run LOADER.BAS
 
 If you want to use the output on an emulated C64 using VICE:
 
-    $ ./BASICloader --machine c64lc XXX.bin
+    $ ./BASICloader --machine c64_lc XXX.bin
     $ petcat -w2 -o loader.prg loader.bas
     $ c1541 -format loader,"88 2a" d64 loader.d64 -write loader.prg loader
     $ x64 -autostart loader.d64

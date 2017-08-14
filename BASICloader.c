@@ -11,18 +11,19 @@
 #include <limits.h>
 #include <errno.h>
 
-enum machine_type {
+enum machine_type
+{
   default_machine = 0,
   coco,
-  cocoext,
+  coco_ext,
   c64,
-  c64lc
+  c64_lc
 };
 
 #define           DEFAULT_MACHINE            coco
 
 #define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
-#define     C64LC_DEFAULT_OUTPUT_FILENAME    "loader.bas"
+#define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader.bas"
 #define      COCO_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 
 #define         MIN_BASIC_LINE_NUMBER        0
@@ -67,65 +68,45 @@ emit_fail(void)
 }
 
 static unsigned int
-emit(FILE *fp, const char *fmt, ...)
-{
-  int bytes = 0;
-  va_list ap;
-
-  va_start (ap,fmt);
-
-  bytes = vfprintf(fp, fmt, ap);
-  if (bytes < 0)
-    emit_fail();
-
-  va_end(ap);
-
-  return (unsigned int) bytes;
-}
-
-static unsigned int
-get_line_number(unsigned int *line, unsigned int *line_numbers_initiated,
-                unsigned int step)
+next_line_number(unsigned int *first_line,
+                 unsigned int *line,
+                 unsigned int step)
 {
   unsigned int old_line = *line;
 
-  if(*line_numbers_initiated == 0)
+  if(*first_line == 1)
   {
-    *line_numbers_initiated = 1;
+    *first_line = 0;
     *line = MIN_BASIC_LINE_NUMBER;
   }
   else
   {
     *line += step;
-
-    if (*line < old_line)
-      fail("Line number overflow");
-
-    /* Program is probably too long anyway*/
-    if (*line > MAX_BASIC_LINE_NUMBER)
-      fail("The BASIC line numbers have become too large");
   }
+
+  if (*line < old_line)
+    fail("Line number overflow");
+
+  if (*line > MAX_BASIC_LINE_NUMBER)
+    fail("The BASIC line numbers have become too large");
 
   return *line;
 }
 
 static void
-emit_datum(FILE *fp, unsigned int *line, unsigned int *emitting_data,
-           unsigned int *line_numbers_initiated, unsigned int step,
-           unsigned char c, enum machine_type machine)
+check_pos(unsigned int *pos, enum machine_type machine)
 {
-  static unsigned int length = 0;
   unsigned int max_basic_line_length = 0;
 
   switch(machine)
   {
     case coco:
-    case cocoext:
+    case coco_ext:
            max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
            break;
 
     case c64:
-    case c64lc:
+    case c64_lc:
            max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
            break;
 
@@ -133,45 +114,90 @@ emit_datum(FILE *fp, unsigned int *line, unsigned int *emitting_data,
            fail("Internal error");
   }
 
-  if (*emitting_data == 0)
-  {
-    *emitting_data = 1;
-    length = emit(fp, "%u %s",
-                  get_line_number(line, line_numbers_initiated, step),
-                      (machine == c64lc) ? "data" : "DATA" );
-  }
-  else if (length > BASIC_LINE_WRAP_POS)
-  {
-    (void) emit(fp, "\n");
-    length = emit(fp, "%u %s",
-                  get_line_number(line, line_numbers_initiated, step),
-                      (machine == c64lc) ? "data" : "DATA" );
-  }
-  else
-  {
-    length += emit(fp, ",");
-  }
-
-  length += emit(fp, "%u", c);
-
-  if (length > max_basic_line_length)
+  if (*pos > max_basic_line_length)
     fail("Internal error: BASIC maximum line length exceeded");
 }
 
-static void
-emit_line(FILE *fp, unsigned int *line, unsigned int *line_numbers_initiated,
-          unsigned int step, const char *fmt, ...)
+static unsigned int
+emit(FILE *fp, const char *fmt, ...)
 {
+  int bytes = 0;
   va_list ap;
 
-  (void) emit(fp, "%d ", get_line_number(line, line_numbers_initiated, step));
-
-  va_start(ap, fmt);
-  if (vfprintf(fp, fmt, ap) < 0)
-    emit_fail();
+  va_start (ap, fmt);
+  bytes = vfprintf(fp, fmt, ap);
   va_end(ap);
 
+  if (bytes < 0)
+    emit_fail();
+
+  return (unsigned int) bytes;
+}
+
+static void
+emit_datum(FILE *fp,
+           unsigned char c,
+           enum machine_type machine,
+           unsigned int *first_line,
+           unsigned int *line,
+           unsigned int step,
+           unsigned int *pos)
+{
+  if (*pos > BASIC_LINE_WRAP_POS)
+  {
+    (void) emit(fp, "\n");
+    *pos = 0;
+  }
+
+  if (*pos == 0)
+  {
+    *pos = emit(fp, "%u %s",
+                    next_line_number(first_line, line, step),
+                    (machine == c64_lc) ? "data" : "DATA" );
+  }
+  else
+  {
+    *pos += emit(fp, ",");
+  }
+
+  *pos += emit(fp, "%u", c);
+
+  check_pos(pos, machine);
+}
+
+static void
+emit_line(FILE *fp,
+          unsigned int *pos,
+          unsigned int *first_line,
+          unsigned int *line,
+          unsigned int step,
+          enum machine_type machine,
+          const char *fmt, ...)
+{
+  va_list ap;
+  int bytes = 0;
+
+  *pos = emit(fp, "%d ", next_line_number(first_line, line, step));
+
+  va_start(ap, fmt);
+  bytes = vfprintf(fp, fmt, ap);
+  va_end(ap);
+
+  if (bytes < 0)
+    emit_fail();
+
+  *pos += (unsigned int) bytes;
+  check_pos(pos, machine);
+
   (void) emit(fp, "\n");
+  *pos = 0;
+}
+
+static int
+match_arg(const char *arg, const char *shrt, const char *lng)
+{
+  return (   strcmp(arg, shrt)==0
+          || strcmp(arg,  lng)==0 );
 }
 
 static unsigned short int
@@ -180,65 +206,56 @@ get_short(const char *s, int *ok)
   char *endptr = NULL;
   unsigned long int l = 0;
 
-  if (s == NULL)
-  {
-    *ok = 0;
-  }
-  else
-  {
-    errno = 0;
+  errno = 0;
 
+  if (s != NULL)
     l = strtoul(s, &endptr, 0);
 
-    *ok = ( (endptr && *endptr=='\0')
-            && (errno == 0)
-            && (l <= USHRT_MAX) );
-  }
+  *ok = ( s != NULL
+          && endptr
+          && (*endptr=='\0')
+          && (errno == 0)
+          && (l <= USHRT_MAX) );
 
   return (unsigned short int) l;
 }
 
 static int
-match_arg(const char *arg, const char *shrt, const char *lng)
-{
-  return (   strcmp(arg, shrt)==0
-          || strcmp(arg, lng) ==0 );
-}
-
-static int
 get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
-        unsigned short int *ps)
+             unsigned short int *ps)
 {
-  if (match_arg((*pargv)[0], shrt, lng))
+  int matched;
+
+  if ((matched = match_arg((*pargv)[0], shrt, lng)))
   {
     int ok = 0;
 
     if (*ps)
-      fail("Option %d can only be set once", (*pargv)[0]);
+      fail("Option %s can only be set once", (*pargv)[0]);
 
     *ps = get_short((*pargv)[1], &ok);
 
     if (!ok)
       fail("Invalid argument to %s", (*pargv)[0]);
 
-#if (USHRT_MAX != HIGHEST_RAM_ADDRESS)
+#if (USHRT_MAX > HIGHEST_RAM_ADDRESS)
     if (*ps > HIGHEST_RAM_ADDRESS)
       fail("%s cannot be greater than %x", (*pargv)[0], HIGHEST_RAM_ADDRESS);
 #endif
 
     ++(*pargv);
-
-    return 1;
   }
 
-  return 0;
+  return matched;
 }
 
 static int
 get_str_arg(char **pargv[], const char *shrt, const char *lng,
             char **s)
 {
-  if (match_arg((*pargv)[0], shrt, lng))
+  int matched;
+
+  if ((matched = match_arg((*pargv)[0], shrt, lng)))
   {
     if ((*pargv)[1] == NULL)
       fail("You must supply a string argument to %s", (*pargv)[0]);
@@ -249,112 +266,126 @@ get_str_arg(char **pargv[], const char *shrt, const char *lng,
     *s = (*pargv)[1];
 
     ++(*pargv);
-
-    return 1;
   }
 
-  return 0;
+  return matched;
 }
 
 static int
 get_m_arg(char **pargv[], const char *shrt, const char *lng,
           enum machine_type *machine)
 {
-  if (match_arg((*pargv)[0], shrt, lng))
+  int matched = 0;
+  char *name = NULL;
+
+  if ((matched = get_str_arg(pargv, shrt, lng, &name)))
   {
-    if ((*pargv)[1] == NULL)
-      fail("You must supply a string argument to %s", (*pargv)[0]);
-
-    if (*machine != default_machine)
-      fail("You can only set option %s once", (*pargv)[0]);
-
-         if (strcmp((*pargv)[1], "coco") == 0)      *machine = coco;
-    else if (strcmp((*pargv)[1], "cocoext") == 0)   *machine = cocoext;
-    else if (strcmp((*pargv)[1], "c64") == 0)       *machine = c64;
-    else if (strcmp((*pargv)[1], "c64lc") == 0) *machine = c64lc;
-    else fail("Unknown parameter to %s", (*pargv)[0]);
-
-    ++(*pargv);
-
-    return 1;
+         if (strcmp(name, "coco") == 0)      *machine = coco;
+    else if (strcmp(name, "coco_ext") == 0)  *machine = coco_ext;
+    else if (strcmp(name, "c64") == 0)       *machine = c64;
+    else if (strcmp(name, "c64_lc") == 0)    *machine = c64_lc;
+    else fail("Unknown machine %s", (*pargv)[0]);
   }
 
-  return 0;
+  return matched;
 }
 
 static int
 get_sw_arg(const char *arg, const char *shrt, const char *lng,
            int *sw)
 {
-  if (match_arg(arg, shrt, lng))
-  {
-    *sw = 1;
-    return 1;
-  }
+  int matched = 0;
 
-  return 0;
+  if ((matched = match_arg(arg, shrt, lng)))
+    *sw = 1;
+
+  return matched;
 }
 
 static void
-help(void)
+print_version(void)
 {
   puts("BASICloader (under development)");
   puts("(c) 2017 Richard Cavell");
   puts("https://github.com/richardcavell/BASICloader");
-  puts("Usage: BASICloader [options] [filename]");
-  puts("-o --output    Output file");
-  puts("-m --machine   Target machine (coco, cocoext, c64, c64lc)");
-  puts("-s --start     Start location");
-  puts("-e --exec      Exec location");
-  puts("-w --warnings  Warn about RAM requirements (coco/cocoext)");
-  puts("-h --help      Help");
-  puts("-i --info      Info");
-  puts("-v --version   Version");
-
-  exit(EXIT_SUCCESS);
 }
 
 static void
 version(void)
 {
-  puts("BASICloader (under development)");
+  print_version();
+  exit(EXIT_SUCCESS);
+}
+
+static void
+help(void)
+{
+  print_version();
+  puts("Usage: BASICloader [options] [filename]");
+  puts("-o --output    Output file");
+  puts("-m --machine   Target machine (coco, coco_ext, c64, c64_lc)");
+  puts("-s --start     Start location");
+  puts("-e --exec      Exec location");
+  puts("-w --warnings  Warn about RAM requirements (coco/coco_ext)");
+  puts("-h --help      This help information");
+  puts("-i --info      What this program does");
+  puts("-l --list      Target machine options");
+  puts("-v --version   Version of this software");
   exit(EXIT_SUCCESS);
 }
 
 static void
 info(void)
 {
-  puts("BASICloader reads in a binary file and constructs a BASIC program");
-  puts("that will poke that binary file into memory and then execute it.");
+  print_version();
   puts("");
+  puts("BASICloader reads in a machine language binary, and then constructs");
+  puts("a BASIC program that will run on the target architecture.");
+  puts("");
+  puts("The BASIC program so produced contains DATA statements that represent");
+  puts("the machine language given to BASICloader when the BASIC program");
+  puts("was generated.");
+  puts("");
+  puts("When run on the target architecture, the BASIC program will poke");
+  puts("that machine language into memory and execute it.");
+
+  exit(EXIT_SUCCESS);
+}
+
+static void
+list(void)
+{
   printf("The default target is : ");
   switch(DEFAULT_MACHINE)
   {
     case coco:      printf("coco\n");      break;
-    case cocoext:   printf("cocoext\n");   break;
+    case coco_ext:  printf("coco_ext\n");  break;
     case c64:       printf("c64\n");       break;
-    case c64lc:     printf("c64lc\n"); break;
+    case c64_lc:    printf("c64_lc\n");    break;
   }
-  puts("");
-  puts("Available target architectures are :");
-  puts("");
-  puts("         coco   TRS-80 Color Computer (any model)");
-  puts("                or Dragon (any model)");
-  puts("                Default output filename: LOADER.BAS");
-  puts("");
-  puts("      cocoext   TRS-80 Color Computer 1 or 2 with Extended BASIC");
-  puts("                or Color Computer 3 (any version) or Dragon (any model)");
-  puts("                Default output filename: LOADER.BAS");
-  puts("");
-  puts("          c64   Commodore 64 (or any compatible computer)");
-  puts("                The program will use uppercase throughout");
-  puts("                Default output filename: LOADER");
-  puts("");
-  puts("        c64lc   Commodore 64 (or any compatible computer)");
-  puts("                The program will use lowercase throughout");
-  puts("                Default output filename: loader.bas");
-  puts("");
-
+    puts("Available target architectures are :");
+    puts("         coco   TRS-80 Color Computer (any model)");
+    puts("                or Dragon (any model)");
+  printf("                Default output filename: %s\n",
+                             COCO_DEFAULT_OUTPUT_FILENAME);
+    puts("");
+    puts("     coco_ext   TRS-80 Color Computer 1 With Extended BASIC");
+    puts("                or Color Computer 2 with Extended BASIC");
+    puts("                or Color Computer 3 (any version)");
+    puts("                or Dragon (any model)");
+  printf("                Default output filename: %s\n",
+                             COCO_DEFAULT_OUTPUT_FILENAME);
+    puts("");
+    puts("          c64   Commodore 64 (or any compatible computer)");
+    puts("                The program will use uppercase throughout");
+  printf("                Default output filename: %s\n",
+                              C64_DEFAULT_OUTPUT_FILENAME);
+    puts("");
+    puts("       c64_lc   Commodore 64 (or any compatible computer)");
+    puts("                The program will use lowercase throughout");
+    puts("                Use this option to work with petcat");
+  printf("                Default output filename: %s\n",
+                              C64_LC_DEFAULT_OUTPUT_FILENAME);
   exit(EXIT_SUCCESS);
 }
 
@@ -365,10 +396,10 @@ int main(int argc, char *argv[])
   FILE *ofp = NULL;
   char *fname = NULL;
   char *ofname = NULL;
+  unsigned int first_line = 1;
   unsigned int line = 0;
-  unsigned int line_numbers_initiated = 0;
-  unsigned int emitting_data = 0;
   unsigned int step = DEFAULT_BASIC_LINE_STEP_SIZE;
+  unsigned int pos = 0;
   unsigned short int start = 0;
   unsigned short int end   = 0;
   unsigned short int exec  = 0;
@@ -376,17 +407,17 @@ int main(int argc, char *argv[])
   int warnings = 0;
   int c = 0;
 
-  (void) argc; /* Suppress compiler warning about unused variable */
-
-  if (*argv)
+  if (argc > 0)
     while (*++argv)
     {
            if (    match_arg (argv[0], "-h", "--help"))
              help();
-      else if (    match_arg (argv[0], "-v", "--version"))
-             version();
       else if (    match_arg (argv[0], "-i", "--info"))
              info();
+      else if (    match_arg (argv[0], "-l", "--list"))
+             list();
+      else if (    match_arg (argv[0], "-v", "--version"))
+             version();
       else if (
                    get_str_arg (&argv, "-o", "--output",   &ofname)
                 || get_shrt_arg(&argv, "-s", "--start",    &start)
@@ -416,14 +447,14 @@ int main(int argc, char *argv[])
       switch(machine)
       {
       case coco:
-      case cocoext:
+      case coco_ext:
              ofname = COCO_DEFAULT_OUTPUT_FILENAME;
              break;
       case c64:
              ofname = C64_DEFAULT_OUTPUT_FILENAME;
              break;
-      case c64lc:
-             ofname = C64LC_DEFAULT_OUTPUT_FILENAME;
+      case c64_lc:
+             ofname = C64_LC_DEFAULT_OUTPUT_FILENAME;
              break;
       default:
              fail("Internal error");
@@ -431,18 +462,14 @@ int main(int argc, char *argv[])
 
   if (start == 0)
   {
-         if (machine == coco || machine == cocoext)
+         if (machine == coco || machine == coco_ext)
                start = COCO_DEFAULT_START_ADDRESS;
-    else if (machine == c64 || machine == c64lc)
+    else if (machine == c64 || machine == c64_lc)
                start = C64_DEFAULT_START_ADDRESS;
   }
 
   if (exec == 0)
     exec = start;
-
-  if (warnings && (exec < start || exec > end))
-    puts("Warning: The exec location given is not within the start"
-         " and end of the binary blob that will be loaded into memory.");
 
   errno = 0;
 
@@ -452,9 +479,7 @@ int main(int argc, char *argv[])
     fail("Could not open file %s. Error number %d", fname, errno);
 
   if (fseek(fp, 0L, SEEK_END))
-  {
     fail("Could not operate on file %s. Error number %d", fname, errno);
-  }
 
   size = ftell(fp);
 
@@ -483,10 +508,10 @@ int main(int argc, char *argv[])
 #endif
      (end < start) )
   {
-    fail("The program would overflow the 64K RAM limit");
+    fail("The machine language blob would overflow the 64K RAM limit");
   }
   else if ( warnings &&
-            (machine == coco || machine == cocoext) )
+            (machine == coco || machine == coco_ext) )
   {
     if (end > HIGHEST_32K_ADDRESS)
       puts("Warning: Program requires at least 32K of RAM");
@@ -498,29 +523,35 @@ int main(int argc, char *argv[])
       puts("Warning: Program requires at least 4K of RAM");
   }
 
-  if (machine == cocoext)
-    emit_line(ofp, &line, &line_numbers_initiated, step,
+  if (exec < start || exec > end)
+  {
+    puts("Warning: The exec location given is not within the start and");
+    puts("end of the binary blob that will be loaded into memory.");
+  }
+
+  if (machine == coco_ext)
+    emit_line(ofp, &pos, &first_line, &line, step, machine,
                    "CLEAR200,%d", start - 1);
 
   switch(machine)
   {
     case coco:
-    case cocoext:
-           emit_line(ofp, &line, &line_numbers_initiated, step,
+    case coco_ext:
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
                      "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
            break;
     case c64:
-           emit_line(ofp, &line, &line_numbers_initiated, step,
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "FORP=%dTO%d:READA:POKEP,A", start, end);
-           emit_line(ofp, &line, &line_numbers_initiated, step,
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
                                                                     exec);
            break;
-    case c64lc:
-           emit_line(ofp, &line, &line_numbers_initiated, step,
+    case c64_lc:
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "forp=%dto%d:reada:pokep,a", start, end);
-           emit_line(ofp, &line, &line_numbers_initiated, step,
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
                                                                     exec);
            break;
@@ -540,11 +571,12 @@ int main(int argc, char *argv[])
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
 
-    emit_datum(ofp, &line, &emitting_data,
-               &line_numbers_initiated, step, d, machine);
+    emit_datum(ofp, d, machine,
+               &first_line, &line, step, &pos);
   }
 
-  (void) emit(ofp, "\n");
+  if (pos > 0)
+    (void) emit(ofp, "\n");
 
   if (fclose(fp) != 0)
     fail("Couldn't close file %s", fname);
