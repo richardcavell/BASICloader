@@ -10,6 +10,8 @@
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
+#include <time.h>
+#include <ctype.h>
 
 enum machine_type
 {
@@ -138,6 +140,7 @@ static void
 emit_datum(FILE *fp,
            unsigned char c,
            enum machine_type machine,
+           int typable,
            unsigned int *first_line,
            unsigned int *line,
            unsigned int step,
@@ -151,13 +154,14 @@ emit_datum(FILE *fp,
 
   if (*pos == 0)
   {
-    *pos = emit(fp, "%u %s",
+    *pos = emit(fp, "%u %s%s",
                     next_line_number(first_line, line, step),
-                    (machine == c64_lc) ? "data" : "DATA" );
+                    (machine == c64_lc) ? "data" : "DATA",
+                    typable ? " " : "" );
   }
   else
   {
-    *pos += emit(fp, ",");
+    *pos += emit(fp, typable ? ", " : ",");
   }
 
   *pos += emit(fp, "%u", c);
@@ -327,6 +331,8 @@ help(void)
   puts("  -s  --start     Start location");
   puts("  -e  --exec      Exec location");
   puts("  -n  --nowarn    Don't warn about RAM requirements (coco/coco_ext)");
+  puts("  -t  --typable   Unpacked, one instruction per line");
+  puts("  -d  --header    Add remarks to the program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
   puts("  -l  --list      Target machine options");
@@ -435,6 +441,8 @@ int main(int argc, char *argv[])
   unsigned short int exec  = 0;
   long int size = 0;
   int nowarn = 0;
+  int typable = 0;
+  int header = 0;
   int c = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
@@ -460,6 +468,8 @@ int main(int argc, char *argv[])
                 || get_shrt_arg(&argv, "-e", "--exec",     &exec)
                 || get_m_arg   (&argv, "-m", "--machine",  &machine)
                 || get_sw_arg(argv[0], "-n", "--nowarn",   &nowarn)
+                || get_sw_arg(argv[0], "-t", "--typable",  &typable)
+                || get_sw_arg(argv[0], "-d", "--header",   &header)
               )
             ;
       else if (argv[0][0]=='-')
@@ -565,50 +575,168 @@ int main(int argc, char *argv[])
     puts("end of the binary blob that will be loaded into memory.");
   }
 
-  if (machine == coco_ext)
-    emit_line(ofp, &pos, &first_line, &line, step, machine,
-                   "CLEAR200,%d", start - 1);
-
-  if (machine == c64 || machine == c64_lc)
-    emit_line(ofp, &pos, &first_line, &line, step, machine,
-                   "POKE55,%d:POKE56,%d",
-                   start%256, start/256);
-
-  switch(machine)
+  switch (machine)
   {
     case coco:
+        break;
+
     case coco_ext:
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "FORP=%dTO%d:READA:POKEP,A", start, end);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "IFA<>PEEK(P)THENGOTO%d",line+2*step);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "NEXT:EXEC%d:END",exec);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "PRINT\"ERROR!\":END");
-           break;
+        emit_line(ofp, &pos, &first_line, &line, step, machine,
+                  "CLEAR200,%d", start - 1);
+        break;
+
     case c64:
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "FORP=%dTO%d:READA:POKEP,A", start, end);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "IFA<>PEEK(P)THENGOTO%d",line+2*step);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "NEXT:SYS%d:END",exec);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "PRINT\"ERROR!\":END");
-           break;
+        emit_line(ofp, &pos, &first_line, &line, step, machine,
+                  "POKE55,%d:POKE56,%d", start%256, start/256);
+        break;
+
     case c64_lc:
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "forp=%dto%d:reada:pokep,a", start, end);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "ifa<>peek(p)thengoto%d",line+2*step);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "next:sys%d:end",exec);
-           emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "print\"error!\":end");
-           break;
+        emit_line(ofp, &pos, &first_line, &line, step, machine,
+                  "poke55,%d:poke56,%d", start%256, start/256);
+        break;
     default:
-           fail("Internal error");
+        fail("Internal error");
+  }
+
+  if (header)
+  {
+    char s[60];
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    int use_time = strftime(s, sizeof s, "%d %B %Y", tm) > 0;
+    unsigned int i = 0;
+
+    for (i = 0; i < sizeof s; ++i)
+      s[i] = (char) ((machine == c64_lc) ? tolower(s[i]) : toupper(s[i]) );
+
+    emit_line(ofp, &pos, &first_line, &line, step, machine,
+              "REM   THIS PROGRAM WAS");
+    emit_line(ofp, &pos, &first_line, &line, step, machine,
+              "REM GENERATED BY BASICLOADER");
+
+    if (use_time)
+      emit_line(ofp, &pos, &first_line, &line, step, machine,
+              "REM   ON %-15s", s);
+
+    emit_line(ofp, &pos, &first_line, &line, step, machine,
+              "REM SEE GITHUB.COM/");
+    emit_line(ofp, &pos, &first_line, &line, step, machine,
+              "REM      RICHARDCAVELL");
+  }
+
+  if (!typable)
+  {
+    switch (machine)
+    {
+      case coco:
+      case coco_ext:
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "FORP=%dTO%d:READA:POKEP,A", start, end);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "IFA<>PEEK(P)THENGOTO%d",line+3*step);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "NEXT:EXEC%d:END",exec);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "PRINT\"ERROR!\":END");
+             break;
+
+      case c64:
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "FORP=%dTO%d:READA:POKEP,A", start, end);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "IFA<>PEEK(P)THENGOTO%d",line+3*step);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "NEXT:SYS%d:END",exec);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "PRINT\"ERROR!\":END");
+             break;
+
+      case c64_lc:
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "forp=%dto%d:reada:pokep,a", start, end);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "ifa<>peek(p)thengoto%d",line+3*step);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "next:sys%d:end",exec);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "print\"error!\":end");
+             break;
+
+      default:
+             fail("Internal error");
+    }
+  }
+  else
+  {
+    switch(machine)
+    {
+      case coco:
+      case coco_ext:
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "FOR P=%d TO %d", start, end);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "READ A");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "POKE P,A");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "NEXT P");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "EXEC %d", exec);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "END");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "PRINT \"ERROR!\"");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "END");
+             break;
+
+      case c64:
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "FOR P=%d TO %d", start, end);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "READ A");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "POKE P,A");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "NEXT P");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "SYS %d",exec);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "END");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "PRINT \"ERROR!\"");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "END");
+             break;
+
+      case c64_lc:
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "for p=%d to %d", start, end);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "read a");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "poke p,a");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "if a<>peek(p) then goto %d",line+5*step);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "next p");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "sys %d",exec);
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "end");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "print \"error!\"");
+             emit_line(ofp, &pos, &first_line, &line, step, machine,
+                       "end");
+             break;
+
+      default:
+             fail("Internal error");
+    }
   }
 
   while ((c = fgetc(fp)) != EOF)
@@ -620,7 +748,7 @@ int main(int argc, char *argv[])
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
 
-    emit_datum(ofp, d, machine,
+    emit_datum(ofp, d, machine, typable,
                &first_line, &line, step, &pos);
   }
 
