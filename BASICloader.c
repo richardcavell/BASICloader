@@ -326,7 +326,7 @@ help(void)
   puts("  -m  --machine   Target machine (coco, coco_ext, c64, c64_lc)");
   puts("  -s  --start     Start location");
   puts("  -e  --exec      Exec location");
-  puts("  -w  --warnings  Warn about RAM requirements (coco/coco_ext)");
+  puts("  -n  --nowarn    Don't warn about RAM requirements (coco/coco_ext)");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
   puts("  -l  --list      Target machine options");
@@ -434,7 +434,7 @@ int main(int argc, char *argv[])
   unsigned short int end   = 0;
   unsigned short int exec  = 0;
   long int size = 0;
-  int warnings = 0;
+  int nowarn = 0;
   int c = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
                 || get_shrt_arg(&argv, "-s", "--start",    &start)
                 || get_shrt_arg(&argv, "-e", "--exec",     &exec)
                 || get_m_arg   (&argv, "-m", "--machine",  &machine)
-                || get_sw_arg(argv[0], "-w", "--warnings", &warnings)
+                || get_sw_arg(argv[0], "-n", "--nowarn",   &nowarn)
               )
             ;
       else if (argv[0][0]=='-')
@@ -546,17 +546,17 @@ int main(int argc, char *argv[])
   {
     fail("The machine language blob would overflow the 64K RAM limit");
   }
-  else if ( warnings &&
+  else if ( !nowarn &&
             (machine == coco || machine == coco_ext) )
   {
     if (end > HIGHEST_32K_ADDRESS)
-      puts("Warning: Program requires at least 32K of RAM");
+      puts("Warning: Program requires 64K of RAM");
     else if (end > HIGHEST_16K_ADDRESS)
-      puts("Warning: Program requires at least 16K of RAM");
+      puts("Warning: Program requires at least 32K of RAM");
     else if (end > HIGHEST_8K_ADDRESS)
-      puts("Warning: Program requires at least 8K of RAM");
+      puts("Warning: Program requires at least 16K of RAM");
     else if (end > HIGHEST_4K_ADDRESS)
-      puts("Warning: Program requires at least 4K of RAM");
+      puts("Warning: Program requires at least 8K of RAM");
   }
 
   if (exec < start || exec > end)
