@@ -1,4 +1,4 @@
-BASICloader technical notes
+BASICloader Technical info
 (c) 2017
 In development, don't use it yet
 
