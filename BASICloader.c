@@ -332,7 +332,7 @@ help(void)
   puts("  -e  --exec      Exec location");
   puts("  -n  --nowarn    Don't warn about RAM requirements (coco/coco_ext)");
   puts("  -t  --typable   Unpacked, one instruction per line");
-  puts("  -d  --header    Add remarks to the program");
+  puts("  -r  --remarks   Add remarks to the program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
   puts("  -l  --list      Target machine options");
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
   long int size = 0;
   int nowarn = 0;
   int typable = 0;
-  int header = 0;
+  int remarks = 0;
   int c = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
                 || get_m_arg   (&argv, "-m", "--machine",  &machine)
                 || get_sw_arg(argv[0], "-n", "--nowarn",   &nowarn)
                 || get_sw_arg(argv[0], "-t", "--typable",  &typable)
-                || get_sw_arg(argv[0], "-d", "--header",   &header)
+                || get_sw_arg(argv[0], "-r", "--remarks",  &remarks)
               )
             ;
       else if (argv[0][0]=='-')
@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
         fail("Internal error");
   }
 
-  if (header)
+  if (remarks)
   {
     char s[60];
     time_t t = time(NULL);
