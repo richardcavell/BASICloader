@@ -59,13 +59,14 @@ another parameter, use a space.
   -x  --extbas    Assume Extended Color BASIC
       Only to be used with --machine coco. Assume that the target machine
       has Extended Color BASIC, or is a Dragon. The emitted program will
-      include a CLEAR command that is unknown to Color Computers with
-      non-Extended Color BASIC.
+      include a CLEAR command that is unknown to Color Computers without
+      Extended Color BASIC.
 
-  -c  --case      Output case (lower/upper/both)
+  -c  --case      Output case (lower/upper/mixed)
       If you specify lower, the output program will be entirely in lowercase.
-      This is what you want, if you intend to run the program through petcat.
-      The default case is "upper".
+      This is what you want, if you intend to run the program using VICE or
+      run it through petcat. The default case is "upper". You can also specify
+      "mixed".
 
   -r  --remarks   Add remarks to the program
       The BASIC program will have REM statements that include a mention of
