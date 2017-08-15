@@ -1,0 +1,19 @@
+BASICloader technical notes
+(c) 2017
+In development, don't use it yet
+
+The old 8-bit machines typically rely on the programmer to manage the memory
+map. Neither BASICloader nor the program emitted by it can do all that is
+necessary to ensure that your memory map is laid out sensibly, with no
+overlaps.  You will need to study the memory map of the target machine
+precisely, and for coco/coco_ext targets, choose a minimum amount of RAM for
+your target machine.
+
+For the coco and coco_ext targets, the default location assumes that the
+machine has at least 16K of RAM. For machines that have only 16K of RAM, the
+default location provides for a binary blob of no more than 512 bytes.
+
+For the coco_ext target, the emitted program will contain a CLEAR command.
+
+For the c64 and c64_lc targets, the emitted program will adjust the
+MEMSIZE variable.

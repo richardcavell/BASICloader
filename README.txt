@@ -34,6 +34,9 @@ doing so correctly, and then it will execute the program.
 The output of BASICloader will therefore look like the old "type-in"
 programs from 1980s computer magazines.
 
+The start location defaults to a value that is sensible for the target
+machine.  The exec location defaults to being equal to the start value.
+
 The output of this program is licensed to you under the following license:
 
   1.  You may use the output of this program, for free, for any worthwhile

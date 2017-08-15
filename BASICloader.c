@@ -584,6 +584,9 @@ int main(int argc, char *argv[])
            break;
     case c64:
            emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "POKE55,%d:POKE56,%d",
+                     start%256, start/256);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "FORP=%dTO%d:READA:POKEP,A", start, end);
            emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "IFA<>PEEK(P)THENGOTO%d",line+2*step);
@@ -593,6 +596,9 @@ int main(int argc, char *argv[])
                      "PRINT\"ERROR!\":END");
            break;
     case c64_lc:
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "poke55,%d:poke56,%d",
+                     start%256, start/256);
            emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "forp=%dto%d:reada:pokep,a", start, end);
            emit_line(ofp, &pos, &first_line, &line, step, machine,
