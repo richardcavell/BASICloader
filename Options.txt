@@ -1,0 +1,85 @@
+BASICloader
+(in development, don't use it yet)
+(c) 2017 Richard Cavell
+
+Here is a brief rundown of all of the command line options.  You can bring
+up this list by running BASICloader with the -h option:
+
+(c) 2017 Richard Cavell
+https://github.com/richardcavell/BASICloader
+Usage: BASICloader [options] [filename]
+  -o  --output    Output file
+  -m  --machine   Target machine
+  -s  --start     Start location
+  -e  --exec      Exec location
+  -n  --nowarn    Don't warn about RAM requirements
+  -t  --typable   Unpacked, one instruction per line
+  -x  --extbas    Assume Extended Color BASIC
+  -c  --case      Output case (lower/upper/both)
+  -r  --remarks   Add remarks to the program
+  -h  --help      This help information
+  -i  --info      What this program does
+  -l  --license   Your license to use this program
+  -v  --version   Version of this software
+
+You can specify the options and filename in any order.
+
+  -o  --output    Output file
+      The generated BASIC program will be placed under this filename.
+      Each target architecture has its own default filename, which you
+      can see by using the -i option.
+
+  -m  --machine   Target machine
+      Currently, there are two target architectures.  You can see the list
+      by using the -i option.
+
+  -s  --start     Start location
+      This is where the binary blob will be poked into memory when the
+      BASIC program is run on the target machine.  Some machine language
+      programs must be constructed at a particular start address, while
+      others are relocatable.  Each architecture has a default start
+      location. The Coco default assumes that you have 16K minimum.
+
+  -e  --exec      Exec location
+      This is where the execution of the binary blob begins.  If you do not
+      specify a location, it will begin from the start location.
+
+  -n  --nowarn    Don't warn about RAM requirements
+      By default, BASICloader warns you if your program requires a minimum
+      amount of RAM that is greater than what some versions of your target
+      machine have.
+
+  -t  --typable   Unpacked, one instruction per line
+      By default, the program produced by BASICloader is tightly coded, with
+      no spaces, long lines, and line numbers that start at 0 and increase
+      in steps of 1.
+
+  -x  --extbas    Assume Extended Color BASIC
+      Only to be used with --machine coco. Assume that the target machine
+      has Extended Color BASIC, or is a Dragon. The emitted program will
+      include a CLEAR command that is unknown to Color Computers with
+      non-Extended Color BASIC.
+
+  -c  --case      Output case (lower/upper/both)
+      If you specify lower, the output program will be entirely in lowercase.
+      This is what you want, if you intend to run the program through petcat.
+      The default case is "upper".
+
+  -r  --remarks   Add remarks to the program
+      The BASIC program will have REM statements that include a mention of
+      BASICloader and the date that the program was generated.
+
+  -h  --help      This help information
+      Lists all available command line options
+
+  -i  --info      What this program does
+      Gives a short explanation of what this program is for, along with
+      a list of available target machines.
+
+  -l  --license   Your license to use this program
+      Prints the license under which you may use this program.
+
+  -v  --version   Version of this software
+      Prints the version number.
+
+Richard Cavell

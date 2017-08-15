@@ -17,20 +17,29 @@ enum machine_type
 {
   default_machine = 0,
   coco,
-  coco_ext,
-  c64,
-  c64_lc
+  c64
+};
+
+enum case_type
+{
+  default_case = 0,
+  upper,
+  lower,
+  both
 };
 
 #define           DEFAULT_MACHINE            coco
+#define           DEFAULT_CASE               upper
 
 #define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 #define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader.bas"
 #define      COCO_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 
 #define         MIN_BASIC_LINE_NUMBER        0
+#define     TYPABLE_START_LINE_NUMBER        10
 #define         MAX_BASIC_LINE_NUMBER        63999
 #define     DEFAULT_BASIC_LINE_STEP_SIZE     1
+#define     TYPABLE_BASIC_LINE_STEP_SIZE     10
 
 #define     C64_MAX_BASIC_LINE_LENGTH        79
 #define    COCO_MAX_BASIC_LINE_LENGTH        249
@@ -45,6 +54,7 @@ enum machine_type
 #define          HIGHEST_8K_ADDRESS          0x1fff
 #define          HIGHEST_4K_ADDRESS          0x0fff
 
+#define             SCRATCH_SIZE             300
 #define            UCHAR_MAX_8_BIT           255
 
 static void
@@ -77,14 +87,9 @@ next_line_number(unsigned int *first_line,
   unsigned int old_line = *line;
 
   if(*first_line == 1)
-  {
     *first_line = 0;
-    *line = MIN_BASIC_LINE_NUMBER;
-  }
   else
-  {
     *line += step;
-  }
 
   if (*line < old_line)
     fail("Line number overflow");
@@ -103,12 +108,10 @@ check_pos(unsigned int *pos, enum machine_type machine)
   switch(machine)
   {
     case coco:
-    case coco_ext:
            max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
            break;
 
     case c64:
-    case c64_lc:
            max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
            break;
 
@@ -120,17 +123,44 @@ check_pos(unsigned int *pos, enum machine_type machine)
     fail("Internal error: BASIC maximum line length exceeded");
 }
 
-static unsigned int
-emit(FILE *fp, const char *fmt, ...)
+static void
+caseify(char *s, enum case_type cse)
 {
+  while (*s)
+  {
+    switch(cse)
+    {
+      case upper:
+           *s = (char) toupper(*s);
+           break;
+      case lower:
+           *s = (char) tolower(*s);
+           break;
+      default:
+           break;
+    }
+
+    ++s;
+  }
+}
+
+static unsigned int
+emit(FILE *fp, enum case_type cse, const char *fmt, ...)
+{
+  char scratch[SCRATCH_SIZE];
   int bytes = 0;
   va_list ap;
 
-  va_start (ap, fmt);
-  bytes = vfprintf(fp, fmt, ap);
+  va_start(ap, fmt);
+  bytes = vsprintf(scratch, fmt, ap);
   va_end(ap);
 
   if (bytes < 0)
+    emit_fail();
+
+  caseify(scratch, cse);
+
+  if (fprintf(fp, "%s", scratch) < 0)
     emit_fail();
 
   return (unsigned int) bytes;
@@ -140,6 +170,7 @@ static void
 emit_datum(FILE *fp,
            unsigned char c,
            enum machine_type machine,
+           enum case_type cse,
            int typable,
            unsigned int *first_line,
            unsigned int *line,
@@ -148,23 +179,23 @@ emit_datum(FILE *fp,
 {
   if (*pos > BASIC_LINE_WRAP_POS)
   {
-    (void) emit(fp, "\n");
+    (void) emit(fp, cse, "\n");
     *pos = 0;
   }
 
   if (*pos == 0)
   {
-    *pos = emit(fp, "%u %s%s",
+    *pos = emit(fp, cse,
+                    "%u DATA%s",
                     next_line_number(first_line, line, step),
-                    (machine == c64_lc) ? "data" : "DATA",
                     typable ? " " : "" );
   }
   else
   {
-    *pos += emit(fp, typable ? ", " : ",");
+    *pos += emit(fp, cse, typable ? ", " : ",");
   }
 
-  *pos += emit(fp, "%u", c);
+  *pos += emit(fp, cse, "%u", c);
 
   check_pos(pos, machine);
 }
@@ -176,15 +207,17 @@ emit_line(FILE *fp,
           unsigned int *line,
           unsigned int step,
           enum machine_type machine,
+          enum case_type cse,
           const char *fmt, ...)
 {
-  va_list ap;
+  char scratch[SCRATCH_SIZE];
   int bytes = 0;
+  va_list ap;
 
-  *pos = emit(fp, "%d ", next_line_number(first_line, line, step));
+  *pos = emit(fp, cse, "%u ", next_line_number(first_line, line, step));
 
   va_start(ap, fmt);
-  bytes = vfprintf(fp, fmt, ap);
+  bytes = vsprintf(scratch, fmt, ap);
   va_end(ap);
 
   if (bytes < 0)
@@ -193,7 +226,7 @@ emit_line(FILE *fp,
   *pos += (unsigned int) bytes;
   check_pos(pos, machine);
 
-  (void) emit(fp, "\n");
+  (void) emit(fp, cse, "%s\n", scratch);
   *pos = 0;
 }
 
@@ -276,6 +309,24 @@ get_str_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static int
+get_c_arg(char **pargv[], const char *shrt, const char *lng,
+          enum case_type *cse)
+{
+  int matched = 0;
+  char *opt = NULL;
+
+  if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
+  {
+         if (strcmp(opt, "upper") == 0)      *cse = upper;
+    else if (strcmp(opt, "lower") == 0)      *cse = lower;
+    else if (strcmp(opt, "both") == 0)       *cse = both;
+    else fail("Unknown case option %s", (*pargv)[0]);
+  }
+
+  return matched;
+}
+
+static int
 get_m_arg(char **pargv[], const char *shrt, const char *lng,
           enum machine_type *machine)
 {
@@ -285,9 +336,7 @@ get_m_arg(char **pargv[], const char *shrt, const char *lng,
   if ((matched = get_str_arg(pargv, shrt, lng, &name)))
   {
          if (strcmp(name, "coco") == 0)      *machine = coco;
-    else if (strcmp(name, "coco_ext") == 0)  *machine = coco_ext;
     else if (strcmp(name, "c64") == 0)       *machine = c64;
-    else if (strcmp(name, "c64_lc") == 0)    *machine = c64_lc;
     else fail("Unknown machine %s", (*pargv)[0]);
   }
 
@@ -330,8 +379,10 @@ help(void)
   puts("  -m  --machine   Target machine");
   puts("  -s  --start     Start location");
   puts("  -e  --exec      Exec location");
-  puts("  -n  --nowarn    Don't warn about RAM requirements (coco/coco_ext)");
+  puts("  -n  --nowarn    Don't warn about RAM requirements");
   puts("  -t  --typable   Unpacked, one instruction per line");
+  puts("  -x  --extbas    Assume Extended Color BASIC");
+  puts("  -c  --case      Output case (lower/upper/both)");
   puts("  -r  --remarks   Add remarks to the program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
@@ -376,11 +427,18 @@ list(void)
   switch(DEFAULT_MACHINE)
   {
     case coco:      printf("coco\n");      break;
-    case coco_ext:  printf("coco_ext\n");  break;
     case c64:       printf("c64\n");       break;
-    case c64_lc:    printf("c64_lc\n");    break;
     default:        fail("Internal error");
   }
+  printf("The default output is : ");
+  switch(DEFAULT_CASE)
+  {
+    case upper:     printf("uppercase\n"); break;
+    case lower:     printf("lowercase\n"); break;
+    case both:      printf("both\n");      break;
+    default:        fail("Internal error");
+  }
+
     puts("");
     puts("Available target architectures are :");
     puts("         coco   TRS-80 Color Computer (any model)");
@@ -388,23 +446,14 @@ list(void)
   printf("                Default output filename: %s\n",
                              COCO_DEFAULT_OUTPUT_FILENAME);
     puts("");
-    puts("     coco_ext   TRS-80 Color Computer 1 With Extended BASIC");
-    puts("                or Color Computer 2 with Extended BASIC");
-    puts("                or Color Computer 3 (any version)");
-    puts("                or Dragon (any model)");
-  printf("                Default output filename: %s\n",
-                             COCO_DEFAULT_OUTPUT_FILENAME);
-    puts("");
     puts("          c64   Commodore 64 (or any compatible computer)");
-    puts("                The program will use uppercase throughout");
   printf("                Default output filename: %s\n",
                               C64_DEFAULT_OUTPUT_FILENAME);
-    puts("");
-    puts("       c64_lc   Commodore 64 (or any compatible computer)");
-    puts("                The program will use lowercase throughout");
-    puts("                Use this option to work with petcat");
-  printf("                Default output filename: %s\n",
+  printf("                (or %s with --case lower)\n",
                               C64_LC_DEFAULT_OUTPUT_FILENAME);
+    puts("");
+    puts("Use --case lower to use C64 output with VICE and petcat");
+
   exit(EXIT_SUCCESS);
 }
 
@@ -447,6 +496,8 @@ int main(int argc, char *argv[])
   int nowarn = 0;
   int typable = 0;
   int remarks = 0;
+  int extbas = 0;
+  enum case_type cse = default_case;
   int c = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
@@ -471,7 +522,9 @@ int main(int argc, char *argv[])
                 || get_m_arg   (&argv, "-m", "--machine",  &machine)
                 || get_sw_arg(argv[0], "-n", "--nowarn",   &nowarn)
                 || get_sw_arg(argv[0], "-t", "--typable",  &typable)
+                || get_sw_arg(argv[0], "-x", "--extbas",   &extbas)
                 || get_sw_arg(argv[0], "-r", "--remarks",  &remarks)
+                || get_c_arg   (&argv, "-c", "--case",     &cse)
               )
             ;
       else if (argv[0][0]=='-')
@@ -488,6 +541,12 @@ int main(int argc, char *argv[])
   if (machine == default_machine)
     machine = DEFAULT_MACHINE;
 
+  if (extbas && machine != coco)
+    fail("Extended Color BASIC can only be selected with the coco target");
+
+  if (cse == default_case)
+    cse = DEFAULT_CASE;
+
   if (fname == NULL)
     fail("You must specify an input file");
 
@@ -495,14 +554,12 @@ int main(int argc, char *argv[])
       switch(machine)
       {
       case coco:
-      case coco_ext:
              ofname = COCO_DEFAULT_OUTPUT_FILENAME;
              break;
       case c64:
-             ofname = C64_DEFAULT_OUTPUT_FILENAME;
-             break;
-      case c64_lc:
-             ofname = C64_LC_DEFAULT_OUTPUT_FILENAME;
+             ofname = (cse == lower) ?
+               C64_LC_DEFAULT_OUTPUT_FILENAME :
+               C64_DEFAULT_OUTPUT_FILENAME;
              break;
       default:
              fail("Internal error");
@@ -510,9 +567,9 @@ int main(int argc, char *argv[])
 
   if (start == 0)
   {
-         if (machine == coco || machine == coco_ext)
+         if (machine == coco)
                start = COCO_DEFAULT_START_ADDRESS;
-    else if (machine == c64 || machine == c64_lc)
+    else if (machine == c64)
                start = C64_DEFAULT_START_ADDRESS;
   }
 
@@ -559,7 +616,7 @@ int main(int argc, char *argv[])
     fail("The machine language blob would overflow the 64K RAM limit");
   }
   else if ( !nowarn &&
-            (machine == coco || machine == coco_ext) )
+            (machine == coco) )
   {
     if (end > HIGHEST_32K_ADDRESS)
       puts("Warning: Program requires 64K of RAM");
@@ -577,28 +634,19 @@ int main(int argc, char *argv[])
     puts("end of the binary blob that will be loaded into memory.");
   }
 
-  switch (machine)
-  {
-    case coco:
-        break;
+  line = (typable) ? TYPABLE_START_LINE_NUMBER :
+                     MIN_BASIC_LINE_NUMBER;
 
-    case coco_ext:
-        emit_line(ofp, &pos, &first_line, &line, step, machine,
-                  "CLEAR200,%d", start - 1);
-        break;
+  step = (typable) ? TYPABLE_BASIC_LINE_STEP_SIZE :
+                     DEFAULT_BASIC_LINE_STEP_SIZE;
 
-    case c64:
-        emit_line(ofp, &pos, &first_line, &line, step, machine,
+  if (machine == coco && extbas)
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "CLEAR200,%d", start - 1);
+
+  if (machine == c64)
+        emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                   "POKE55,%d:POKE56,%d", start%256, start/256);
-        break;
-
-    case c64_lc:
-        emit_line(ofp, &pos, &first_line, &line, step, machine,
-                  "poke55,%d:poke56,%d", start%256, start/256);
-        break;
-    default:
-        fail("Internal error");
-  }
 
   if (remarks)
   {
@@ -609,30 +657,20 @@ int main(int argc, char *argv[])
     unsigned int i = 0;
 
     for (i = 0; i < sizeof s; ++i)
-      s[i] = (char) ((machine == c64_lc) ? tolower(s[i]) : toupper(s[i]) );
+      s[i] = (char) ((cse == lower) ? tolower(s[i]) : toupper(s[i]) );
 
-    emit_line(ofp, &pos, &first_line, &line, step, machine,
-              (machine == c64_lc) ?
-              "rem   this program was" :
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
               "REM   THIS PROGRAM WAS");
-    emit_line(ofp, &pos, &first_line, &line, step, machine,
-              (machine == c64_lc) ?
-              "rem generated by basicloader" :
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
               "REM GENERATED BY BASICLOADER");
 
     if (use_time)
-      emit_line(ofp, &pos, &first_line, &line, step, machine,
-              (machine == c64_lc) ?
-              "rem   on %-15s" :
+      emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
               "REM   ON %-15s", s);
 
-    emit_line(ofp, &pos, &first_line, &line, step, machine,
-              (machine == c64_lc) ?
-              "rem see github.com/" :
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
               "REM SEE GITHUB.COM/");
-    emit_line(ofp, &pos, &first_line, &line, step, machine,
-              (machine == c64_lc) ?
-              "rem      richardcavell" :
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
               "REM      RICHARDCAVELL");
   }
 
@@ -641,37 +679,25 @@ int main(int argc, char *argv[])
     switch (machine)
     {
       case coco:
-      case coco_ext:
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "FORP=%dTO%d:READA:POKEP,A", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "IFA<>PEEK(P)THENGOTO%d",line+3*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "NEXT:EXEC%d:END",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "PRINT\"ERROR!\":END");
              break;
 
       case c64:
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "FORP=%dTO%d:READA:POKEP,A", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "IFA<>PEEK(P)THENGOTO%d",line+3*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "NEXT:SYS%d:END",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "PRINT\"ERROR!\":END");
-             break;
-
-      case c64_lc:
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "forp=%dto%d:reada:pokep,a", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "ifa<>peek(p)thengoto%d",line+3*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "next:sys%d:end",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "print\"error!\":end");
              break;
 
       default:
@@ -683,67 +709,45 @@ int main(int argc, char *argv[])
     switch(machine)
     {
       case coco:
-      case coco_ext:
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "FOR P=%d TO %d", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "READ A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "POKE P,A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "NEXT P");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "EXEC %d", exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "END");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "PRINT \"ERROR!\"");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "END");
              break;
 
       case c64:
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "FOR P=%d TO %d", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "READ A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "POKE P,A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "NEXT P");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "SYS %d",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "END");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "PRINT \"ERROR!\"");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
+             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
                        "END");
-             break;
-
-      case c64_lc:
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "for p=%d to %d", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "read a");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "poke p,a");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "if a<>peek(p) then goto %d",line+5*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "next p");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "sys %d",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "end");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "print \"error!\"");
-             emit_line(ofp, &pos, &first_line, &line, step, machine,
-                       "end");
              break;
 
       default:
@@ -760,12 +764,12 @@ int main(int argc, char *argv[])
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
 
-    emit_datum(ofp, d, machine, typable,
+    emit_datum(ofp, d, machine, cse, typable,
                &first_line, &line, step, &pos);
   }
 
   if (pos > 0)
-    (void) emit(ofp, "\n");
+    (void) emit(ofp, cse, "\n");
 
   if (fclose(ofp))
     fail("Couldn't close file %s", ofname);

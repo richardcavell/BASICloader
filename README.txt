@@ -37,6 +37,9 @@ programs from 1980s computer magazines.
 The start location defaults to a value that is sensible for the target
 machine.  The exec location defaults to being equal to the start value.
 
+You can read more about the command line options in the file Options.txt,
+and you can read about technical information in Technical_info.txt
+
 The output of this program is licensed to you under the following license:
 
   1.  You may use the output of this program, for free, for any worthwhile
