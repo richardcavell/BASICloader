@@ -327,7 +327,7 @@ help(void)
   print_version();
   puts("Usage: BASICloader [options] [filename]");
   puts("  -o  --output    Output file");
-  puts("  -m  --machine   Target machine (coco, coco_ext, c64, c64_lc)");
+  puts("  -m  --machine   Target machine");
   puts("  -s  --start     Start location");
   puts("  -e  --exec      Exec location");
   puts("  -n  --nowarn    Don't warn about RAM requirements (coco/coco_ext)");
@@ -335,8 +335,7 @@ help(void)
   puts("  -r  --remarks   Add remarks to the program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
-  puts("  -l  --list      Target machine options");
-  puts("  -c  --license   Your license to use this program");
+  puts("  -l  --license   Your license to use this program");
   puts("  -v  --version   Version of this software");
   exit(EXIT_SUCCESS);
 }
@@ -371,23 +370,6 @@ license(void)
 }
 
 static void
-info(void)
-{
-  print_version();
-  puts("");
-  puts("BASICloader reads in a machine language binary, and then constructs");
-  puts("a BASIC program that will run on the target architecture.");
-  puts("");
-  puts("The BASIC program so produced contains DATA statements that represent");
-  puts("the machine language given to BASICloader when the BASIC program");
-  puts("was generated.");
-  puts("");
-  puts("When run on the target architecture, the BASIC program will poke");
-  puts("that machine language into memory, and execute it.");
-  exit(EXIT_SUCCESS);
-}
-
-static void
 list(void)
 {
   printf("The default target is : ");
@@ -399,6 +381,7 @@ list(void)
     case c64_lc:    printf("c64_lc\n");    break;
     default:        fail("Internal error");
   }
+    puts("");
     puts("Available target architectures are :");
     puts("         coco   TRS-80 Color Computer (any model)");
     puts("                or Dragon (any model)");
@@ -422,6 +405,27 @@ list(void)
     puts("                Use this option to work with petcat");
   printf("                Default output filename: %s\n",
                               C64_LC_DEFAULT_OUTPUT_FILENAME);
+  exit(EXIT_SUCCESS);
+}
+
+static void
+info(void)
+{
+  print_version();
+  puts("");
+  puts("BASICloader reads in a machine language binary, and then constructs");
+  puts("a BASIC program that will run on the target architecture.");
+  puts("");
+  puts("The BASIC program so produced contains DATA statements that represent");
+  puts("the machine language given to BASICloader when the BASIC program");
+  puts("was generated.");
+  puts("");
+  puts("When run on the target architecture, the BASIC program will poke");
+  puts("that machine language into memory, and execute it.");
+  puts("");
+
+  list();
+
   exit(EXIT_SUCCESS);
 }
 
@@ -456,11 +460,9 @@ int main(int argc, char *argv[])
              help();
       else if (    match_arg (argv[0], "-i", "--info"))
              info();
-      else if (    match_arg (argv[0], "-l", "--list"))
-             list();
       else if (    match_arg (argv[0], "-v", "--version"))
              version();
-      else if (    match_arg (argv[0], "-c", "--license"))
+      else if (    match_arg (argv[0], "-l", "--license"))
              license();
       else if (
                    get_str_arg (&argv, "-o", "--output",   &ofname)
