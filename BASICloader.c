@@ -322,15 +322,45 @@ help(void)
 {
   print_version();
   puts("Usage: BASICloader [options] [filename]");
-  puts("-o --output    Output file");
-  puts("-m --machine   Target machine (coco, coco_ext, c64, c64_lc)");
-  puts("-s --start     Start location");
-  puts("-e --exec      Exec location");
-  puts("-w --warnings  Warn about RAM requirements (coco/coco_ext)");
-  puts("-h --help      This help information");
-  puts("-i --info      What this program does");
-  puts("-l --list      Target machine options");
-  puts("-v --version   Version of this software");
+  puts("  -o  --output    Output file");
+  puts("  -m  --machine   Target machine (coco, coco_ext, c64, c64_lc)");
+  puts("  -s  --start     Start location");
+  puts("  -e  --exec      Exec location");
+  puts("  -w  --warnings  Warn about RAM requirements (coco/coco_ext)");
+  puts("  -h  --help      This help information");
+  puts("  -i  --info      What this program does");
+  puts("  -l  --list      Target machine options");
+  puts("  -c  --license   Your license to use this program");
+  puts("  -v  --version   Version of this software");
+  exit(EXIT_SUCCESS);
+}
+
+static void
+license(void)
+{
+  puts("BASICloader License");
+  puts("");
+  puts("(\"MIT License\")");
+  puts("");
+  puts("Copyright (c) 2017 Richard Cavell");
+  puts("");
+  puts("Permission is hereby granted, free of charge, to any person obtaining a copy");
+  puts("of this software and associated documentation files (the \"Software\"), to deal");
+  puts("in the Software without restriction, including without limitation the rights");
+  puts("to use, copy, modify, merge, publish, distribute, sublicense, and/or sell");
+  puts("copies of the Software, and to permit persons to whom the Software is");
+  puts("furnished to do so, subject to the following conditions:");
+  puts("");
+  puts("The above copyright notice and this permission notice shall be included in all");
+  puts("copies or substantial portions of the Software.");
+  puts("");
+  puts("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR");
+  puts("IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,");
+  puts("FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE");
+  puts("AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER");
+  puts("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,");
+  puts("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE");
+  puts("SOFTWARE.");
   exit(EXIT_SUCCESS);
 }
 
@@ -347,8 +377,7 @@ info(void)
   puts("was generated.");
   puts("");
   puts("When run on the target architecture, the BASIC program will poke");
-  puts("that machine language into memory and execute it.");
-
+  puts("that machine language into memory, and execute it.");
   exit(EXIT_SUCCESS);
 }
 
@@ -362,6 +391,7 @@ list(void)
     case coco_ext:  printf("coco_ext\n");  break;
     case c64:       printf("c64\n");       break;
     case c64_lc:    printf("c64_lc\n");    break;
+    default:        fail("Internal error");
   }
     puts("Available target architectures are :");
     puts("         coco   TRS-80 Color Computer (any model)");
@@ -407,6 +437,10 @@ int main(int argc, char *argv[])
   int warnings = 0;
   int c = 0;
 
+#if (UCHAR_MAX < UCHAR_MAX_8_BIT)
+    fail("This machine cannot process 8-bit bytes");
+#endif
+
   if (argc > 0)
     while (*++argv)
     {
@@ -418,6 +452,8 @@ int main(int argc, char *argv[])
              list();
       else if (    match_arg (argv[0], "-v", "--version"))
              version();
+      else if (    match_arg (argv[0], "-c", "--license"))
+             license();
       else if (
                    get_str_arg (&argv, "-o", "--output",   &ofname)
                 || get_shrt_arg(&argv, "-s", "--start",    &start)
@@ -538,22 +574,33 @@ int main(int argc, char *argv[])
     case coco:
     case coco_ext:
            emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "FORP=%dTO%d:READA:POKEP,A:IFA<>PEEK(P)THEN"
-                     "PRINT\"ERROR!\"ELSENEXT:EXEC%d", start, end, exec);
+                     "FORP=%dTO%d:READA:POKEP,A", start, end);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "IFA<>PEEK(P)THENGOTO%d",line+2*step);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "NEXT:EXEC%d:END",exec);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "PRINT\"ERROR!\":END");
            break;
     case c64:
            emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "FORP=%dTO%d:READA:POKEP,A", start, end);
            emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "IFA<>PEEK(P)THENPRINT\"ERROR!\"ELSENEXT:SYS%d",
-                                                                    exec);
+                     "IFA<>PEEK(P)THENGOTO%d",line+2*step);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "NEXT:SYS%d:END",exec);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "PRINT\"ERROR!\":END");
            break;
     case c64_lc:
            emit_line(ofp, &pos, &first_line, &line, step, machine,
                      "forp=%dto%d:reada:pokep,a", start, end);
            emit_line(ofp, &pos, &first_line, &line, step, machine,
-                     "ifa<>peek(p)thenprint\"error!\"elsenext:sys%d",
-                                                                    exec);
+                     "ifa<>peek(p)thengoto%d",line+2*step);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "next:sys%d:end",exec);
+           emit_line(ofp, &pos, &first_line, &line, step, machine,
+                     "print\"error!\":end");
            break;
     default:
            fail("Internal error");
@@ -564,9 +611,6 @@ int main(int argc, char *argv[])
     unsigned char d = (unsigned char) c;
 
 #if (UCHAR_MAX != UCHAR_MAX_8_BIT)
-    if (UCHAR_MAX < UCHAR_MAX_8_BIT)
-      fail("This machine cannot process 8-bit bytes");
-
     if (d > UCHAR_MAX_8_BIT)
       fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
@@ -578,11 +622,11 @@ int main(int argc, char *argv[])
   if (pos > 0)
     (void) emit(ofp, "\n");
 
-  if (fclose(fp) != 0)
-    fail("Couldn't close file %s", fname);
-
-  if (fclose(ofp) != 0)
+  if (fclose(ofp))
     fail("Couldn't close file %s", ofname);
+
+  if (fclose(fp))
+    fail("Couldn't close file %s", fname);
 
   return EXIT_SUCCESS;
 }
