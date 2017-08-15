@@ -17,6 +17,7 @@ Usage: BASICloader [options] [filename]
   -x  --extbas    Assume Extended Color BASIC
   -c  --case      Output case (lower/upper/both)
   -r  --remarks   Add remarks to the program
+  -d  --diag      Print info about the generated program
   -h  --help      This help information
   -i  --info      What this program does
   -l  --license   Your license to use this program
@@ -69,6 +70,10 @@ another parameter, use a space.
   -r  --remarks   Add remarks to the program
       The BASIC program will have REM statements that include a mention of
       BASICloader and the date that the program was generated.
+
+  -d  --diag      Print info about the generated program
+      Prints some internal data items to the standard output, after the
+      program has been generated.
 
   -h  --help      This help information
       Lists all available command line options

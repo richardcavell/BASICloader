@@ -461,6 +461,7 @@ list(void)
 
     puts("");
     puts("Available target architectures are :");
+    puts("");
     puts("         coco   TRS-80 Color Computer (any model)");
     puts("                or Dragon (any model)");
   printf("                Default output filename: %s\n",
@@ -472,7 +473,7 @@ list(void)
   printf("                (or %s with --case lower)\n",
                               C64_LC_DEFAULT_OUTPUT_FILENAME);
     puts("");
-    puts("Use --case lower to use C64 output with VICE and petcat");
+    puts("Use --case lower to use C64 output with VICE and petcat.");
 
   exit(EXIT_SUCCESS);
 }

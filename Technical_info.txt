@@ -6,11 +6,11 @@ The old 8-bit machines typically rely on the programmer to manage the memory
 map. Neither BASICloader nor the program emitted by it can do all that is
 necessary to ensure that your memory map is laid out sensibly, with no
 overlaps.  You will need to study the memory map of the target machine
-precisely. For coco/coco_ext targets, you must nominate a minimum amount
+precisely. For the coco target, you must contemplate a minimum amount
 of RAM for your target machine.
 
-For the coco_ext target:
+For the coco with Extended Color BASIC:
  * the emitted program will contain a CLEAR command
 
-For the c64 and c64_lc targets:
+For the c64 target:
  * the emitted program will adjust the MEMSIZE variable

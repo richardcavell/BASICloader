@@ -58,7 +58,7 @@ try these commands:
 If you want to use the output on an emulated Dragon 64 using XRoar,
 try these commands:
 
-    $ ./BASICloader --machine coco XXX.bin
+    $ ./BASICloader --machine coco --extbas XXX.bin
     $ xroar -machine dragon64 -run LOADER.BAS
 
 If you want to use the output on an emulated C64 using VICE:
