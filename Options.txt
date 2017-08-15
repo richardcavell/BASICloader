@@ -22,7 +22,8 @@ Usage: BASICloader [options] [filename]
   -l  --license   Your license to use this program
   -v  --version   Version of this software
 
-You can specify the options and filename in any order.
+You can specify the options and filename in any order.  If an option takes
+another parameter, use a space.
 
   -o  --output    Output file
       The generated BASIC program will be placed under this filename.

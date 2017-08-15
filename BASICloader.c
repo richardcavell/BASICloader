@@ -25,7 +25,7 @@ enum case_type
   default_case = 0,
   upper,
   lower,
-  both
+  mixed
 };
 
 #define           DEFAULT_MACHINE            coco
@@ -40,6 +40,7 @@ enum case_type
 #define         MAX_BASIC_LINE_NUMBER        63999
 #define     DEFAULT_BASIC_LINE_STEP_SIZE     1
 #define     TYPABLE_BASIC_LINE_STEP_SIZE     10
+#define          MAX_BASIC_PROG_SIZE         65000
 
 #define     C64_MAX_BASIC_LINE_LENGTH        79
 #define    COCO_MAX_BASIC_LINE_LENGTH        249
@@ -319,7 +320,7 @@ get_c_arg(char **pargv[], const char *shrt, const char *lng,
   {
          if (strcmp(opt, "upper") == 0)      *cse = upper;
     else if (strcmp(opt, "lower") == 0)      *cse = lower;
-    else if (strcmp(opt, "both") == 0)       *cse = both;
+    else if (strcmp(opt, "mixed") == 0)      *cse = mixed;
     else fail("Unknown case option %s", (*pargv)[0]);
   }
 
@@ -382,8 +383,9 @@ help(void)
   puts("  -n  --nowarn    Don't warn about RAM requirements");
   puts("  -t  --typable   Unpacked, one instruction per line");
   puts("  -x  --extbas    Assume Extended Color BASIC");
-  puts("  -c  --case      Output case (lower/upper/both)");
+  puts("  -c  --case      Output case (lower/upper/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
+  puts("  -d  --diag      Print info about the generated program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
   puts("  -l  --license   Your license to use this program");
@@ -420,24 +422,42 @@ license(void)
   exit(EXIT_SUCCESS);
 }
 
+static char *
+machine_name(enum machine_type machine)
+{
+  char *s = NULL;
+
+  switch(machine)
+  {
+    case coco:      s = "coco";      break;
+    case c64:       s = "c64";       break;
+    default:        fail("Internal error");
+  }
+
+  return s;
+}
+
+static char *
+case_name(enum case_type cse)
+{
+  char *s = NULL;
+
+  switch(cse)
+  {
+    case upper:     s = "uppercase";    break;
+    case lower:     s = "lowercase";    break;
+    case mixed:     s = "mixed case";   break;
+    default:        fail("Internal error");
+  }
+
+  return s;
+}
+
 static void
 list(void)
 {
-  printf("The default target is : ");
-  switch(DEFAULT_MACHINE)
-  {
-    case coco:      printf("coco\n");      break;
-    case c64:       printf("c64\n");       break;
-    default:        fail("Internal error");
-  }
-  printf("The default output is : ");
-  switch(DEFAULT_CASE)
-  {
-    case upper:     printf("uppercase\n"); break;
-    case lower:     printf("lowercase\n"); break;
-    case both:      printf("both\n");      break;
-    default:        fail("Internal error");
-  }
+  printf("The default target is : %s\n", machine_name(DEFAULT_MACHINE));
+  printf("The default output is : %s\n", case_name(DEFAULT_CASE));
 
     puts("");
     puts("Available target architectures are :");
@@ -493,6 +513,8 @@ int main(int argc, char *argv[])
   unsigned short int end   = 0;
   unsigned short int exec  = 0;
   long int size = 0;
+  long int osize = 0;
+  int diagnostics = 0;
   int nowarn = 0;
   int typable = 0;
   int remarks = 0;
@@ -524,6 +546,7 @@ int main(int argc, char *argv[])
                 || get_sw_arg(argv[0], "-t", "--typable",  &typable)
                 || get_sw_arg(argv[0], "-x", "--extbas",   &extbas)
                 || get_sw_arg(argv[0], "-r", "--remarks",  &remarks)
+                || get_sw_arg(argv[0], "-d", "--diag",     &diagnostics)
                 || get_c_arg   (&argv, "-c", "--case",     &cse)
               )
             ;
@@ -642,22 +665,19 @@ int main(int argc, char *argv[])
 
   if (machine == coco && extbas)
     emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-              "CLEAR200,%d", start - 1);
+              typable ? "CLEAR 200, %d" : "CLEAR200,%d", start - 1);
 
   if (machine == c64)
         emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                  "POKE55,%d:POKE56,%d", start%256, start/256);
+              typable ? "POKE 55, %d:POKE 56, %d" :
+                        "POKE55,%d:POKE56,%d", start%256, start/256);
 
   if (remarks)
   {
-    char s[60];
+    char s[SCRATCH_SIZE];
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
     int use_time = strftime(s, sizeof s, "%d %B %Y", tm) > 0;
-    unsigned int i = 0;
-
-    for (i = 0; i < sizeof s; ++i)
-      s[i] = (char) ((cse == lower) ? tolower(s[i]) : toupper(s[i]) );
 
     emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
               "REM   THIS PROGRAM WAS");
@@ -676,83 +696,35 @@ int main(int argc, char *argv[])
 
   if (!typable)
   {
-    switch (machine)
-    {
-      case coco:
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "FORP=%dTO%d:READA:POKEP,A", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "IFA<>PEEK(P)THENGOTO%d",line+3*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "NEXT:EXEC%d:END",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "PRINT\"ERROR!\":END");
-             break;
-
-      case c64:
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "FORP=%dTO%d:READA:POKEP,A", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "IFA<>PEEK(P)THENGOTO%d",line+3*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "NEXT:SYS%d:END",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "PRINT\"ERROR!\":END");
-             break;
-
-      default:
-             fail("Internal error");
-    }
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "FORP=%dTO%d:READA:POKEP,A", start, end);
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "IFA<>PEEK(P)THENGOTO%d",line+3*step);
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "NEXT:%s%d:END", machine == coco ? "EXEC" : "SYS", exec);
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "PRINT\"ERROR!\":END");
   }
   else
   {
-    switch(machine)
-    {
-      case coco:
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "FOR P=%d TO %d", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "READ A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "POKE P,A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "NEXT P");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "EXEC %d", exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "END");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "PRINT \"ERROR!\"");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "END");
-             break;
-
-      case c64:
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "FOR P=%d TO %d", start, end);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "READ A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "POKE P,A");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "NEXT P");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "SYS %d",exec);
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "END");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "PRINT \"ERROR!\"");
-             emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
-                       "END");
-             break;
-
-      default:
-             fail("Internal error");
-    }
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "FOR P=%d TO %d", start, end);
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "READ A");
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "POKE P,A");
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "IF A<>PEEK(P) THEN GOTO %d",line+5*step);
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "NEXT P");
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "%s %d", machine == coco ? "EXEC" : "SYS", exec);
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "END");
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "PRINT \"ERROR!\"");
+    emit_line(ofp, &pos, &first_line, &line, step, machine, cse,
+              "END");
   }
 
   while ((c = fgetc(fp)) != EOF)
@@ -771,10 +743,30 @@ int main(int argc, char *argv[])
   if (pos > 0)
     (void) emit(ofp, cse, "\n");
 
+  osize = ftell(ofp);
+
   if (fclose(ofp))
     fail("Couldn't close file %s", ofname);
 
+  if (osize > MAX_BASIC_PROG_SIZE)
+    fail("Generated BASIC program is too large");
+
   printf("BASIC program has been generated -> %s\n", ofname);
+
+  if (diagnostics)
+  {
+    printf("  Target machine : %s%s\n", machine_name(machine),
+                               extbas ? "(with Extended BASIC)" : "");
+    printf("  Output is      : %s, %s form with%s program comments\n",
+                               case_name(cse),
+                               typable ? "typable" : "compact",
+                               remarks ? "" : "out");
+    printf("  Start location : 0x%x (%u)\n", start, start);
+    printf("  Exec location  : 0x%x (%u)\n", exec, exec);
+    printf("  End location   : 0x%x (%u)\n", end, end);
+    printf("  Blob size      : 0x%lx (%lu)\n", size, size);
+    printf("  BASIC program  : %lu characters\n", osize);
+  }
 
   if (fclose(fp))
     fail("Couldn't close file %s", fname);
