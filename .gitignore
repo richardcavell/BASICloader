@@ -3,3 +3,4 @@ BASICloader
 *.bas
 loader.prg
 loader.d64
+loader

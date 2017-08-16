@@ -616,6 +616,7 @@ int main(int argc, char *argv[])
              fname = argv[0];
            }
     }
+
   if (machine == default_machine)
     machine = DEFAULT_MACHINE;
 
@@ -624,6 +625,9 @@ int main(int argc, char *argv[])
 
   if (format == default_format)
     format = DEFAULT_FORMAT;
+
+  if (machine != 64 && format == prg)
+    fail("PRG file format is only to be used with the c64 target");
 
   if (cse == default_case)
     cse = DEFAULT_CASE;
