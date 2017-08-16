@@ -32,6 +32,7 @@ enum format_type
 {
   default_format = 0,
   binary,
+  dragon,
   prg
 };
 
@@ -67,6 +68,8 @@ enum format_type
 
 #define             SCRATCH_SIZE             300
 #define            UCHAR_MAX_8_BIT           255
+
+#define DRAGON_HEADER 10
 
 static void
 fail(const char *fmt,...)
@@ -391,6 +394,8 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
          if (strcmp(opt, "binary") == 0)     *fmt = binary;
     else if (strcmp(opt, "prg") == 0)        *fmt = prg;
     else if (strcmp(opt, "PRG") == 0)        *fmt = prg;
+    else if (strcmp(opt, "dragon") == 0)     *fmt = dragon;
+    else if (strcmp(opt, "Dragon") == 0)     *fmt = dragon;
     else fail("Unknown file format option %s", (*pargv)[0]);
   }
 
@@ -456,7 +461,7 @@ help(void)
   puts("  -x  --extbas    Assume Extended Color BASIC");
   puts("  -c  --case      Output case (lower/upper/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
-  puts("  -f  --format    Input file format (binary/prg)");
+  puts("  -f  --format    Input file format (binary/dragon/prg)");
   puts("  -d  --diag      Print info about the generated program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
@@ -647,8 +652,11 @@ int main(int argc, char *argv[])
   if (format == default_format)
     format = DEFAULT_FORMAT;
 
-  if (machine != 64 && format == prg)
+  if (machine != c64 && format == prg)
     fail("PRG file format is only to be used with the c64 target");
+
+  if (machine != coco && format == dragon)
+    fail("Dragon file format is only to be used with the coco target");
 
   if (cse == default_case)
     cse = DEFAULT_CASE;
@@ -696,48 +704,104 @@ int main(int argc, char *argv[])
     fail("With PRG file format selected,\n"
          "input file %s must be at least 3 bytes long", fname);
 
+  if (format == dragon && size < DRAGON_HEADER + 1)
+    fail("With Dragon file format selected,\n"
+         "input file %s must be at least 10 bytes long", fname);
+
   if (size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
     fail("Input file %s is too large", fname);
 
   if (fseek(fp, 0L, SEEK_SET) < 0)
     fail("Could not rewind file %s", fname);
 
+  if (format == prg)
+  {
+    int lo = 0, hi = 0;
+    unsigned short int st = 0;
+
+    lo = fgetc(fp);
+
+    if (lo != EOF)
+      hi = fgetc(fp);
+
+    if (lo == EOF || hi == EOF)
+      fail("Couldn't read from input file");
+
+    size -= 2;
+    st = (unsigned short int)
+            ((unsigned char) hi * 256 + (unsigned char) lo);
+
+    if (st == 0x0801)
+      fail("Input PRG file %s is unsuitable for use with BASICloader\n"
+           "Is it a BASIC program?");
+
+    if (start && st != start)
+      fail("Input PRG file %s gives a different start address ($%x)\n"
+           "to the one given at the command line ($%x)", st, start);
+
+    start = st;
+  }
+
+  if (format == dragon)
+  {
+    unsigned char d[DRAGON_HEADER];
+    int i = 0;
+    unsigned short int st = 0;
+    unsigned short int ex = 0;
+
+    for (i = 0; i < DRAGON_HEADER; ++i)
+    {
+      int c = fgetc(fp);
+
+      if (c == EOF)
+        fail("Couldn't read from file %s. Error code %d", fname, errno);
+
+      d[i] = (unsigned char) c;
+    }
+
+    if (d[i] != 0x55 || d[8] != 0xAA)
+      fail("Input file %s doesn't appear to be a Dragon DOS file", fname);
+
+    if (d[i] == 0x1)
+      fail("Input Dragon DOS file %s appears to be a BASIC program", fname);
+
+    if (d[i] != 0x2)
+      printf("Warning: Input Dragon DOS file %s"
+             " has an unknown FILETYPE\n", fname);
+
+    size -= DRAGON_HEADER;
+
+    if (d[4] * 256 + d[5] != size)
+      fail("Warning: Input Dragon DOS file %s header"
+           "gives incorrect length", fname);
+
+    st = (unsigned short int) (d[2] * 256 + d[3]);
+    ex = (unsigned short int) (d[6] * 256 + d[7]);
+
+    if (start && st != start)
+      fail("Input Dragon DOS file %s gives a different start address ($%x)\n"
+           "to the one given at the command line ($%x)", st, start);
+
+    if (exec && ex != exec)
+      fail("Input Dragon DOS file %s gives a different exec address ($%x)\n"
+           "to the one given at the command line ($%x)", ex, exec);
+  }
+
   if (start == 0)
   {
-      switch(machine)
-      {
-        case coco:
-             start = COCO_DEFAULT_START_ADDRESS;
-             break;
+    switch(machine)
+    {
+      case coco:
+           start = COCO_DEFAULT_START_ADDRESS;
+           break;
 
-        case c64:
-             if (format == prg)
-             {
-               int lo, hi;
+      case c64:
+           start = C64_DEFAULT_START_ADDRESS;
+           break;
 
-               lo = fgetc(fp);
-
-               if (lo != EOF)
-                 hi = fgetc(fp);
-
-               if (lo == EOF || hi == EOF)
-                 fail("Couldn't read from input file");
-
-               size -= 2;
-               start = (unsigned short int)
-                       ((unsigned char) hi * 256 + (unsigned char) lo);
-
-               if (start == 0x0801)
-                 fail("Program is unsuitable for use with BASICloader");
-             }
-             else
-               start = C64_DEFAULT_START_ADDRESS;
-
-             break;
-
-        default:
-             fail("Internal error");
-      }
+      default:
+           fail("Internal error");
+    }
   }
 
   if (exec == 0)
