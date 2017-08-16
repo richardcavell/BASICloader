@@ -14,6 +14,7 @@ Usage: BASICloader [options] [filename]
   -e  --exec      Exec location
   -n  --nowarn    Don't warn about RAM requirements
   -t  --typable   Unpacked, one instruction per line
+  -k  --checksum  Checksum included in each line of DATA
   -x  --extbas    Assume Extended Color BASIC
   -c  --case      Output case (lower/upper/both)
   -r  --remarks   Add remarks to the program
@@ -56,6 +57,15 @@ another parameter, use a space.
       By default, the program produced by BASICloader is tightly coded, with
       no spaces, long lines, and line numbers that start at 0 and increase
       in steps of 1.
+
+  -k  --checksum  Checksum included in each line of DATA
+      Each line of the output program that contains a DATA statement will
+      include a checksum, which is helpful to ensure that the program has
+      been typed in correctly. It significantly increases the size of the
+      generated program - both the part that constructs the machine
+      language blob, and the DATA lines themselves.
+
+      Using this option will turn on --typable.
 
   -x  --extbas    Assume Extended Color BASIC
       Only to be used with --machine coco. Assume that the target machine

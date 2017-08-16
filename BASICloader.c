@@ -54,6 +54,7 @@ enum format_type
 #define     C64_MAX_BASIC_LINE_LENGTH        79
 #define    COCO_MAX_BASIC_LINE_LENGTH        249
 #define             BASIC_LINE_WRAP_POS      70
+#define                CS_DATA_PER_LINE      15
 
 #define       C64_DEFAULT_START_ADDRESS      0x8000
 #define      COCO_DEFAULT_START_ADDRESS      0x3e00
@@ -218,7 +219,7 @@ emit(FILE *fp, enum case_type cse, const char *fmt, ...)
 
 static void
 emit_datum(FILE *fp,
-           unsigned char c,
+           unsigned int d,
            enum machine_type machine,
            enum case_type cse,
            int typable,
@@ -247,7 +248,7 @@ emit_datum(FILE *fp,
     *pos += emit(fp, cse, typable ? ", " : ",");
   }
 
-  *pos += emit(fp, cse, "%u", c);
+  *pos += emit(fp, cse, "%u", d);
 
   check_pos(pos, machine);
 }
@@ -451,6 +452,7 @@ help(void)
   puts("  -e  --exec      Exec location");
   puts("  -n  --nowarn    Don't warn about RAM requirements");
   puts("  -t  --typable   Unpacked, one instruction per line");
+  puts("  -k  --checksum  Checksum included in each line of DATA");
   puts("  -x  --extbas    Assume Extended Color BASIC");
   puts("  -c  --case      Output case (lower/upper/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
@@ -591,9 +593,9 @@ int main(int argc, char *argv[])
   int diagnostics = 0;
   int nowarn = 0;
   int typable = 0;
+  int checksum = 0;
   int remarks = 0;
   int extbas = 0;
-  int c = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
     fail("This machine cannot process 8-bit bytes");
@@ -620,6 +622,7 @@ int main(int argc, char *argv[])
                 || get_sw_arg(argv[0], "-x", "--extbas",   &extbas)
                 || get_sw_arg(argv[0], "-r", "--remarks",  &remarks)
                 || get_sw_arg(argv[0], "-d", "--diag",     &diagnostics)
+                || get_sw_arg(argv[0], "-k", "--checksum", &checksum)
                 || get_c_arg   (&argv, "-c", "--case",     &cse)
                 || get_f_arg   (&argv, "-f", "--format",   &format)
               )
@@ -649,6 +652,9 @@ int main(int argc, char *argv[])
 
   if (cse == default_case)
     cse = DEFAULT_CASE;
+
+  if (checksum)
+    typable = 1;
 
   if (fname == NULL)
     fail("You must specify an input file");
@@ -779,13 +785,15 @@ int main(int argc, char *argv[])
 
   if (machine == coco && extbas)
     emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
-              typable ? "CLEAR 200, %d" : "CLEAR200,%d", start - 1);
+              (typable) ?
+               "CLEAR 200, %d" : "CLEAR200,%d", start - 1);
 
   if (machine == c64)
         emit_line(ofp, &pos, &first_line, &line_count,
                   &line, step, machine, cse,
-                  typable ? "POKE 55, %d:POKE 56, %d" :
-                            "POKE55,%d:POKE56,%d", start%256, start/256);
+                  (typable) ?
+                  "POKE 55, %d:POKE 56, %d" :
+                  "POKE55,%d:POKE56,%d", start%256, start/256);
 
   if (remarks)
   {
@@ -820,7 +828,8 @@ int main(int argc, char *argv[])
     emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
               "PRINT\"ERROR!\":END");
   }
-  else
+
+  if (typable && !checksum)
   {
     emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
               "FOR P=%d TO %d", start, end);
@@ -842,18 +851,110 @@ int main(int argc, char *argv[])
               "END");
   }
 
-  while ((c = fgetc(fp)) != EOF)
+  if (checksum)
   {
-    unsigned char d = (unsigned char) c;
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "P = %u:Q = %u", start, end);
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "READ L, CS");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "C = 0");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "J = Q - P");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "IF J > 15 THEN J = 15");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "FOR I = 0 TO J");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "READ A");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "POKE P,A");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "IF A<>PEEK(P) THEN GOTO %u", line + 12 * step);
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "C = C + A");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "P = P + 1");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "NEXT I");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "IF C <> CS THEN GOTO %u", line + 5 * step);
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "IF P < Q THEN GOTO %u", line - 11 * step);
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "%s %u", machine == c64 ? "SYS" : "EXEC", exec);
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "END");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "PRINT \"THERE IS AN ERROR\"");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "PRINT \"ON LINE \";L");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "END");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "PRINT \"ERROR WHILE POKING MEMORY\"");
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "END");
+  }
 
+  if (!checksum)
+  {
+    int c = 0;
+
+    while ((c = fgetc(fp)) != EOF)
+    {
 #if (UCHAR_MAX != UCHAR_MAX_8_BIT)
-    if (d > UCHAR_MAX_8_BIT)
-      fail("Input file contains a value that's too high for an 8-bit machine");
+      if ((unsigned char) c > UCHAR_MAX_8_BIT)
+        fail("Input file contains a value that's too high for an 8-bit machine");
 #endif
 
-    emit_datum(ofp, d, machine, cse, typable,
-               &first_line, &line_count, &line, step, &pos);
+      emit_datum(ofp, (unsigned char) c, machine, cse, typable,
+                 &first_line, &line_count, &line, step, &pos);
+    }
   }
+  else
+  {
+    unsigned char d[CS_DATA_PER_LINE];
+    int c = 0;
+    unsigned int i = 0;
+    unsigned int cs = 0;
+
+    for (cs = 0, i = 0; !feof(fp);)
+    {
+      while (i < CS_DATA_PER_LINE && !feof(fp))
+      {
+        c = fgetc(fp);
+
+#if (UCHAR_MAX != UCHAR_MAX_8_BIT)
+        if ((unsigned char) c > UCHAR_MAX_8_BIT)
+          fail("Input file contains a value that's too high for an 8-bit machine");
+#endif
+
+        if (c != EOF)
+        {
+          d[i] = (unsigned char) c;
+          cs += d[i];
+          ++i;
+        }
+      }
+
+      if (i > 0)
+      {
+        unsigned int j = 0;
+
+        emit_datum(ofp, line + step, machine, cse, typable,
+                   &first_line, &line_count, &line, step, &pos);
+
+        emit_datum(ofp, cs, machine, cse, typable,
+                   &first_line, &line_count, &line, step, &pos);
+
+        for (j = 0; j < i; ++j)
+          emit_datum(ofp, d[j], machine, cse, typable,
+                     &first_line, &line_count, &line, step, &pos);
+      }
+    }
+  }
+
 
   if (pos > 0)
   {
@@ -880,9 +981,11 @@ int main(int argc, char *argv[])
                                machine_name(machine),
                                extbas ? " (with Extended BASIC)" : "");
 
-    printf("The program is %s, %s form with%s program comments\n",
+    printf("The program is %s, %s form%s"
+           " and with%s program comments\n",
                                case_name(cse),
                                typable ? "typable" : "compact",
+                               checksum ? " with checksumming" : "",
                                remarks ? "" : "out");
     printf("  Start location : 0x%x (%u)\n", start, start);
     printf("  Exec location  : 0x%x (%u)\n", exec, exec);
