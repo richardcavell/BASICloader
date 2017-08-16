@@ -65,7 +65,7 @@ another parameter, use a space.
       generated program - both the part that constructs the machine
       language blob, and the DATA lines themselves.
 
-      Using this option will turn on --typable.
+      Using this option will turn on --typable automatically.
 
   -x  --extbas    Assume Extended Color BASIC
       Only to be used with --machine coco. Assume that the target machine
