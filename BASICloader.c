@@ -32,7 +32,7 @@ enum case_type
 #define           DEFAULT_CASE               upper
 
 #define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
-#define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader.bas"
+#define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader"
 #define      COCO_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 
 #define         MIN_BASIC_LINE_NUMBER        0
@@ -72,12 +72,6 @@ fail(const char *fmt,...)
   (void) fprintf(stderr, "\n");
 
   exit(EXIT_FAILURE);
-}
-
-static void
-emit_fail(void)
-{
-  fail("Couldn't write to output file. Error number %d", errno);
 }
 
 static unsigned int
@@ -145,24 +139,52 @@ caseify(char *s, enum case_type cse)
   }
 }
 
-static unsigned int
-emit(FILE *fp, enum case_type cse, const char *fmt, ...)
+#define EMIT_FAIL -1
+#define TOO_LARGE -2
+
+static int
+vemit(FILE *fp, enum case_type cse, const char *fmt, va_list ap)
 {
   char scratch[SCRATCH_SIZE];
-  int bytes = 0;
-  va_list ap;
+  int rval = 0;
 
-  va_start(ap, fmt);
-  bytes = vsprintf(scratch, fmt, ap);
-  va_end(ap);
+  rval = vsprintf(scratch, fmt, ap);
 
-  if (bytes < 0)
-    emit_fail();
+  if (rval < 0)
+    return EMIT_FAIL;
 
   caseify(scratch, cse);
 
   if (fprintf(fp, "%s", scratch) < 0)
-    emit_fail();
+    return EMIT_FAIL;
+
+  if (ftell(fp) > MAX_BASIC_PROG_SIZE)
+    return TOO_LARGE;
+
+  return rval;
+}
+
+static void
+check_rval(int rval)
+{
+  if (rval == EMIT_FAIL)
+    fail("Couldn't write to output file. Error number %d", errno);
+
+  if (rval == TOO_LARGE)
+    fail("Generated BASIC program is too large");
+}
+
+static unsigned int
+emit(FILE *fp, enum case_type cse, const char *fmt, ...)
+{
+  int bytes = 0;
+  va_list ap;
+
+  va_start(ap, fmt);
+  bytes = vemit(fp, cse, fmt, ap);
+  va_end(ap);
+
+  check_rval(bytes);
 
   return (unsigned int) bytes;
 }
@@ -211,23 +233,21 @@ emit_line(FILE *fp,
           enum case_type cse,
           const char *fmt, ...)
 {
-  char scratch[SCRATCH_SIZE];
   int bytes = 0;
   va_list ap;
 
   *pos = emit(fp, cse, "%u ", next_line_number(first_line, line, step));
 
   va_start(ap, fmt);
-  bytes = vsprintf(scratch, fmt, ap);
+  bytes = vemit(fp, cse, fmt, ap);
   va_end(ap);
 
-  if (bytes < 0)
-    emit_fail();
+  check_rval(bytes);
 
   *pos += (unsigned int) bytes;
   check_pos(pos, machine);
 
-  (void) emit(fp, cse, "%s\n", scratch);
+  (void) emit(fp, cse, "\n");
   *pos = 0;
 }
 
@@ -464,16 +484,16 @@ list(void)
     puts("");
     puts("         coco   TRS-80 Color Computer (any model)");
     puts("                or Dragon (any model)");
-  printf("                Default output filename: %s\n",
+  printf("                Default output filename : %s\n",
                              COCO_DEFAULT_OUTPUT_FILENAME);
     puts("");
     puts("          c64   Commodore 64 (or any compatible computer)");
-  printf("                Default output filename: %s\n",
+  printf("                Default output filename : %s\n",
                               C64_DEFAULT_OUTPUT_FILENAME);
-  printf("                (or %s with --case lower)\n",
+  printf("                  (or with --case lower : %s)\n",
                               C64_LC_DEFAULT_OUTPUT_FILENAME);
     puts("");
-    puts("Use --case lower to use C64 output with VICE and petcat.");
+    puts("Use --machine c64 --case lower to use the output with petcat.");
 
   exit(EXIT_SUCCESS);
 }
@@ -502,6 +522,7 @@ info(void)
 int main(int argc, char *argv[])
 {
   enum machine_type machine = default_machine;
+  enum case_type cse = default_case;
   FILE *fp = NULL;
   FILE *ofp = NULL;
   char *fname = NULL;
@@ -520,7 +541,6 @@ int main(int argc, char *argv[])
   int typable = 0;
   int remarks = 0;
   int extbas = 0;
-  enum case_type cse = default_case;
   int c = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
@@ -577,24 +597,31 @@ int main(int argc, char *argv[])
   if (ofname == NULL)
       switch(machine)
       {
-      case coco:
+        case coco:
              ofname = COCO_DEFAULT_OUTPUT_FILENAME;
              break;
-      case c64:
+        case c64:
              ofname = (cse == lower) ?
                C64_LC_DEFAULT_OUTPUT_FILENAME :
                C64_DEFAULT_OUTPUT_FILENAME;
              break;
-      default:
+        default:
              fail("Internal error");
       }
 
   if (start == 0)
   {
-         if (machine == coco)
-               start = COCO_DEFAULT_START_ADDRESS;
-    else if (machine == c64)
-               start = C64_DEFAULT_START_ADDRESS;
+      switch(machine)
+      {
+        case coco:
+             start = COCO_DEFAULT_START_ADDRESS;
+             break;
+        case c64:
+             start = C64_DEFAULT_START_ADDRESS;
+             break;
+        default:
+             fail("Internal error");
+      }
   }
 
   if (exec == 0)
@@ -639,8 +666,8 @@ int main(int argc, char *argv[])
   {
     fail("The machine language blob would overflow the 64K RAM limit");
   }
-  else if ( !nowarn &&
-            (machine == coco) )
+
+  if (machine == coco && !nowarn)
   {
     if (end > HIGHEST_32K_ADDRESS)
       puts("Warning: Program requires 64K of RAM");
