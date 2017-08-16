@@ -854,7 +854,9 @@ int main(int argc, char *argv[])
   if (checksum)
   {
     emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
-              "P = %u:Q = %u", start, end);
+              "P = %u", start);
+    emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
+              "Q = %u", end);
     emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
               "READ L, CS");
     emit_line(ofp, &pos, &first_line, &line_count, &line, step, machine, cse,
