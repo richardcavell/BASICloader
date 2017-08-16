@@ -46,8 +46,8 @@ The output of this program is licensed to you under the following license:
 
   1.  You may use the output of this program, for free, for any worthwhile
       or moral purpose.
-  2.  You should attribute me and the BASICloader program where that does
-      not cause an unreasonable burden on you.
+  2.  You should try to attribute me and the BASICloader program, where
+      that is not unreasonable.
 
 You should not allow people to assume that you wrote the BASIC code yourself.
 
