@@ -828,7 +828,7 @@ int main(int argc, char *argv[])
     ln = (unsigned short int) (d[1] * 256 + d[2]);
     st = (unsigned short int) (d[3] * 256 + d[4]);
 
-    if (fseek(fp, 5L, SEEK_END) < 0)
+    if (fseek(fp, -5L, SEEK_END) < 0)
       fail("Couldn't operate on file %s. Error number %d", fname, errno);
 
     for (i = 0; i < COCO_AMBLE; ++i)
