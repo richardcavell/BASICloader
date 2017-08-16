@@ -14,3 +14,32 @@ For the coco with Extended Color BASIC:
 
 For the c64 target:
  * the emitted program will adjust the MEMSIZE variable
+
+Concerning the PRG file format on the C64 target, this option should be used
+with care.
+
+The PRG file format provides two unsigned 8-bit bytes at the start of the
+file indicating where the machine language routine should be loaded to.
+These two bytes (in little-endian order) are read by BASICloader to obtain
+a start address. It is also the exec address.
+
+If a PRG file is intended to be started with a command such as:
+
+  LOAD "*",8,1
+
+(notice the ,1) then it is intended that the Commodore 64 will read this
+start location and load to that address. For a PRG file that is loaded
+without the ,1 the start location is ignored and the Commodore 64 uses its
+default location, which is 0x0801.
+
+Most machine language programs on the Commodore 64 are in fact hybrids of
+BASIC and machine language. They are intended to load to location 0x0801
+and to be executed with the command "RUN" instead of "SYS".
+
+These files cannot be used with BASICloader, since if they were poked into
+memory they would overwrite the loader program.  BASICloader makes some
+attempt to detect this. If detected, BASICloader will fail with a message
+saying "Error: Program is unsuitable for use with BASICloader".
+
+Generally, you should only be using BASICloader on machine language blobs
+that you have created yourself.

@@ -28,8 +28,16 @@ enum case_type
   mixed
 };
 
+enum format_type
+{
+  default_format = 0,
+  binary,
+  prg
+};
+
 #define           DEFAULT_MACHINE            coco
 #define           DEFAULT_CASE               upper
+#define           DEFAULT_FORMAT             binary
 
 #define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 #define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader"
@@ -146,6 +154,7 @@ static int
 vemit(FILE *fp, enum case_type cse, const char *fmt, va_list ap)
 {
   char scratch[SCRATCH_SIZE];
+  long int osize;
   int rval = 0;
 
   rval = vsprintf(scratch, fmt, ap);
@@ -158,8 +167,13 @@ vemit(FILE *fp, enum case_type cse, const char *fmt, va_list ap)
   if (fprintf(fp, "%s", scratch) < 0)
     return EMIT_FAIL;
 
-  if (ftell(fp) > MAX_BASIC_PROG_SIZE)
+  osize = ftell(fp);
+
+  if (osize > MAX_BASIC_PROG_SIZE)
     return TOO_LARGE;
+
+  if (osize < 0)
+    return EMIT_FAIL;
 
   return rval;
 }
@@ -348,6 +362,24 @@ get_c_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static int
+get_f_arg(char **pargv[], const char *shrt, const char *lng,
+          enum format_type *fmt)
+{
+  int matched = 0;
+  char *opt = NULL;
+
+  if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
+  {
+         if (strcmp(opt, "binary") == 0)     *fmt = binary;
+    else if (strcmp(opt, "prg") == 0)        *fmt = prg;
+    else if (strcmp(opt, "PRG") == 0)        *fmt = prg;
+    else fail("Unknown file format option %s", (*pargv)[0]);
+  }
+
+  return matched;
+}
+
+static int
 get_m_arg(char **pargv[], const char *shrt, const char *lng,
           enum machine_type *machine)
 {
@@ -405,6 +437,7 @@ help(void)
   puts("  -x  --extbas    Assume Extended Color BASIC");
   puts("  -c  --case      Output case (lower/upper/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
+  puts("  -f  --format    Input file format (binary/prg)");
   puts("  -d  --diag      Print info about the generated program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
@@ -523,6 +556,7 @@ int main(int argc, char *argv[])
 {
   enum machine_type machine = default_machine;
   enum case_type cse = default_case;
+  enum format_type format = default_format;
   FILE *fp = NULL;
   FILE *ofp = NULL;
   char *fname = NULL;
@@ -569,6 +603,7 @@ int main(int argc, char *argv[])
                 || get_sw_arg(argv[0], "-r", "--remarks",  &remarks)
                 || get_sw_arg(argv[0], "-d", "--diag",     &diagnostics)
                 || get_c_arg   (&argv, "-c", "--case",     &cse)
+                || get_f_arg   (&argv, "-f", "--format",   &format)
               )
             ;
       else if (argv[0][0]=='-')
@@ -581,12 +616,14 @@ int main(int argc, char *argv[])
              fname = argv[0];
            }
     }
-
   if (machine == default_machine)
     machine = DEFAULT_MACHINE;
 
   if (extbas && machine != coco)
     fail("Extended Color BASIC can only be selected with the coco target");
+
+  if (format == default_format)
+    format = DEFAULT_FORMAT;
 
   if (cse == default_case)
     cse = DEFAULT_CASE;
@@ -609,24 +646,6 @@ int main(int argc, char *argv[])
              fail("Internal error");
       }
 
-  if (start == 0)
-  {
-      switch(machine)
-      {
-        case coco:
-             start = COCO_DEFAULT_START_ADDRESS;
-             break;
-        case c64:
-             start = C64_DEFAULT_START_ADDRESS;
-             break;
-        default:
-             fail("Internal error");
-      }
-  }
-
-  if (exec == 0)
-    exec = start;
-
   errno = 0;
 
   fp = fopen(fname, "r");
@@ -640,16 +659,61 @@ int main(int argc, char *argv[])
   size = ftell(fp);
 
   if (size < 0)
-    fail("Could not operate on file %s. Error number %d", fname, errno);
+    fail("Could not get size of file %s. Error number %d", fname, errno);
 
   if (size == 0)
     fail("File %s is empty", fname);
+
+  if (format == prg && size < 3)
+    fail("With PRG file format selected,\n"
+         "input file %s must be at least 3 bytes long", fname);
 
   if (size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
     fail("Input file %s is too large", fname);
 
   if (fseek(fp, 0L, SEEK_SET) < 0)
     fail("Could not rewind file %s", fname);
+
+  if (start == 0)
+  {
+      switch(machine)
+      {
+        case coco:
+             start = COCO_DEFAULT_START_ADDRESS;
+             break;
+
+        case c64:
+             if (format == prg)
+             {
+               int lo, hi;
+
+               lo = fgetc(fp);
+
+               if (lo != EOF)
+                 hi = fgetc(fp);
+
+               if (lo == EOF || hi == EOF)
+                 fail("Couldn't read from input file");
+
+               size -= 2;
+               start = (unsigned short int)
+                       ((unsigned char) hi * 256 + (unsigned char) lo);
+
+               if (start == 0x0801)
+                 fail("Program is unsuitable for use with BASICloader");
+             }
+             else
+               start = C64_DEFAULT_START_ADDRESS;
+
+             break;
+
+        default:
+             fail("Internal error");
+      }
+  }
+
+  if (exec == 0)
+    exec = start;
 
   ofp = fopen(ofname, "w");
 
@@ -773,11 +837,14 @@ int main(int argc, char *argv[])
 
   osize = ftell(ofp);
 
-  if (fclose(ofp))
-    fail("Couldn't close file %s", ofname);
+  if (osize < 0)
+    fail("Error while calculating size of output file");
 
   if (osize > MAX_BASIC_PROG_SIZE)
     fail("Generated BASIC program is too large");
+
+  if (fclose(ofp))
+    fail("Couldn't close file %s", ofname);
 
   printf("BASIC program has been generated -> %s\n", ofname);
 
