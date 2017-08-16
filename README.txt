@@ -34,10 +34,15 @@ doing so correctly, and then it will execute the program.
 The output of BASICloader will therefore look like the old "type-in"
 programs from 1980s computer magazines.
 
-If your input file is in the PRG file format, the start location will be
-read from that file. Otherwise, if you do not specify a start location, it
-defaults to a value that is sensible for the target machine.  The exec
-location defaults to being equal to the start value.
+The input file must be a machine language program. It can be a plain binary,
+a Dragon DOS file or a Commodore 64 PRG file.  Dragon and PRG formats
+specify the start location, and the Dragon format specifies an exec location
+as well.  If you input a Dragon or PRG file, BASICloader will read and
+use the specified locations.
+
+If you do not specify a start location, it defaults to a value that
+is sensible for the target machine.  The exec location defaults to being
+equal to the start value.
 
 You can read more about the command line options in the file Options.txt,
 and you can read about technical information in Technical_info.txt

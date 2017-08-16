@@ -11,6 +11,9 @@ overlaps.  You will need to study the memory map of the target machine
 precisely. For the coco target, you must consider what will be the
 minimum amount of RAM for your target machine.
 
+Generally, you should only be using BASICloader on machine language blobs
+that you have created yourself.
+
 == Emitted instructions ==
 
 For the coco with Extended Color BASIC:
@@ -24,32 +27,19 @@ The emitted program will also include:
  * (for coco) an EXEC command
  * (for c64) a SYS command
 
+== Concerning the Dragon and PRG file formats ==
+
+The Dragon DOS and Commodore 64 PRG file formats specify a start location,
+and Dragon DOS also specifies an exec location.  BASICloader will read
+and use these.
+
 == Concerning the PRG file format ==
 
-This option should be used with care.
-
-The PRG file format provides two unsigned 8-bit bytes at the start of the
-file indicating where the machine language routine should be loaded to.
-These two bytes (in little-endian order) are read by BASICloader to obtain
-a start address. It is also the exec address.
-
-If a PRG file is intended to be started with a command such as:
+Most machine language programs on the Commodore 64 are in fact hybrids of
+BASIC and machine language. They are intended to be run like this:
 
   LOAD "*",8,1
+  RUN
 
-(notice the ,1) then it is intended that the Commodore 64 will read this
-start location and load to that address. For a PRG file that is loaded
-without the ,1 the start location is ignored and the Commodore 64 uses its
-default location, which is 0x0801.
-
-Most machine language programs on the Commodore 64 are in fact hybrids of
-BASIC and machine language. They are intended to load to location 0x0801
-and to be executed with the command "RUN" instead of "SYS".
-
-These files cannot be used with BASICloader, since if they were poked into
-memory they would overwrite the loader program.  BASICloader makes some
-attempt to detect this. If detected, BASICloader will fail with a message
-saying "Error: Program is unsuitable for use with BASICloader".
-
-Generally, you should only be using BASICloader on machine language blobs
-that you have created yourself.
+These files cannot be used with BASICloader, since if they were run with
+BASICloader they would overwrite the loader program.
