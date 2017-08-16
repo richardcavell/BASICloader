@@ -32,6 +32,7 @@ enum format_type
 {
   default_format = 0,
   binary,
+  format_coco,
   dragon,
   prg
 };
@@ -70,6 +71,7 @@ enum format_type
 #define            UCHAR_MAX_8_BIT           255
 
 #define DRAGON_HEADER 10
+#define COCO_AMBLE 5
 
 static void
 fail(const char *fmt,...)
@@ -392,10 +394,12 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
   if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
   {
          if (strcmp(opt, "binary") == 0)     *fmt = binary;
-    else if (strcmp(opt, "prg") == 0)        *fmt = prg;
-    else if (strcmp(opt, "PRG") == 0)        *fmt = prg;
+    else if (strcmp(opt, "coco") == 0)       *fmt = format_coco;
+    else if (strcmp(opt, "Coco") == 0)       *fmt = format_coco;
     else if (strcmp(opt, "dragon") == 0)     *fmt = dragon;
     else if (strcmp(opt, "Dragon") == 0)     *fmt = dragon;
+    else if (strcmp(opt, "prg") == 0)        *fmt = prg;
+    else if (strcmp(opt, "PRG") == 0)        *fmt = prg;
     else fail("Unknown file format option %s", (*pargv)[0]);
   }
 
@@ -461,7 +465,7 @@ help(void)
   puts("  -x  --extbas    Assume Extended Color BASIC");
   puts("  -c  --case      Output case (lower/upper/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
-  puts("  -f  --format    Input file format (binary/dragon/prg)");
+  puts("  -f  --format    Input file format (binary/coco/dragon/prg)");
   puts("  -d  --diag      Print info about the generated program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
@@ -658,6 +662,9 @@ int main(int argc, char *argv[])
   if (machine != coco && format == dragon)
     fail("Dragon file format is only to be used with the coco target");
 
+  if (machine != coco && format == format_coco)
+    fail("Coco file format is only to be used with the coco target");
+
   if (cse == default_case)
     cse = DEFAULT_CASE;
 
@@ -706,7 +713,13 @@ int main(int argc, char *argv[])
 
   if (format == dragon && size < DRAGON_HEADER + 1)
     fail("With Dragon file format selected,\n"
-         "input file %s must be at least 10 bytes long", fname);
+         "input file %s must be at least %d bytes long",
+                     fname, DRAGON_HEADER + 1);
+
+  if (format == format_coco && size < 2 * COCO_AMBLE + 1)
+    fail("With Coco file format selected,\n"
+         "input file %s must be at least %d bytes long",
+                     fname, 2 * COCO_AMBLE + 1);
 
   if (size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
     fail("Input file %s is too large", fname);
@@ -785,6 +798,78 @@ int main(int argc, char *argv[])
     if (exec && ex != exec)
       fail("Input Dragon DOS file %s gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)", ex, exec);
+
+    start = st;
+    exec  = ex;
+  }
+
+  if (format == format_coco)
+  {
+    unsigned short int st = 0;
+    unsigned short int ex = 0;
+    unsigned short int ln = 0;
+    unsigned int i = 0;
+    unsigned char d[COCO_AMBLE];
+
+    for (i = 0; i < COCO_AMBLE; ++i)
+    {
+      int c = fgetc(fp);
+
+      if (c == EOF)
+        fail("Could not read from file %s. Error code %d", fname, errno);
+
+      d[i] = (unsigned char) c;
+    }
+
+    if (d[0] != 0x0)
+      fail("Input file %s is not properly formed as a Coco file (bad header)",
+                       fname);
+
+    ln = (unsigned short int) (d[1] * 256 + d[2]);
+    st = (unsigned short int) (d[3] * 256 + d[4]);
+
+    if (fseek(fp, 5L, SEEK_END) < 0)
+      fail("Couldn't operate on file %s. Error number %d", fname, errno);
+
+    for (i = 0; i < COCO_AMBLE; ++i)
+    {
+      int c = fgetc(fp);
+
+      if (c == EOF)
+        fail("Could not read from file %s. Error code %d", fname, errno);
+
+      d[i] = (unsigned char) c;
+    }
+
+    if (d[0] == 0x0)
+      fail("Input file %s is segmented, and cannot be used", fname);
+
+    if (d[0] != 0xff ||
+        d[1] != 0x0  ||
+        d[2] != 0x0)
+      fail("Input file %s is not properly formed as a Coco file (bad tail)",
+                       fname);
+
+    ex = (unsigned short int) (d[3] * 256 + d[4]);
+
+    if (ln + 2 * COCO_AMBLE != size)
+      fail("Input file %s header length (%u) does not match file size (%u)",
+                       fname, ln + 2 * COCO_AMBLE, size);
+
+    if (start && st != start)
+      fail("Input Coco file %s gives a different start address ($%x)\n"
+           "to the one given at the command line ($%x)", st, start);
+
+    if (exec && ex != exec)
+      fail("Input Coco file %s gives a different exec address ($%x)\n"
+           "to the one given at the command line ($%x)", ex, exec);
+
+    if (fseek(fp, 5L, SEEK_SET) < 0)
+      fail("Couldn't operate on file %s. Error number %d", fname, errno);
+
+    start = st;
+    exec = ex;
+    size -= 2 * COCO_AMBLE;
   }
 
   if (start == 0)
