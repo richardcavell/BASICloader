@@ -8,10 +8,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <limits.h>
-#include <errno.h>
 #include <time.h>
+#include <limits.h>
 #include <ctype.h>
+#include <errno.h>
 
 enum machine_type
 {
@@ -389,11 +389,8 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
   {
          if (strcmp(opt, "binary") == 0)     *fmt = binary;
     else if (strcmp(opt, "coco") == 0)       *fmt = format_coco;
-    else if (strcmp(opt, "Coco") == 0)       *fmt = format_coco;
     else if (strcmp(opt, "dragon") == 0)     *fmt = dragon;
-    else if (strcmp(opt, "Dragon") == 0)     *fmt = dragon;
     else if (strcmp(opt, "prg") == 0)        *fmt = prg;
-    else if (strcmp(opt, "PRG") == 0)        *fmt = prg;
     else fail("Unknown file format option %s", (*pargv)[0]);
   }
 
@@ -605,7 +602,7 @@ int main(int argc, char *argv[])
 #endif
 
   if (sizeof(unsigned char) == sizeof(int))
-    fail("Please note this program will have arithmetic problems");
+    fail("Internal error: Cannot promote unsigned char to signed int");
 
   if (argc > 0)
     while (*++argv)
