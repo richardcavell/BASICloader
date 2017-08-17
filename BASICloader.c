@@ -138,17 +138,11 @@ caseify(char *s, enum case_type cse)
 {
   while (*s)
   {
-    switch(cse)
-    {
-      case upper:
-           *s = (char) toupper(*s);
-           break;
-      case lower:
-           *s = (char) tolower(*s);
-           break;
-      default:
-           break;
-    }
+    if (cse == upper)
+      *s = (char) toupper(*s);
+
+    else if (cse == lower)
+      *s = (char) tolower(*s);
 
     ++s;
   }
@@ -160,7 +154,7 @@ inc_line_count(unsigned int *line_count)
   if (*line_count == UINT_MAX)
     fail("Line count has overflowed");
 
-  if (*line_count > MAX_BASIC_LINES)
+  if (*line_count >= MAX_BASIC_LINES)
     fail("Line count has exceeded given limit");
 
   ++*line_count;
@@ -188,11 +182,11 @@ vemit(FILE *fp, enum case_type cse, const char *fmt, va_list ap)
 
   osize = ftell(fp);
 
-  if (osize > MAX_BASIC_PROG_SIZE)
-    return TOO_LARGE;
-
   if (osize < 0)
     return EMIT_FAIL;
+
+  if (osize > MAX_BASIC_PROG_SIZE)
+    return TOO_LARGE;
 
   return rval;
 }
@@ -609,6 +603,9 @@ int main(int argc, char *argv[])
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
     fail("This machine cannot process 8-bit bytes");
 #endif
+
+  if (sizeof(unsigned char) == sizeof(int))
+    fail("Please note this program will have arithmetic problems");
 
   if (argc > 0)
     while (*++argv)
