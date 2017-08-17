@@ -456,7 +456,7 @@ help(void)
   puts("  -x  --extbas    Assume Extended Color BASIC");
   puts("  -c  --case      Output case (lower/upper/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
-  puts("  -f  --format    Input file format (binary/coco/dragon/prg)");
+  puts("  -f  --format    Input file format");
   puts("  -d  --diag      Print info about the generated program");
   puts("  -h  --help      This help information");
   puts("  -i  --info      What this program does");
@@ -545,7 +545,7 @@ list(void)
   printf("                  (or with --case lower : %s)\n",
                               C64_LC_DEFAULT_OUTPUT_FILENAME);
     puts("");
-    puts("Use --machine c64 --case lower to use the output with petcat.");
+    puts("To use the output with petcat, use --machine c64 --case lower");
 
   exit(EXIT_SUCCESS);
 }
