@@ -74,7 +74,7 @@ enum format_type
 #define COCO_AMBLE 5
 
 static void
-fail(const char *fmt,...)
+fail(const char *fmt, ...)
 {
   va_list ap;
 
@@ -87,6 +87,26 @@ fail(const char *fmt,...)
   (void) fprintf(stderr, "\n");
 
   exit(EXIT_FAILURE);
+}
+
+static void
+warning(const char *fmt, ...)
+{
+  va_list ap;
+  int res = 0;
+
+  if (printf("Warning: ") < 0)
+    fail("Couldn't print warning to standard output");
+
+  va_start(ap, fmt);
+  res = vprintf(fmt, ap);
+  va_end(ap);
+
+  if (res < 0)
+    fail("Couldn't print warning to standard output");
+
+  if (printf("\n") < 0)
+    fail("Couldn't print warning to standard output");
 }
 
 static unsigned int
@@ -126,7 +146,7 @@ check_pos(unsigned int *pos, enum machine_type machine)
            break;
 
     default:
-           fail("Internal error");
+           fail("Internal error detected in check_pos()");
   }
 
   if (*pos > max_basic_line_length)
@@ -138,11 +158,12 @@ caseify(char *s, enum case_type cse)
 {
   while (*s)
   {
-    if (cse == upper)
-      *s = (char) toupper(*s);
-
-    else if (cse == lower)
-      *s = (char) tolower(*s);
+    switch (cse)
+    {
+      case upper:  *s = (char) toupper(*s);                   break;
+      case lower:  *s = (char) tolower(*s);                   break;
+      default: fail("Internal error detected in caseify()");  break;
+    }
 
     ++s;
   }
@@ -385,6 +406,9 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
   int matched = 0;
   char *opt = NULL;
 
+  if (*fmt != default_format)
+    fail("You can only set the file format once");
+
   if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
   {
          if (strcmp(opt, "binary") == 0)     *fmt = binary;
@@ -403,6 +427,9 @@ get_m_arg(char **pargv[], const char *shrt, const char *lng,
 {
   int matched = 0;
   char *name = NULL;
+
+  if (*machine != default_machine)
+    fail("You can only set the target architecture once");
 
   if ((matched = get_str_arg(pargv, shrt, lng, &name)))
   {
@@ -503,7 +530,7 @@ machine_name(enum machine_type machine)
   {
     case coco:      s = "coco";      break;
     case c64:       s = "c64";       break;
-    default:        fail("Internal error");
+    default:        fail("Internal error detected in machine_name()");
   }
 
   return s;
@@ -519,7 +546,7 @@ case_name(enum case_type cse)
     case upper:     s = "uppercase";    break;
     case lower:     s = "lowercase";    break;
     case mixed:     s = "mixed case";   break;
-    default:        fail("Internal error");
+    default:        fail("Internal error detected in case_name()");
   }
 
   return s;
@@ -650,14 +677,14 @@ int main(int argc, char *argv[])
   if (format == default_format)
     format = DEFAULT_FORMAT;
 
-  if (machine != c64 && format == prg)
-    fail("PRG file format is only to be used with the c64 target");
+  if (format == prg && machine != c64)
+    warning("PRG file format should only be used with the c64 target");
 
-  if (machine != coco && format == dragon)
-    fail("Dragon file format is only to be used with the coco target");
+  if (format == dragon && machine != coco)
+    warning("Dragon file format should only be used with the coco target");
 
-  if (machine != coco && format == format_coco)
-    fail("Coco file format is only to be used with the coco target");
+  if (format == format_coco && machine != coco)
+    warning("Coco file format should only be used with the coco target");
 
   if (cse == default_case)
     cse = DEFAULT_CASE;
@@ -680,7 +707,7 @@ int main(int argc, char *argv[])
                C64_DEFAULT_OUTPUT_FILENAME;
              break;
         default:
-             fail("Internal error");
+             fail("Internal error detected in ofname switch");
       }
 
   errno = 0;
@@ -879,7 +906,7 @@ int main(int argc, char *argv[])
            break;
 
       default:
-           fail("Internal error");
+           fail("Internal error detected in start switch");
     }
   }
 
