@@ -73,7 +73,7 @@ another parameter, use a space.
       include a CLEAR command that is unknown to Color Computers without
       Extended Color BASIC.
 
-  -c  --case      Output case (lower/upper/mixed)
+  -c  --case      Output case (upper/lower/mixed)
       If you specify lower, the output program will be entirely in lowercase.
       This is what you want, if you intend to run the program using VICE or
       run it through petcat. The default case is "upper". You can also specify

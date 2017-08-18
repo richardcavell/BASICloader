@@ -481,7 +481,7 @@ help(void)
   puts("  -t  --typable   Unpacked, one instruction per line");
   puts("  -k  --checksum  Checksum included in each line of DATA");
   puts("  -x  --extbas    Assume Extended Color BASIC");
-  puts("  -c  --case      Output case (lower/upper/mixed)");
+  puts("  -c  --case      Output case (upper/lower/mixed)");
   puts("  -r  --remarks   Add remarks to the program");
   puts("  -f  --format    Input file format");
   puts("  -d  --diag      Print info about the generated program");
