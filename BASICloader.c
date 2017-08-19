@@ -537,6 +537,23 @@ machine_name(enum machine_type machine)
 }
 
 static char *
+format_name(enum format_type format)
+{
+  char *s = NULL;
+
+  switch(format)
+  {
+    case binary:           s = "binary";    break;
+    case format_coco:      s = "coco";      break;
+    case dragon:           s = "dragon";    break;
+    case prg:              s = "prg";       break;
+    default:               fail("Internal error detected in format_name()");
+  }
+
+  return s;
+}
+
+static char *
 case_name(enum case_type cse)
 {
   char *s = NULL;
@@ -556,6 +573,7 @@ static void
 list(void)
 {
   printf("The default target is : %s\n", machine_name(DEFAULT_MACHINE));
+  printf("The default input is  : %s\n", format_name(DEFAULT_FORMAT));
   printf("The default output is : %s\n", case_name(DEFAULT_CASE));
 
     puts("");
