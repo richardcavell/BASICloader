@@ -20,14 +20,6 @@ enum machine_type
   c64
 };
 
-enum case_type
-{
-  default_case = 0,
-  upper,
-  lower,
-  mixed
-};
-
 enum format_type
 {
   default_format = 0,
@@ -37,9 +29,17 @@ enum format_type
   prg
 };
 
+enum case_type
+{
+  default_case = 0,
+  upper,
+  lower,
+  mixed
+};
+
 #define           DEFAULT_MACHINE            coco
-#define           DEFAULT_CASE               upper
 #define           DEFAULT_FORMAT             binary
+#define           DEFAULT_CASE               upper
 
 #define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 #define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader"
@@ -382,18 +382,20 @@ get_str_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static int
-get_c_arg(char **pargv[], const char *shrt, const char *lng,
-          enum case_type *cse)
+get_m_arg(char **pargv[], const char *shrt, const char *lng,
+          enum machine_type *machine)
 {
   int matched = 0;
-  char *opt = NULL;
+  char *name = NULL;
 
-  if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
+  if (*machine != default_machine)
+    fail("You can only set the target architecture once");
+
+  if ((matched = get_str_arg(pargv, shrt, lng, &name)))
   {
-         if (strcmp(opt, "upper") == 0)      *cse = upper;
-    else if (strcmp(opt, "lower") == 0)      *cse = lower;
-    else if (strcmp(opt, "mixed") == 0)      *cse = mixed;
-    else fail("Unknown case option %s", (*pargv)[0]);
+         if (strcmp(name, "coco") == 0)      *machine = coco;
+    else if (strcmp(name, "c64") == 0)       *machine = c64;
+    else fail("Unknown machine %s", (*pargv)[0]);
   }
 
   return matched;
@@ -422,20 +424,18 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static int
-get_m_arg(char **pargv[], const char *shrt, const char *lng,
-          enum machine_type *machine)
+get_c_arg(char **pargv[], const char *shrt, const char *lng,
+          enum case_type *cse)
 {
   int matched = 0;
-  char *name = NULL;
+  char *opt = NULL;
 
-  if (*machine != default_machine)
-    fail("You can only set the target architecture once");
-
-  if ((matched = get_str_arg(pargv, shrt, lng, &name)))
+  if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
   {
-         if (strcmp(name, "coco") == 0)      *machine = coco;
-    else if (strcmp(name, "c64") == 0)       *machine = c64;
-    else fail("Unknown machine %s", (*pargv)[0]);
+         if (strcmp(opt, "upper") == 0)      *cse = upper;
+    else if (strcmp(opt, "lower") == 0)      *cse = lower;
+    else if (strcmp(opt, "mixed") == 0)      *cse = mixed;
+    else fail("Unknown case option %s", (*pargv)[0]);
   }
 
   return matched;
@@ -601,8 +601,8 @@ info(void)
 int main(int argc, char *argv[])
 {
   enum machine_type machine = default_machine;
-  enum case_type cse = default_case;
   enum format_type format = default_format;
+  enum case_type cse = default_case;
   FILE *fp = NULL;
   FILE *ofp = NULL;
   char *fname = NULL;
@@ -671,9 +671,6 @@ int main(int argc, char *argv[])
   if (machine == default_machine)
     machine = DEFAULT_MACHINE;
 
-  if (extbas && machine != coco)
-    fail("Extended Color BASIC can only be selected with the coco target");
-
   if (format == default_format)
     format = DEFAULT_FORMAT;
 
@@ -688,6 +685,9 @@ int main(int argc, char *argv[])
 
   if (cse == default_case)
     cse = DEFAULT_CASE;
+
+  if (extbas && machine != coco)
+    fail("Extended Color BASIC can only be selected with the coco target");
 
   if (checksum)
     typable = 1;
