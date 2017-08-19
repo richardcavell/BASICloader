@@ -388,11 +388,13 @@ get_m_arg(char **pargv[], const char *shrt, const char *lng,
   int matched = 0;
   char *name = NULL;
 
-  if (*machine != default_machine)
-    fail("You can only set the target architecture once");
+  puts((*pargv)[0]);
 
   if ((matched = get_str_arg(pargv, shrt, lng, &name)))
   {
+    if (*machine != default_machine)
+      fail("You can only set the target architecture once");
+
          if (strcmp(name, "coco") == 0)      *machine = coco;
     else if (strcmp(name, "c64") == 0)       *machine = c64;
     else fail("Unknown machine %s", (*pargv)[0]);
@@ -408,11 +410,11 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
   int matched = 0;
   char *opt = NULL;
 
-  if (*fmt != default_format)
-    fail("You can only set the file format once");
-
   if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
   {
+    if (*fmt != default_format)
+      fail("You can only set the file format once");
+
          if (strcmp(opt, "binary") == 0)     *fmt = binary;
     else if (strcmp(opt, "coco") == 0)       *fmt = format_coco;
     else if (strcmp(opt, "dragon") == 0)     *fmt = dragon;
@@ -432,6 +434,9 @@ get_c_arg(char **pargv[], const char *shrt, const char *lng,
 
   if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
   {
+    if (*cse != default_case)
+      fail("You can only set the output case once");
+
          if (strcmp(opt, "upper") == 0)      *cse = upper;
     else if (strcmp(opt, "lower") == 0)      *cse = lower;
     else if (strcmp(opt, "mixed") == 0)      *cse = mixed;
@@ -705,7 +710,7 @@ int main(int argc, char *argv[])
     cse = DEFAULT_CASE;
 
   if (extbas && machine != coco)
-    fail("Extended Color BASIC can only be selected with the coco target");
+    warning("Extended Color BASIC option should only be used with the coco target");
 
   if (checksum)
     typable = 1;
