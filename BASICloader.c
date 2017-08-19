@@ -162,7 +162,7 @@ caseify(char *s, enum case_type cse)
     {
       case upper:  *s = (char) toupper(*s);                   break;
       case lower:  *s = (char) tolower(*s);                   break;
-      default: fail("Internal error detected in caseify()");  break;
+      default:                                                break;
     }
 
     ++s;
