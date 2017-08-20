@@ -21,6 +21,7 @@ Usage: BASICloader [options] [filename]
   -f  --format    Input file format (binary/prg)
   -d  --diag      Print info about the generated program
   -h  --help      This help information
+  -?  --options   Short explanation of command line options
   -i  --info      What this program does
   -l  --license   Your license to use this program
   -v  --version   Version of this software
@@ -94,6 +95,11 @@ another parameter, use a space.
 
   -h  --help      This help information
       Lists all available command line options
+
+  -?  --options   Short explanation of command line options
+      Lists the defaults for those command line options that have defaults.
+      Also lists the options available for those command line options that
+      take specific words.
 
   -i  --info      What this program does
       Gives a short explanation of what this program is for, along with

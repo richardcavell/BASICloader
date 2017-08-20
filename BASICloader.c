@@ -41,9 +41,8 @@ enum case_type
 #define           DEFAULT_FORMAT             binary
 #define           DEFAULT_CASE               upper
 
-#define       C64_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
+#define           DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 #define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader"
-#define      COCO_DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 
 #define         MIN_BASIC_LINE_NUMBER        0
 #define     TYPABLE_START_LINE_NUMBER        10
@@ -491,6 +490,7 @@ help(void)
   puts("  -f  --format    Input file format");
   puts("  -d  --diag      Print info about the generated program");
   puts("  -h  --help      This help information");
+  puts("  -?  --options   Short explanation of command line options");
   puts("  -i  --info      What this program does");
   puts("  -l  --license   Your license to use this program");
   puts("  -v  --version   Version of this software");
@@ -575,29 +575,34 @@ case_name(enum case_type cse)
 }
 
 static void
-list(void)
+options(void)
 {
-  printf("The default target is : %s\n", machine_name(DEFAULT_MACHINE));
-  printf("The default input is  : %s\n", format_name(DEFAULT_FORMAT));
-  printf("The default output is : %s\n", case_name(DEFAULT_CASE));
+  print_version();
+  puts("");
+  printf("Default target architecture : %s\n", machine_name(DEFAULT_MACHINE));
+  printf("Default input format        : %s\n", format_name(DEFAULT_FORMAT));
+  printf("Default output case is      : %s\n", case_name(DEFAULT_CASE));
 
     puts("");
-    puts("Available target architectures are :");
+    puts("Available command line switches are :");
     puts("");
-    puts("         coco   TRS-80 Color Computer (any model)");
-    puts("                or Dragon (any model)");
-  printf("                Default output filename : %s\n",
-                             COCO_DEFAULT_OUTPUT_FILENAME);
+    puts("  -m  --machine   Target machine");
+    puts("                   (coco, c64)");
     puts("");
-    puts("          c64   Commodore 64 (or any compatible computer)");
-  printf("                Default output filename : %s\n",
-                              C64_DEFAULT_OUTPUT_FILENAME);
-  printf("                  (or with --case lower : %s)\n",
-                              C64_LC_DEFAULT_OUTPUT_FILENAME);
+    puts("  -f  --format    Input file format");
+    puts("                   (binary, coco, dragon, prg)");
     puts("");
-    puts("To use the output with petcat, use --machine c64 --case lower");
+    puts("  -c  --case      Output case");
+    puts("                   (upper, lower, mixed)");
+    puts("");
 
-  exit(EXIT_SUCCESS);
+  printf("Default output filename     : %s\n",
+                                        DEFAULT_OUTPUT_FILENAME);
+  printf("Default output filename     : %s (with --machine c64 --case lower)\n",
+                                        C64_LC_DEFAULT_OUTPUT_FILENAME);
+    puts("To use the output with VICE or petcat, use"
+                                        " --machine c64 --case lower");
+    exit(EXIT_SUCCESS);
 }
 
 static void
@@ -606,7 +611,7 @@ info(void)
   print_version();
   puts("");
   puts("BASICloader reads in a machine language binary, and then constructs");
-  puts("a BASIC program that will run on the target architecture.");
+  puts("a BASIC program that will run on the selected target architecture.");
   puts("");
   puts("The BASIC program so produced contains DATA statements that represent");
   puts("the machine language given to BASICloader when the BASIC program");
@@ -615,9 +620,8 @@ info(void)
   puts("When run on the target architecture, the BASIC program will poke");
   puts("that machine language into memory, and execute it.");
   puts("");
-
-  list();
-
+  puts("BASICloader therefore generates programs similar to the type-in programs");
+  puts("printed in 1980s computer magazines.");
   exit(EXIT_SUCCESS);
 }
 
@@ -665,6 +669,8 @@ int main(int argc, char *argv[])
              version();
       else if (    match_arg (argv[0], "-l", "--license"))
              license();
+      else if (    match_arg (argv[0], "-?", "--options"))
+             options();
       else if (
                    get_str_arg (&argv, "-o", "--output",   &ofname)
                 || get_shrt_arg(&argv, "-s", "--start",    &start)
@@ -719,19 +725,12 @@ int main(int argc, char *argv[])
     fail("You must specify an input file");
 
   if (ofname == NULL)
-      switch(machine)
-      {
-        case coco:
-             ofname = COCO_DEFAULT_OUTPUT_FILENAME;
-             break;
-        case c64:
-             ofname = (cse == lower) ?
-               C64_LC_DEFAULT_OUTPUT_FILENAME :
-               C64_DEFAULT_OUTPUT_FILENAME;
-             break;
-        default:
-             fail("Internal error detected in ofname switch");
-      }
+  {
+    if (machine == c64 && cse == lower)
+      ofname = C64_LC_DEFAULT_OUTPUT_FILENAME;
+    else
+      ofname = DEFAULT_OUTPUT_FILENAME;
+  }
 
   errno = 0;
 
