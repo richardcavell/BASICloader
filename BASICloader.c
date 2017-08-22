@@ -10,8 +10,8 @@
 #include <string.h>
 #include <time.h>
 #include <limits.h>
-#include <ctype.h>
 #include <errno.h>
+#include <ctype.h>
 
 enum machine_type
 {
