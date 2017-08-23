@@ -110,9 +110,9 @@ warning(const char *fmt, ...)
 }
 
 static void
-next_line_number(unsigned int *first_line,
-                 unsigned int *line,
-                 unsigned int step)
+inc_line_number(unsigned int *first_line,
+                unsigned int *line,
+                unsigned int step)
 {
   if(*first_line == 1)
   {
@@ -130,7 +130,7 @@ next_line_number(unsigned int *first_line,
 
 #if (MIN_BASIC_LINE_NUMBER > 0)
   if (*line < MIN_BASIC_LINE_NUMBER)
-    fail("Internal error detected in next_line_number()");
+    fail("Internal error detected in inc_line_number()");
 #endif
 
   if (*line > MAX_BASIC_LINE_NUMBER)
@@ -267,7 +267,7 @@ emit_datum(FILE *fp,
 
   if (*pos == 0)
   {
-    next_line_number(first_line, line, step);
+    inc_line_number(first_line, line, step);
     *pos = emit(fp, cse,
                     "%u DATA%s",
                     *line,
@@ -300,7 +300,7 @@ emit_line(FILE *fp,
 
   (void) typable;
 
-  next_line_number(first_line, line, step);
+  inc_line_number(first_line, line, step);
 
   *pos = emit(fp, cse, "%u ", *line);
 
