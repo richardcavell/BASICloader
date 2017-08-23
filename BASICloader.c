@@ -205,7 +205,7 @@ vemit(FILE *fp, enum case_type cse, const char *fmt, va_list ap)
   rval = vsprintf(scratch, fmt, ap);
 
   if (rval < 0)
-    return EMIT_FAIL; // Todo: Give this its own code
+    return EMIT_FAIL; /* Todo: Give this its own code */
 
   caseify(scratch, cse);
 
@@ -215,7 +215,7 @@ vemit(FILE *fp, enum case_type cse, const char *fmt, va_list ap)
   osize = ftell(fp);
 
   if (osize < 0)
-    return EMIT_FAIL; // Todo: Give this its own code
+    return EMIT_FAIL; /* Todo: Give this its own code */
 
   if (osize > MAX_BASIC_PROG_SIZE)
     return TOO_LARGE;
@@ -365,7 +365,7 @@ get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
     if (!ok)
       fail("Invalid argument to %s", (*pargv)[0]);
 
-#if (USHRT_MAX > HIGHEST_RAM_ADDRESS)
+#if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
     if (*ps > HIGHEST_RAM_ADDRESS)
       fail("%s cannot be greater than %x", (*pargv)[0], HIGHEST_RAM_ADDRESS);
 #endif
