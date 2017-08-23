@@ -62,12 +62,6 @@ enum case_type
 
         /* End of user-modifiable values */
 
-#define MIN_BASIC_LINE_NUMBER 0
-#define MAX_BASIC_LINE_NUMBER 63999
-
-#define C64_MAX_BASIC_LINE_LENGTH   79
-#define COCO_MAX_BASIC_LINE_LENGTH 249
-
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65536
 
 #define HIGHEST_RAM_ADDRESS 0xffff
@@ -76,10 +70,16 @@ enum case_type
 #define HIGHEST_8K_ADDRESS  0x1fff
 #define HIGHEST_4K_ADDRESS  0x0fff
 
-#define DRAGON_HEADER 10
-#define COCO_AMBLE 5
+#define C64_MAX_BASIC_LINE_LENGTH   79
+#define COCO_MAX_BASIC_LINE_LENGTH 249
+
+#define MIN_BASIC_LINE_NUMBER 0
+#define MAX_BASIC_LINE_NUMBER 63999
 
 #define UCHAR_MAX_8_BIT 255
+
+#define DRAGON_HEADER 10
+#define COCO_AMBLE 5
 
 static void
 fail(const char *fmt, ...)
@@ -133,12 +133,12 @@ inc_line_number(unsigned int *first_line,
     *line += *step;
 
     if (*line < old_line)
-      fail("Line number overflow");
+      fail("Internal error: Line number overflow");
   }
 
 #if (MIN_BASIC_LINE_NUMBER > 0)
   if (*line < MIN_BASIC_LINE_NUMBER)
-    fail("Internal error detected in inc_line_number()");
+    fail("Internal error: Line number error in inc_line_number()");
 #endif
 
 #if (MAX_BASIC_LINE_NUMBER > UINT_MAX)
@@ -163,7 +163,7 @@ check_pos(unsigned int *pos, enum machine_type machine)
            break;
 
     default:
-           fail("Internal error detected in check_pos()");
+           fail("Internal error: Unhandled machine type in check_pos()");
   }
 
   if (*pos > max_basic_line_length)
@@ -190,13 +190,13 @@ static void
 inc_line_count(unsigned int *line_count)
 {
   if (*line_count == UINT_MAX)
-    fail("Line count has overflowed");
+    fail("Internal error: Line count has overflowed");
 
   ++*line_count;
 
 #if (MAX_BASIC_LINES < UINT_MAX)
   if (*line_count > MAX_BASIC_LINES)
-    fail("Line count has exceeded internal limit");
+    fail("Line count has exceeded the set limit");
 #endif
 }
 
@@ -444,7 +444,7 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
     else if (strcmp(opt, "coco") == 0)       *fmt = format_coco;
     else if (strcmp(opt, "dragon") == 0)     *fmt = dragon;
     else if (strcmp(opt, "prg") == 0)        *fmt = prg;
-    else fail("Unknown file format option %s", (*pargv)[0]);
+    else fail("Unknown file format %s", (*pargv)[0]);
   }
 
   return matched;
@@ -465,7 +465,7 @@ get_c_arg(char **pargv[], const char *shrt, const char *lng,
          if (strcmp(opt, "upper") == 0)      *cse = upper;
     else if (strcmp(opt, "lower") == 0)      *cse = lower;
     else if (strcmp(opt, "mixed") == 0)      *cse = mixed;
-    else fail("Unknown case option %s", (*pargv)[0]);
+    else fail("Unknown case %s", (*pargv)[0]);
   }
 
   return matched;
@@ -561,7 +561,8 @@ machine_name(enum machine_type machine)
   {
     case coco:      s = "coco";      break;
     case c64:       s = "c64";       break;
-    default:        fail("Internal error detected in machine_name()");
+    default:        fail("Internal error: Unhandled machine"
+                         " in machine_name()");
   }
 
   return s;
@@ -578,7 +579,8 @@ format_name(enum format_type format)
     case format_coco:      s = "coco";      break;
     case dragon:           s = "dragon";    break;
     case prg:              s = "prg";       break;
-    default:               fail("Internal error detected in format_name()");
+    default:               fail("Internal error: Unhandled format"
+                                " in format_name()");
   }
 
   return s;
@@ -594,7 +596,7 @@ case_name(enum case_type cse)
     case upper:     s = "uppercase";    break;
     case lower:     s = "lowercase";    break;
     case mixed:     s = "mixed case";   break;
-    default:        fail("Internal error detected in case_name()");
+    default:        fail("Internal error: Unhandled case in case_name()");
   }
 
   return s;
@@ -682,8 +684,8 @@ int main(int argc, char *argv[])
     fail("This machine cannot process 8-bit bytes");
 #endif
 
-  if (sizeof(unsigned char) == sizeof(int))
-    fail("Internal error: Cannot promote unsigned char to signed int");
+  if (UCHAR_MAX > INT_MAX)
+    fail("Internal error: Cannot safely promote unsigned char to signed int");
 
   if (argc > 0)
     while (*++argv)
@@ -849,13 +851,13 @@ int main(int argc, char *argv[])
       fail("Input Dragon DOS file %s appears to be a BASIC program", fname);
 
     if (d[i] != 0x2)
-      printf("Warning: Input Dragon DOS file %s"
+      warning("Input Dragon DOS file %s"
              " has an unknown FILETYPE\n", fname);
 
     size -= DRAGON_HEADER;
 
     if (d[4] * 256 + d[5] != size)
-      fail("Warning: Input Dragon DOS file %s header"
+      fail("Input Dragon DOS file %s header"
            "gives incorrect length", fname);
 
     st = (unsigned short int) (d[2] * 256 + d[3]);
@@ -955,7 +957,7 @@ int main(int argc, char *argv[])
            break;
 
       default:
-           fail("Internal error detected in start switch");
+           fail("Internal error: Unhandled machine in start switch");
     }
   }
 
@@ -1126,7 +1128,8 @@ int main(int argc, char *argv[])
     {
 #if (UCHAR_MAX != UCHAR_MAX_8_BIT)
       if ((unsigned char) c > UCHAR_MAX_8_BIT)
-        fail("Input file contains a value that's too high for an 8-bit machine");
+        fail("Input file contains a value that's too high"
+             " for an 8-bit machine");
 #endif
 
       emit_datum(ofp, (unsigned char) c, machine, cse, typable,
@@ -1148,7 +1151,8 @@ int main(int argc, char *argv[])
 
 #if (UCHAR_MAX != UCHAR_MAX_8_BIT)
         if ((unsigned char) c > UCHAR_MAX_8_BIT)
-          fail("Input file contains a value that's too high for an 8-bit machine");
+          fail("Input file contains a value that's too high"
+               " for an 8-bit machine");
 #endif
 
         if (c != EOF)
@@ -1186,7 +1190,7 @@ int main(int argc, char *argv[])
   osize = ftell(ofp);
 
   if (osize < 0)
-    fail("Error while calculating size of output file");
+    fail("Error while measuring size of output file");
 
   if (osize > MAX_BASIC_PROG_SIZE)
     fail("Generated BASIC program size exceeds internal limit");
