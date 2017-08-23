@@ -98,23 +98,29 @@ fail(const char *fmt, ...)
 }
 
 static void
+warning_fail(void)
+{
+  fail("Couldn't print warning to standard output");
+}
+
+static void
 warning(const char *fmt, ...)
 {
   va_list ap;
   int res = 0;
 
   if (printf("Warning: ") < 0)
-    fail("Couldn't print warning to standard output");
+    warning_fail();
 
   va_start(ap, fmt);
   res = vprintf(fmt, ap);
   va_end(ap);
 
-  if (res < 0)
-    fail("Couldn't print warning to standard output");
-
   if (printf("\n") < 0)
-    fail("Couldn't print warning to standard output");
+    warning_fail();
+
+  if (res < 0)
+    warning_fail();
 }
 
 static void
@@ -745,7 +751,8 @@ int main(int argc, char *argv[])
     cse = DEFAULT_CASE;
 
   if (extbas && machine != coco)
-    warning("Extended Color BASIC option should only be used with the coco target");
+    warning("Extended Color BASIC option should only be used"
+            " with the coco target");
 
   if (checksum)
     typable = 1;
@@ -994,8 +1001,8 @@ int main(int argc, char *argv[])
 
   if (exec < start || exec > end)
   {
-    puts("Warning: The exec location given is not within the start and");
-    puts("end of the binary blob that will be loaded into memory.");
+    fail("The exec location given is not within the start and"
+         " end of the binary blob that will be loaded into memory.");
   }
 
   line = (typable) ? TYPABLE_START_LINE_NUMBER :
