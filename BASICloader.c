@@ -109,7 +109,7 @@ warning(const char *fmt, ...)
     fail("Couldn't print warning to standard output");
 }
 
-static unsigned int
+static void
 next_line_number(int typable,
                  unsigned int *first_line,
                  unsigned int *line,
@@ -138,8 +138,6 @@ next_line_number(int typable,
 
   if (*line > MAX_BASIC_LINE_NUMBER)
     fail("The BASIC line numbers have become too large");
-
-  return *line;
 }
 
 static void
@@ -272,9 +270,10 @@ emit_datum(FILE *fp,
 
   if (*pos == 0)
   {
+    next_line_number(typable, first_line, line, step);
     *pos = emit(fp, cse,
                     "%u DATA%s",
-                    next_line_number(typable, first_line, line, step),
+                    *line,
                     typable ? " " : "" );
   }
   else
@@ -302,8 +301,9 @@ emit_line(FILE *fp,
   int bytes = 0;
   va_list ap;
 
-  *pos = emit(fp, cse, "%u ",
-              next_line_number(typable, first_line, line, step));
+  next_line_number(typable, first_line, line, step);
+
+  *pos = emit(fp, cse, "%u ", *line);
 
   va_start(ap, fmt);
   bytes = vemit(fp, cse, fmt, ap);
