@@ -1178,7 +1178,7 @@ int main(int argc, char *argv[])
     fail("Error while calculating size of output file");
 
   if (osize > MAX_BASIC_PROG_SIZE)
-    fail("Generated BASIC program is too large");
+    fail("Generated BASIC program size exceeds internal limit");
 
   if (fclose(ofp))
     fail("Couldn't close file %s", ofname);
