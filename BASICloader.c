@@ -670,6 +670,7 @@ int main(int argc, char *argv[])
   int extbas = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
+    /* This code might be used with retro machines and compilers */
     fail("This machine cannot process 8-bit bytes");
 #endif
 
@@ -971,14 +972,14 @@ int main(int argc, char *argv[])
 
   if (machine == coco && !nowarn)
   {
-    if (end > HIGHEST_32K_ADDRESS)
-      puts("Warning: Program requires 64K of RAM");
+         if (end > HIGHEST_32K_ADDRESS)
+      warning("Program requires 64K of RAM");
     else if (end > HIGHEST_16K_ADDRESS)
-      puts("Warning: Program requires at least 32K of RAM");
+      warning("Program requires at least 32K of RAM");
     else if (end > HIGHEST_8K_ADDRESS)
-      puts("Warning: Program requires at least 16K of RAM");
+      warning("Program requires at least 16K of RAM");
     else if (end > HIGHEST_4K_ADDRESS)
-      puts("Warning: Program requires at least 8K of RAM");
+      warning("Program requires at least 8K of RAM");
   }
 
   if (exec < start || exec > end)
