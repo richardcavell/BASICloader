@@ -187,10 +187,12 @@ inc_line_count(unsigned int *line_count)
   if (*line_count == UINT_MAX)
     fail("Line count has overflowed");
 
-  if (*line_count >= MAX_BASIC_LINES)
-    fail("Line count has exceeded given limit");
-
   ++*line_count;
+
+#if (MAX_BASIC_LINES < UINT_MAX)
+  if (*line_count > MAX_BASIC_LINES)
+    fail("Line count has exceeded internal limit");
+#endif
 }
 
 #define EMIT_FAIL -1
