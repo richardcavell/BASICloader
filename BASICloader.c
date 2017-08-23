@@ -133,8 +133,10 @@ inc_line_number(unsigned int *first_line,
     fail("Internal error detected in inc_line_number()");
 #endif
 
+#if (MAX_BASIC_LINE_NUMBER > UINT_MAX)
   if (*line > MAX_BASIC_LINE_NUMBER)
     fail("The BASIC line numbers have become too large");
+#endif
 }
 
 static void
