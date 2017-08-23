@@ -37,6 +37,8 @@ enum case_type
   mixed
 };
 
+        /* User-modifiable values */
+
 #define           DEFAULT_MACHINE            coco
 #define           DEFAULT_FORMAT             binary
 #define           DEFAULT_CASE               upper
@@ -44,34 +46,40 @@ enum case_type
 #define           DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 #define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader"
 
-#define         MIN_BASIC_LINE_NUMBER        0
 #define     DEFAULT_START_LINE_NUMBER        MIN_BASIC_LINE_NUMBER
 #define     TYPABLE_START_LINE_NUMBER        10
-#define         MAX_BASIC_LINE_NUMBER        63999
 #define     DEFAULT_BASIC_LINE_STEP_SIZE     1
 #define     TYPABLE_BASIC_LINE_STEP_SIZE     10
 #define         MAX_BASIC_LINES              10000
 #define         MAX_BASIC_PROG_SIZE          65000
-
-#define     C64_MAX_BASIC_LINE_LENGTH        79
-#define    COCO_MAX_BASIC_LINE_LENGTH        249
 #define             BASIC_LINE_WRAP_POS      70
 #define                CS_DATA_PER_LINE      15
 
 #define       C64_DEFAULT_START_ADDRESS      0x8000
 #define      COCO_DEFAULT_START_ADDRESS      0x3e00
-#define   MAX_MACHINE_LANGUAGE_BINARY_SIZE   65536
-#define         HIGHEST_RAM_ADDRESS          0xffff
-#define         HIGHEST_32K_ADDRESS          0x7fff
-#define         HIGHEST_16K_ADDRESS          0x3fff
-#define          HIGHEST_8K_ADDRESS          0x1fff
-#define          HIGHEST_4K_ADDRESS          0x0fff
 
 #define             SCRATCH_SIZE             300
-#define            UCHAR_MAX_8_BIT           255
+
+        /* End of user-modifiable values */
+
+#define MIN_BASIC_LINE_NUMBER 0
+#define MAX_BASIC_LINE_NUMBER 63999
+
+#define C64_MAX_BASIC_LINE_LENGTH   79
+#define COCO_MAX_BASIC_LINE_LENGTH 249
+
+#define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65536
+
+#define HIGHEST_RAM_ADDRESS 0xffff
+#define HIGHEST_32K_ADDRESS 0x7fff
+#define HIGHEST_16K_ADDRESS 0x3fff
+#define HIGHEST_8K_ADDRESS  0x1fff
+#define HIGHEST_4K_ADDRESS  0x0fff
 
 #define DRAGON_HEADER 10
 #define COCO_AMBLE 5
+
+#define UCHAR_MAX_8_BIT 255
 
 static void
 fail(const char *fmt, ...)
