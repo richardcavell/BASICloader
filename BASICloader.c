@@ -110,16 +110,13 @@ warning(const char *fmt, ...)
 }
 
 static void
-next_line_number(int typable,
-                 unsigned int *first_line,
+next_line_number(unsigned int *first_line,
                  unsigned int *line,
                  unsigned int step)
 {
   if(*first_line == 1)
   {
     *first_line = 0;
-    *line = typable ? TYPABLE_START_LINE_NUMBER :
-                      DEFAULT_START_LINE_NUMBER;
   }
   else
   {
@@ -270,7 +267,7 @@ emit_datum(FILE *fp,
 
   if (*pos == 0)
   {
-    next_line_number(typable, first_line, line, step);
+    next_line_number(first_line, line, step);
     *pos = emit(fp, cse,
                     "%u DATA%s",
                     *line,
@@ -289,7 +286,7 @@ emit_datum(FILE *fp,
 static void
 emit_line(FILE *fp,
           unsigned int *pos,
-          int typable,
+                   int typable,
           unsigned int *first_line,
           unsigned int *line_count,
           unsigned int *line,
@@ -301,7 +298,9 @@ emit_line(FILE *fp,
   int bytes = 0;
   va_list ap;
 
-  next_line_number(typable, first_line, line, step);
+  (void) typable;
+
+  next_line_number(first_line, line, step);
 
   *pos = emit(fp, cse, "%u ", *line);
 
