@@ -88,14 +88,14 @@ enum case_type
 
 typedef unsigned short int bool_type;
 typedef unsigned short int line_type;
-#define LINE_TYPE_MAX USHRT_MAX
+#define LINE_TYPE_MAX ((line_type) -1)
 typedef line_type step_type;
 typedef unsigned short int pos_type;
-#define POS_TYPE_MAX USHRT_MAX
+#define POS_TYPE_MAX ((pos_type) -1)
 typedef unsigned short int counter_type;
-#define COUNTER_MAX USHRT_MAX
+#define COUNTER_MAX ((counter_type) -1)
 typedef unsigned short int loc_type;
-#define LOC_MAX USHRT_MAX
+#define LOC_MAX ((loc_type) -1)
 
 static void
 fail(const char *fmt, ...)
@@ -1300,8 +1300,8 @@ int main(int argc, char *argv[])
     EMITLINEA("END")
   }
 
-#define EMITDATUM(A) emit_datum(ofp, machine, cse, typable, &line_incrementing_has_started,\
-&line_count, &line, &step, &pos,\
+#define EMITDATUM(A) emit_datum(ofp, machine, cse, typable,\
+&line_incrementing_has_started, &line_count, &line, &step, &pos,\
 A);
 
   if (!checksum)
