@@ -489,7 +489,7 @@ get_ushort(const char *s, bool_type *ok)
 
 static bool_type
 get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
-             unsigned short int *ps)
+             unsigned short int *ps, bool_type *set)
 {
   bool_type matched;
 
@@ -497,7 +497,7 @@ get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
   {
     bool_type ok = 0;
 
-    if (*ps)
+    if (*set)
       fail("Option %s can only be set once", (*pargv)[0]);
 
     *ps = get_ushort((*pargv)[1], &ok);
@@ -511,6 +511,8 @@ get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
 #endif
 
     ++(*pargv);
+
+    *set = 1;
   }
 
   return matched;
@@ -654,7 +656,7 @@ format_name(enum format_type format)
   switch(format)
   {
     case binary:  s = "binary";  break;
-    case rsdos:   s = "rsdos";    break;
+    case rsdos:   s = "rsdos";   break;
     case dragon:  s = "dragon";  break;
     case prg:     s = "prg";     break;
     default:      internal_error("Unhandled format in format_name()");
@@ -770,12 +772,14 @@ int main(int argc, char *argv[])
   counter_type line_count = 0;
   line_type    line = 0;
   step_type    step = DEFAULT_BASIC_LINE_STEP_SIZE;
-  pos_type     pos = 0;
+  pos_type pos = 0;
   loc_type start = 0;
   loc_type end   = 0;
   loc_type exec  = 0;
+  bool_type start_set = 0;
+  bool_type exec_set = 0;
   long int size = 0;
-  long int bsize = 0;
+  long int blob_size = 0;
   long int osize = 0;
   long int remainder = 0;
   bool_type print_diag = 0;
@@ -831,8 +835,8 @@ int main(int argc, char *argv[])
              version();
       else if (
                    get_str_arg (&argv, "-o", "--output",   &ofname)
-                || get_shrt_arg(&argv, "-s", "--start",    &start)
-                || get_shrt_arg(&argv, "-e", "--exec",     &exec)
+                || get_shrt_arg(&argv, "-s", "--start",    &start, &start_set)
+                || get_shrt_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
                 || get_sw_arg(argv[0], "-n", "--nowarn",   &nowarn)
                 || get_sw_arg(argv[0], "-t", "--typable",  &typable)
                 || get_sw_arg(argv[0], "-k", "--checksum", &checksum)
@@ -936,7 +940,7 @@ int main(int argc, char *argv[])
     fail("Could not rewind file %s", fname);
 
   if (format == binary)
-    bsize = size;
+    blob_size = size;
 
   if (format == prg)
   {
@@ -951,7 +955,7 @@ int main(int argc, char *argv[])
     if (lo == EOF || hi == EOF)
       fail("Couldn't read from input file");
 
-    bsize = size - 2;
+    blob_size = size - 2;
     st = (unsigned short int)
             ((unsigned char) hi * 256 + (unsigned char) lo);
 
@@ -959,15 +963,16 @@ int main(int argc, char *argv[])
       fail("Input PRG file %s is unsuitable for use with BASICloader\n"
            "Is it a BASIC program, or a hybrid BASIC/machine language program?");
 
-    if (start && st != start)
+    if (start_set && st != start)
       fail("Input PRG file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
-    if (exec && st != exec)
+    if (exec_set && st != exec)
       fail("Input PRG file %s gives a different start address ($%x)\n"
            "to the exec address given at the command line ($%x)", st, exec);
 
     start = st;
+    start_set = 1;
 
     if (fseek(fp, 2L, SEEK_SET) < 0)
       fail("Couldn't operate on file %s. Error number %d", fname, errno);
@@ -1004,20 +1009,20 @@ int main(int argc, char *argv[])
       warning("Input Dragon DOS file %s"
              " has an unknown FILETYPE\n", fname);
 
-    bsize = size - DRAGON_HEADER;
+    blob_size = size - DRAGON_HEADER;
 
-    if (d[4] * 256 + d[5] != bsize)
+    if (d[4] * 256 + d[5] != blob_size)
       fail("Input Dragon DOS file %s header"
            "gives incorrect length", fname);
 
     st = (loc_type) (d[2] * 256 + d[3]);
     ex = (loc_type) (d[6] * 256 + d[7]);
 
-    if (start && st != start)
+    if (start_set && st != start)
       fail("Input Dragon DOS file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
-    if (exec && ex != exec)
+    if (exec_set && ex != exec)
       fail("Input Dragon DOS file %s gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)", ex, exec);
 
@@ -1026,13 +1031,16 @@ int main(int argc, char *argv[])
            "($%x) is below the start location of the binary blob ($%x)",
            fname, exec, start);
 
-    if (ex > st + bsize)
+    if (ex > st + blob_size)
       fail("The exec location in the header of the Dragon DOS file %s\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
-           fname, exec, st + bsize);
+           fname, exec, st + blob_size);
 
     start = st;
+    start_set = 1;
+
     exec  = ex;
+    exec_set = 1;
   }
 
   if (format == rsdos)
@@ -1059,20 +1067,21 @@ int main(int argc, char *argv[])
 
     ln = ((loc_type) d[1] * 256 + d[2]);
 
-    bsize = size - 2 * COCO_AMBLE;
+    blob_size = size - 2 * COCO_AMBLE;
 
-    if (ln != bsize)
+    if (ln != blob_size)
       fail("Input file %s length (%u) given in the header\n"
            "does not match measured length (%u)",
-                       fname, ln, bsize);
+                       fname, ln, blob_size);
 
     st = (loc_type) (d[3] * 256 + d[4]);
 
-    if (start && st != start)
+    if (start_set && st != start)
       fail("Input RS-DOS file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
     start = st;
+    start_set = 1;
 
     if (fseek(fp, -5L, SEEK_END) < 0)
       fail("Couldn't operate on file %s. Error number %d", fname, errno);
@@ -1107,10 +1116,10 @@ int main(int argc, char *argv[])
            "($%x) is below the start location of the binary blob ($%x)",
            fname, exec, start);
 
-    if (ex > st + bsize)
+    if (ex > st + blob_size)
       fail("The exec location in the tail of the RS-DOS file %s\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
-           fname, exec, st + bsize);
+           fname, exec, st + blob_size);
 
     exec = ex;
 
@@ -1118,7 +1127,7 @@ int main(int argc, char *argv[])
       fail("Couldn't operate on file %s. Error number %d", fname, errno);
   }
 
-  if (start == 0)
+  if (start_set == 0)
   {
     switch(machine)
     {
@@ -1133,15 +1142,20 @@ int main(int argc, char *argv[])
       default:
            internal_error("Unhandled machine in start switch");
     }
+
+    start_set = 1;
   }
 
-  if (exec == 0)
+  if (exec_set == 0)
+  {
     exec = start;
+    exec_set = 1;
+  }
 
-  if (start + bsize - 1 > LOC_MAX)
+  if (start + blob_size - 1 > LOC_MAX)
     fail("The machine language blob would overflow the 64K RAM limit");
 
-  end = (loc_type) (start + bsize - 1);
+  end = (loc_type) (start + blob_size - 1);
 
   if (exec < start)
     fail("The exec location given ($%x) is below\n"
@@ -1160,7 +1174,7 @@ int main(int argc, char *argv[])
 #if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
     (end > HIGHEST_RAM_ADDRESS) ||
 #endif
-    (start + bsize - 1 > LOC_MAX) ||
+    (start + blob_size - 1 > LOC_MAX) ||
      (end < start) )
   {
     fail("The machine language blob would overflow the 64K RAM limit");
@@ -1293,7 +1307,7 @@ A);
   if (!checksum)
   {
     int c = 0;
-    long int b = bsize;
+    long int b = blob_size;
 
     while (b--)
     {
@@ -1313,7 +1327,7 @@ A);
   }
   else
   {
-    long int b = bsize;
+    long int b = blob_size;
 
     while (b)
     {
@@ -1398,10 +1412,10 @@ A);
     printf("  Exec location  : $%x (%u)\n", exec, exec);
     printf("  End location   : $%x (%u)\n", end, end);
 
-    if (bsize > 15)
-    printf("  Blob size      : $%lx (%lu) bytes\n", bsize, bsize);
+    if (blob_size > 15)
+    printf("  Blob size      : $%lx (%lu) bytes\n", blob_size, blob_size);
     else
-    printf("  Blob size      : %lu bytes\n", bsize);
+    printf("  Blob size      : %lu bytes\n", blob_size);
     printf("  BASIC program  : %u lines (%lu characters)\n",
                                line_count, osize);
   }
