@@ -23,7 +23,7 @@ Currently BASICloader supports the following target computers:
   * Dragon 32 and Dragon 64
   * Commodore 64
 
-A number of computer models that are similar to the above machines may
+A number of computer models that are similar to the above machines will
 be able to run the output as well.
 
 This BASIC program output by BASICloader incorporates the machine language
@@ -35,10 +35,14 @@ The output of BASICloader will therefore look like the old "type-in"
 programs from 1980s computer magazines.
 
 The input file must be a machine language program. It can be a plain binary,
-a Dragon DOS file or a Commodore 64 PRG file.  Dragon and PRG formats
-specify the start location, and the Dragon format specifies an exec location
-as well.  If you input a Dragon or PRG file, BASICloader will read and
-use the specified locations.
+a Dragon DOS file, an RS-DOS Coco file or a Commodore 64 PRG file. The Coco,
+Dragon and PRG formats specify the start location (where the binary blob is
+loaded to). The Dragon and Coco formats specify an exec location as well
+(where the execution begins). For binary and PRG files, we assume that
+execution starts at the start location.
+
+BASICloader will correctly obtain start and exec information, if available
+in the chosen input format.
 
 If you do not specify a start location, it defaults to a value that
 is sensible for the target machine.  The exec location defaults to being

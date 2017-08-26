@@ -24,7 +24,7 @@ enum format_type
 {
   default_format = 0,
   binary,
-  format_coco,
+  rsdos,
   dragon,
   prg
 };
@@ -52,8 +52,8 @@ enum case_type
 #define     TYPABLE_BASIC_LINE_STEP_SIZE     10
 #define         MAX_BASIC_LINES              10000
 #define         MAX_BASIC_PROG_SIZE          65000
-#define             BASIC_LINE_WRAP_POS      70
-#define                CS_DATA_PER_LINE      15
+#define             BASIC_LINE_WRAP_POS      75
+#define                CS_DATA_PER_LINE      10
 
 #define       C64_DEFAULT_START_ADDRESS      0x8000
 #define      COCO_DEFAULT_START_ADDRESS      0x3e00
@@ -254,7 +254,6 @@ process_scratch(char              *s,
         internal_error("Line position will overflow");
 
       ++(*pos);
-
       check_pos(pos, machine);
     }
 
@@ -567,7 +566,7 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
       fail("You can only set the file format once");
 
          if (strcmp(opt, "binary") == 0)  *fmt = binary;
-    else if (strcmp(opt, "coco") == 0)    *fmt = format_coco;
+    else if (strcmp(opt, "rsdos") == 0)   *fmt = rsdos;
     else if (strcmp(opt, "dragon") == 0)  *fmt = dragon;
     else if (strcmp(opt, "prg") == 0)     *fmt = prg;
     else fail("Unknown file format %s", (*pargv)[0]);
@@ -613,7 +612,7 @@ help(void)
   puts("");
   puts("  -o  --output    Output file");
   puts("  -m  --machine   Target machine (coco/c64)");
-  puts("  -f  --format    Input file format (binary/coco/dragon/prg)");
+  puts("  -f  --format    Input file format (binary/rsdos/dragon/prg)");
   puts("  -c  --case      Output case (upper/lower)");
   puts("  -r  --remarks   Add remarks to the program");
   puts("  -t  --typable   Unpacked, one instruction per line");
@@ -654,11 +653,11 @@ format_name(enum format_type format)
 
   switch(format)
   {
-    case binary:       s = "binary";  break;
-    case format_coco:  s = "coco";    break;
-    case dragon:       s = "dragon";  break;
-    case prg:          s = "prg";     break;
-    default:           internal_error("Unhandled format in format_name()");
+    case binary:  s = "binary";  break;
+    case rsdos:   s = "rsdos";    break;
+    case dragon:  s = "dragon";  break;
+    case prg:     s = "prg";     break;
+    default:      internal_error("Unhandled format in format_name()");
   }
 
   return s;
@@ -778,6 +777,7 @@ int main(int argc, char *argv[])
   long int size = 0;
   long int bsize = 0;
   long int osize = 0;
+  long int remainder = 0;
   bool_type print_diag = 0;
   bool_type nowarn = 0;
   bool_type typable = 0;
@@ -867,8 +867,8 @@ int main(int argc, char *argv[])
   if (format == dragon && machine != coco)
     fail("Dragon file format should only be used with the coco target");
 
-  if (format == format_coco && machine != coco)
-    fail("Coco file format should only be used with the coco target");
+  if (format == rsdos && machine != coco)
+    fail("RSDOS file format should only be used with the coco target");
 
   if (extbas && machine != coco)
     fail("Extended Color BASIC option should only be used"
@@ -924,8 +924,8 @@ int main(int argc, char *argv[])
          "input file %s must be at least %d bytes long",
                      fname, DRAGON_HEADER + 1);
 
-  if (format == format_coco && size < 2 * COCO_AMBLE + 1)
-    fail("With Coco file format selected,\n"
+  if (format == rsdos && size < 2 * COCO_AMBLE + 1)
+    fail("With RS-DOS file format selected,\n"
          "input file %s must be at least %d bytes long",
                      fname, 2 * COCO_AMBLE + 1);
 
@@ -968,6 +968,9 @@ int main(int argc, char *argv[])
            "to the exec address given at the command line ($%x)", st, exec);
 
     start = st;
+
+    if (fseek(fp, 2L, SEEK_SET) < 0)
+      fail("Couldn't operate on file %s. Error number %d", fname, errno);
   }
 
   if (format == dragon)
@@ -1032,7 +1035,7 @@ int main(int argc, char *argv[])
     exec  = ex;
   }
 
-  if (format == format_coco)
+  if (format == rsdos)
   {
     loc_type st = 0;
     loc_type ex = 0;
@@ -1051,7 +1054,7 @@ int main(int argc, char *argv[])
     }
 
     if (d[0] != 0x0)
-      fail("Input file %s is not properly formed as a Coco file (bad header)",
+      fail("Input file %s is not properly formed as an RS-DOS file (bad header)",
                        fname);
 
     ln = ((loc_type) d[1] * 256 + d[2]);
@@ -1066,7 +1069,7 @@ int main(int argc, char *argv[])
     st = (loc_type) (d[3] * 256 + d[4]);
 
     if (start && st != start)
-      fail("Input Coco file %s gives a different start address ($%x)\n"
+      fail("Input RS-DOS file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
     start = st;
@@ -1085,27 +1088,27 @@ int main(int argc, char *argv[])
     }
 
     if (d[0] == 0x0)
-      fail("Input Coco file %s is segmented, and cannot be used", fname);
+      fail("Input RS-DOS file %s is segmented, and cannot be used", fname);
 
     if (d[0] != 0xff ||
         d[1] != 0x0  ||
         d[2] != 0x0)
-      fail("Input file %s is not properly formed as an Coco file (bad tail)",
+      fail("Input file %s is not properly formed as an RS-DOS file (bad tail)",
                        fname);
 
     ex = (unsigned short int) (d[3] * 256 + d[4]);
 
     if (exec && ex != exec)
-      fail("Input Coco file %s gives a different exec address ($%x)\n"
+      fail("Input RS-DOS file %s gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)", ex, exec);
 
     if (ex < st)
-      fail("The exec location in the tail of the Coco file %s\n"
+      fail("The exec location in the tail of the RS-DOS file %s\n"
            "($%x) is below the start location of the binary blob ($%x)",
            fname, exec, start);
 
     if (ex > st + bsize)
-      fail("The exec location in the tail of the Coco file %s\n"
+      fail("The exec location in the tail of the RS-DOS file %s\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
            fname, exec, st + bsize);
 
@@ -1346,8 +1349,19 @@ A);
 
       for (j = 0; j < i; ++j)
         EMITDATUM(d[j])
+
+      if (pos > 0)
+        emit(ofp, machine, cse, &line_count, &pos, "\n");
     }
   }
+
+  remainder = size - ftell(fp);
+
+  if   ((format == binary  && remainder != 0)
+     || (format == rsdos   && remainder != 5)
+     || (format == dragon  && remainder != 0)
+     || (format == prg     && remainder != 0))
+    fail("Unexpected remaining bytes in input binary file %s", fname);
 
   if (fclose(fp))
     fail("Couldn't close file %s", fname);

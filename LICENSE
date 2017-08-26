@@ -1,6 +1,6 @@
 BASICloader License
 
-("MIT License")
+(modified MIT License)
 
 Copyright (c) 2017 Richard Cavell
 
@@ -21,3 +21,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+The output of this program is licensed to you under the following license:
+
+1.  You may use the output of this program, for free, for any worthwhile
+    or moral purpose.
+2.  You should try to attribute me and the BASICloader program, where
+    that is not unreasonable.
+
+You should not allow people to assume that you wrote the BASIC code yourself.

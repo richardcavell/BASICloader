@@ -8,58 +8,72 @@ up this list by running BASICloader with the -h option:
 (c) 2017 Richard Cavell
 https://github.com/richardcavell/BASICloader
 Usage: BASICloader [options] [filename]
+
   -o  --output    Output file
-  -m  --machine   Target machine
+  -m  --machine   Target machine (coco/c64)
+  -f  --format    Input file format (binary/rsdos/dragon/prg)
+  -c  --case      Output case (upper/lower)
+  -r  --remarks   Add remarks to the program
+  -t  --typable   Unpacked, one instruction per line
+  -k  --checksum  Include checksums in the DATA
+  -x  --extbas    Assume Extended Color BASIC
   -s  --start     Start location
   -e  --exec      Exec location
+  -p  --print     Print diagnostic info about the generated program
   -n  --nowarn    Don't warn about RAM requirements
-  -t  --typable   Unpacked, one instruction per line
-  -k  --checksum  Checksum included in each line of DATA
-  -x  --extbas    Assume Extended Color BASIC
-  -c  --case      Output case (lower/upper/both)
-  -r  --remarks   Add remarks to the program
-  -f  --format    Input file format (binary/prg)
-  -d  --diag      Print info about the generated program
+  -d  --defaults  Print option defaults
+  -l  --license   Your license to use these programs
+  -i  --info      Info about what this program does
   -h  --help      This help information
-  -?  --options   Short explanation of command line options
-  -i  --info      What this program does
-  -l  --license   Your license to use this program
-  -v  --version   Version of this software
+  -v  --version   Version of this program
 
 You can specify the options and filename in any order.  If an option takes
 another parameter, use a space.
 
+You can see the defaults for -o, -m, -f and -c by using the -d option. All
+other switches are off by default.
+
   -o  --output    Output file
+
       The generated BASIC program will be placed under this filename.
-      Each target architecture has its own default filename, which you
-      can see by using the -i option.
 
-  -m  --machine   Target machine
-      Currently, there are two target architectures.  You can see the list
-      by using the -i option.
+  -m  --machine   Target machine (coco/c64)
 
-  -s  --start     Start location
-      This is where the binary blob will be poked into memory when the
-      BASIC program is run on the target machine.  Some machine language
-      programs must be constructed at a particular start address, while
-      others are relocatable.  Each architecture has a default start
-      location. The Coco default assumes that you have 16K minimum.
+      Currently, there are two target architectures:
 
-  -e  --exec      Exec location
-      This is where the execution of the binary blob begins.  If you do not
-      specify a location, it will begin from the start location.
+        coco : TRS-80 Color Computer, Dragon
+        c64  : Commodore 64
 
-  -n  --nowarn    Don't warn about RAM requirements
-      By default, BASICloader warns you if your program requires a minimum
-      amount of RAM that is greater than what some versions of your target
-      machine have.
+  -f  --format    Input file format (binary/rsdos/dragon/prg)
+
+      Currently, there are four supported input file formats:
+
+        binary : Raw stream of unsigned 8-bit bytes
+        rsdos  : Radio Shack DOS, for the Color Computer
+        dragon : Dragon DOS
+        prg    : The Commodore 64's usual file format for programs
+
+  -c  --case      Output case (upper/lower)
+
+      If you specify lower, the output program will be entirely in lowercase.
+      This is what you want if you intend to run the program using VICE, or
+      if you want to run it through petcat.
+
+  -r  --remarks   Add remarks to the program
+
+      The BASIC program will have REM statements that include a mention of
+      BASICloader and the date that the program was generated.
 
   -t  --typable   Unpacked, one instruction per line
+
       By default, the program produced by BASICloader is tightly coded, with
       no spaces, long lines, and line numbers that start at 0 and increase
       in steps of 1.
 
-  -k  --checksum  Checksum included in each line of DATA
+      Turning this option on makes the output much more readable and typable.
+
+  -k  --checksum  Include checksums in the DATA
+
       Each line of the output program that contains a DATA statement will
       include a checksum, which is helpful to ensure that the program has
       been typed in correctly. It significantly increases the size of the
@@ -69,46 +83,56 @@ another parameter, use a space.
       Using this option will turn on --typable automatically.
 
   -x  --extbas    Assume Extended Color BASIC
+
       Only to be used with --machine coco. Assume that the target machine
       has Extended Color BASIC, or is a Dragon. The emitted program will
       include a CLEAR command that is unknown to Color Computers without
       Extended Color BASIC.
 
-  -c  --case      Output case (upper/lower/mixed)
-      If you specify lower, the output program will be entirely in lowercase.
-      This is what you want, if you intend to run the program using VICE or
-      run it through petcat. The default case is "upper". You can also specify
-      "mixed".
+  -s  --start     Start location
 
-  -r  --remarks   Add remarks to the program
-      The BASIC program will have REM statements that include a mention of
-      BASICloader and the date that the program was generated.
+      This is where the binary blob will be poked into memory when the
+      BASIC program is run on the target machine.  Some machine language
+      programs must be constructed at a particular start address, while
+      others are relocatable.  Each architecture has a default start
+      location. The Coco default assumes that you have 16K minimum.
 
-  -f  --format    Input file format (binary/dragon/prg)
-      The default is binary. A binary file is just a stream of unsigned 8-bit
-      bytes. A PRG file is suitable for the Commodore 64.  BASICloader will
-      correctly parse Dragon and PRG files, and perform error checking.
+  -e  --exec      Exec location
 
-  -d  --diag      Print info about the generated program
-      Prints some internal data items to the standard output, after the
+      This is where the execution of the binary blob begins.  If you do not
+      specify a location, it will begin from the start location.
+
+  -p  --print     Print diagnostic info about the generated program
+
+      Prints some helpful information to the standard output, after the
       program has been generated.
 
-  -h  --help      This help information
-      Lists all available command line options
+  -n  --nowarn    Don't warn about RAM requirements
 
-  -?  --options   Short explanation of command line options
+      By default, BASICloader warns you if your program requires a minimum
+      amount of RAM that is greater than what some versions of your target
+      machine have.
+
+      You can switch this warning off using this option.
+
+  -d  --defaults  Print option defaults
+
       Lists the defaults for those command line options that have defaults.
-      Also lists the options available for those command line options that
-      take specific words.
-
-  -i  --info      What this program does
-      Gives a short explanation of what this program is for, along with
-      a list of available target machines.
 
   -l  --license   Your license to use this program
+
       Prints the license under which you may use this program.
 
+  -i  --info      Info about what this program does
+
+      Gives a short explanation of what this program is for.
+
+  -h  --help      This help information
+
+      Lists all available command line options.
+
   -v  --version   Version of this software
+
       Prints the version number.
 
 Richard Cavell

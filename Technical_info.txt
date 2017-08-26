@@ -29,9 +29,9 @@ The emitted program will also include:
 
 == Concerning the Dragon and PRG file formats ==
 
-The Dragon DOS and Commodore 64 PRG file formats specify a start location,
-and Dragon DOS also specifies an exec location.  BASICloader will read
-and use these.
+The RS-DOS, Dragon DOS, and Commodore 64 PRG file formats specify a start
+location. RS-DOS and Dragon DOS file formats also specify an exec location.
+BASICloader will read and use these.
 
 == Concerning the PRG file format ==
 
@@ -43,3 +43,14 @@ BASIC and machine language. They are intended to be run like this:
 
 These files cannot be used with BASICloader, since if they were run with
 BASICloader they would overwrite the loader program.
+
+== Use of the output with VICE ==
+Use the --case lower option to generate lowercase output. You can then
+paste the output directly into the VICE emulation window, or inspect it
+from the emulated Commodore 64 as a raw text file if you use the "File
+system directory" feature with "Enable IEC Device" switched on.
+
+== Use of the output with petcat ==
+petcat require lowercase input, so use the --case lower option. The
+README.txt file contains the appropriate commands to build and run a
+.D64 disk image.
