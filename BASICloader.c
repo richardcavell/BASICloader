@@ -1100,7 +1100,7 @@ int main(int argc, char *argv[])
 
     if (exec && ex != exec)
       fail("Input RS-DOS file %s gives a different exec address ($%x)\n"
-           "to the one given at the command line ($%x)", ex, exec);
+           "to the one given at the command line ($%x)", fname, ex, exec);
 
     if (ex < st)
       fail("The exec location in the tail of the RS-DOS file %s\n"
