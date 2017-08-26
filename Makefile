@@ -3,7 +3,7 @@
 # Makefile
 
 CC += -std=c89
-CFLAGS += -Wall -Werror -Wextra -Wconversion -Wpedantic
+CFLAGS += -Wall -Werror -Wextra -Wconversion -Wpedantic -fmax-errors=3
 
 EXECUTABLE = BASICloader
 
