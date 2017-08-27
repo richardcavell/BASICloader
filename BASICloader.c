@@ -17,6 +17,7 @@ enum machine_type
 {
   default_machine = 0,
   coco,
+  dragon,
   c64
 };
 
@@ -25,7 +26,7 @@ enum format_type
   default_format = 0,
   binary,
   rsdos,
-  dragon,
+  dragondos,
   prg
 };
 
@@ -57,6 +58,7 @@ enum case_type
 
 #define       C64_DEFAULT_START_ADDRESS      0x8000
 #define      COCO_DEFAULT_START_ADDRESS      0x3e00
+#define    DRAGON_DEFAULT_START_ADDRESS      0x3e00
 
 #define             SCRATCH_SIZE             300
 
@@ -70,8 +72,9 @@ enum case_type
 #define HIGHEST_8K_ADDRESS  0x1fff
 #define HIGHEST_4K_ADDRESS  0x0fff
 
-#define C64_MAX_BASIC_LINE_LENGTH   79
-#define COCO_MAX_BASIC_LINE_LENGTH 249
+#define C64_MAX_BASIC_LINE_LENGTH    79
+#define COCO_MAX_BASIC_LINE_LENGTH   249
+#define DRAGON_MAX_BASIC_LINE_LENGTH 249
 
 #define MIN_BASIC_LINE_NUMBER 0
 #define MAX_BASIC_LINE_NUMBER 63999
@@ -232,6 +235,10 @@ check_pos(pos_type *pos, enum machine_type machine)
   {
     case coco:
       max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
+      break;
+
+    case dragon:
+      max_basic_line_length = DRAGON_MAX_BASIC_LINE_LENGTH;
       break;
 
     case c64:
@@ -567,6 +574,7 @@ match_machine_arg(char **pargv[], const char *shrt, const char *lng,
       fail("You can only set the target architecture once");
 
          if (strcmp(name, "coco") == 0)   *machine = coco;
+    else if (strcmp(name, "dragon") == 0) *machine = dragon;
     else if (strcmp(name, "c64") == 0)    *machine = c64;
     else fail("Unknown machine %s", (*pargv)[0]);
   }
@@ -588,7 +596,7 @@ match_format_arg(char **pargv[], const char *shrt, const char *lng,
 
          if (strcmp(opt, "binary") == 0)  *fmt = binary;
     else if (strcmp(opt, "rsdos") == 0)   *fmt = rsdos;
-    else if (strcmp(opt, "dragon") == 0)  *fmt = dragon;
+    else if (strcmp(opt, "dragon") == 0)  *fmt = dragondos;
     else if (strcmp(opt, "prg") == 0)     *fmt = prg;
     else fail("Unknown file format %s", (*pargv)[0]);
   }
@@ -632,7 +640,7 @@ help(void)
   puts("Usage: BASICloader [options] [filename]");
   puts("");
   puts("  -o  --output    Output file");
-  puts("  -m  --machine   Target machine (coco/c64)");
+  puts("  -m  --machine   Target machine (coco/dragon/c64)");
   puts("  -f  --format    Input file format (binary/rsdos/dragon/prg)");
   puts("  -c  --case      Output case (upper/lower)");
   puts("  -r  --remarks   Add remarks to the program");
@@ -659,9 +667,10 @@ machine_name(enum machine_type machine)
 
   switch(machine)
   {
-    case coco:  s = "coco";  break;
-    case c64:   s = "c64";   break;
-    default:    internal_error("Unhandled machine in machine_name()");
+    case coco:    s = "coco";    break;
+    case dragon:  s = "dragon";  break;
+    case c64:     s = "c64";     break;
+    default:      internal_error("Unhandled machine in machine_name()");
   }
 
   return s;
@@ -674,11 +683,11 @@ format_name(enum format_type format)
 
   switch(format)
   {
-    case binary:  s = "binary";  break;
-    case rsdos:   s = "rsdos";   break;
-    case dragon:  s = "dragon";  break;
-    case prg:     s = "prg";     break;
-    default:      internal_error("Unhandled format in format_name()");
+    case binary:     s = "binary";  break;
+    case rsdos:      s = "rsdos";   break;
+    case dragondos:  s = "dragon";  break;
+    case prg:        s = "prg";     break;
+    default:         internal_error("Unhandled format in format_name()");
   }
 
   return s;
@@ -831,6 +840,7 @@ int main(int argc, char *argv[])
     fail("line_number_type does not have adequate range");
 
   if (POS_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH
+     || POS_TYPE_MAX < DRAGON_MAX_BASIC_LINE_LENGTH
      || POS_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
     fail("pos_type does not have adequate range");
 
@@ -894,8 +904,8 @@ int main(int argc, char *argv[])
   if (input_file_format == prg && machine != c64)
     fail("PRG file format should only be used with the c64 target");
 
-  if (input_file_format == dragon && machine != coco)
-    fail("Dragon file format should only be used with the coco target");
+  if (input_file_format == dragondos && machine != dragon)
+    fail("Dragon file format should only be used with the dragon target");
 
   if (input_file_format == rsdos && machine != coco)
     fail("RSDOS file format should only be used with the coco target");
@@ -909,6 +919,9 @@ int main(int argc, char *argv[])
 
   if (output_case == lower && machine == coco)
     fail("Lowercase output is not useful for a Coco target");
+
+  if (output_case == lower && machine == dragon)
+    fail("Lowercase output is not useful for a Dragon target");
 
   if (output_case == mixed)
     fail("There is presently no target for mixed case output");
@@ -951,7 +964,7 @@ int main(int argc, char *argv[])
     fail("With PRG file format selected,\n"
          "input file %s must be at least 3 bytes long", input_filename);
 
-  if (input_file_format == dragon && input_file_size < DRAGON_HEADER + 1)
+  if (input_file_format == dragondos && input_file_size < DRAGON_HEADER + 1)
     fail("With Dragon file format selected,\n"
          "input file %s must be at least %d bytes long",
                      input_filename, DRAGON_HEADER + 1);
@@ -1004,7 +1017,7 @@ int main(int argc, char *argv[])
                                      input_filename, errno);
   }
 
-  if (input_file_format == dragon)
+  if (input_file_format == dragondos)
   {
     unsigned char d[DRAGON_HEADER];
     unsigned short int i = 0;
@@ -1146,6 +1159,10 @@ int main(int argc, char *argv[])
            start = COCO_DEFAULT_START_ADDRESS;
            break;
 
+      case dragon:
+           start = DRAGON_DEFAULT_START_ADDRESS;
+           break;
+
       case c64:
            start = C64_DEFAULT_START_ADDRESS;
            break;
@@ -1203,6 +1220,12 @@ int main(int argc, char *argv[])
       warning("Program requires at least 8K of RAM");
   }
 
+  if (machine == dragon && !nowarn)
+  {
+         if (end > HIGHEST_32K_ADDRESS)
+      warning("Program requires 64K of RAM");
+  }
+
   line_number = typable ? TYPABLE_START_LINE_NUMBER :
                           DEFAULT_START_LINE_NUMBER;
 
@@ -1226,7 +1249,7 @@ int main(int argc, char *argv[])
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B, C);
 
-  if (machine == coco && extended_basic)
+  if (machine == dragon || (machine == coco && extended_basic))
     EMITLINEB(typable ? "CLEAR 200, %d" :
                         "CLEAR200,%d",
               start - 1)
@@ -1281,7 +1304,8 @@ int main(int argc, char *argv[])
   {
     EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
     EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
-    EMITLINEC("NEXT:%s%d:END", machine == coco ? "EXEC" : "SYS", exec)
+    EMITLINEC("NEXT:%s%d:END", (machine == coco || machine == dragon) ?
+                               "EXEC" : "SYS", exec)
     EMITLINEA("PRINT\"Error!\":END")
   }
 
@@ -1292,7 +1316,8 @@ int main(int argc, char *argv[])
     EMITLINEA("POKE P,A")
     EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
     EMITLINEA("NEXT P")
-    EMITLINEC("%s %d", machine == coco ? "EXEC" : "SYS", exec)
+    EMITLINEC("%s %d", (machine == coco || machine == dragon) ?
+              "EXEC" : "SYS", exec)
     EMITLINEA("END")
     EMITLINEA("PRINT \"Error!\"")
     EMITLINEA("END")
@@ -1369,10 +1394,10 @@ A);
 
   remainder = input_file_size - ftell(input_file);
 
-  if   ((input_file_format == binary  && remainder != 0)
-     || (input_file_format == rsdos   && remainder != 5)
-     || (input_file_format == dragon  && remainder != 0)
-     || (input_file_format == prg     && remainder != 0))
+  if   ((input_file_format == binary     && remainder != 0)
+     || (input_file_format == rsdos      && remainder != 5)
+     || (input_file_format == dragondos  && remainder != 0)
+     || (input_file_format == prg        && remainder != 0))
     fail("Unexpected remaining bytes in input file %s", input_filename);
 
   if (fclose(input_file))

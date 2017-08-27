@@ -35,9 +35,9 @@ The output of BASICloader will therefore look like the old "type-in"
 programs from 1980s computer magazines.
 
 The input file must be a machine language program. It can be a plain binary,
-a Dragon DOS file, an RS-DOS Coco file or a Commodore 64 PRG file. The Coco,
+an RS-DOS Coco file, a Dragon DOS file, or a Commodore 64 PRG file. The Coco,
 Dragon and PRG formats specify the start location (where the binary blob is
-loaded to). The Dragon and Coco formats specify an exec location as well
+loaded to). The Coco and Dragon formats specify an exec location as well
 (where the execution begins). For binary and PRG files, we assume that
 execution starts at the start location.
 

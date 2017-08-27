@@ -37,11 +37,12 @@ other switches are off by default.
 
       The generated BASIC program will be placed under this filename.
 
-  -m  --machine   Target machine (coco/c64)
+  -m  --machine   Target machine (coco/dragon/c64)
 
-      Currently, there are two target architectures:
+      Currently, there are three target architectures:
 
-        coco : TRS-80 Color Computer, Dragon
+        coco : TRS-80 Color Computer 1, 2 or 3
+      dragon : Dragon 32 or 64
         c64  : Commodore 64
 
   -f  --format    Input file format (binary/rsdos/dragon/prg)
@@ -85,9 +86,8 @@ other switches are off by default.
   -x  --extbas    Assume Extended Color BASIC
 
       Only to be used with --machine coco. Assume that the target machine
-      has Extended Color BASIC, or is a Dragon. The emitted program will
-      include a CLEAR command that is unknown to Color Computers without
-      Extended Color BASIC.
+      has Extended Color BASIC. The emitted program will include a CLEAR
+      command that is unknown to Color Computers without Extended Color BASIC.
 
   -s  --start     Start location
 
@@ -95,7 +95,8 @@ other switches are off by default.
       BASIC program is run on the target machine.  Some machine language
       programs must be constructed at a particular start address, while
       others are relocatable.  Each architecture has a default start
-      location. The Coco default assumes that you have 16K minimum.
+      location. The Coco default assumes that you have 16K minimum. The
+      Dragon default is suitable for machines with 32K as well as 64K.
 
   -e  --exec      Exec location
 

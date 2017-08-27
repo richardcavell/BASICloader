@@ -17,7 +17,10 @@ that you have created yourself.
 
 == Emitted instructions ==
 
-For the coco with Extended Color BASIC:
+For the coco with Extended Color BASIC, and
+ * the emitted program will contain a CLEAR command
+
+For the dragon:
  * the emitted program will contain a CLEAR command
 
 For the c64 target:
@@ -26,6 +29,7 @@ For the c64 target:
 The emitted program will also include:
 
  * (for coco) an EXEC command
+ * (for dragon) an EXEC command
  * (for c64) a SYS command
 
 == Concerning the Dragon and PRG file formats ==
