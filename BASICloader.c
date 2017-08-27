@@ -87,15 +87,16 @@ enum case_type
        *all* C standards. */
 
 typedef unsigned short int bool_type;
-typedef unsigned short int line_type;
-#define LINE_TYPE_MAX ((line_type) -1)
-typedef line_type step_type;
+typedef unsigned short int line_number_type;
+typedef line_number_type   step_type;
 typedef unsigned short int pos_type;
-#define POS_TYPE_MAX ((pos_type) -1)
-typedef unsigned short int counter_type;
-#define COUNTER_MAX ((counter_type) -1)
+typedef unsigned short int line_counter_type;
 typedef unsigned short int loc_type;
-#define LOC_MAX ((loc_type) -1)
+
+#define LINE_NUMBER_TYPE_MAX   ((line_number_type) -1)
+#define POS_TYPE_MAX           ((pos_type) -1)
+#define LINE_COUNTER_TYPE_MAX  ((line_counter_type) -1)
+#define LOC_MAX                ((loc_type) -1)
 
 static void
 fail(const char *fmt, ...)
@@ -124,8 +125,8 @@ internal_error(const char *fmt, ...)
   (void) vfprintf(stderr, fmt, ap);
   va_end(ap);
 
-  fprintf(stderr, "\nPlease report this to Richard Cavell\n"
-                  "at richardcavell@mail.com");
+  (void) fprintf(stderr, "\nPlease report this to Richard Cavell\n"
+                         "at richardcavell@mail.com");
 
   exit(EXIT_FAILURE);
 }
@@ -156,49 +157,67 @@ warning(const char *fmt, ...)
     warning_fail();
 }
 
+static unsigned char
+xgetc(FILE *input_file, const char *input_filename)
+{
+  int c = fgetc(input_file);
+
+#if (UCHAR_MAX != UCHAR_MAX_8_BIT)
+  if ((unsigned char) c > UCHAR_MAX_8_BIT)
+    fail("Input file contains a value that's too high"
+         " for an 8-bit machine");
+#endif
+
+  if (c == EOF)
+    fail("Error reading from file %s. Error code %d", input_filename, errno);
+
+  return (unsigned char) c;
+}
+
 static void
-check_line_number(line_type *line)
+check_line_number(line_number_type line_number)
 {
 #if (MIN_BASIC_LINE_NUMBER > 0)
-  if (*line < MIN_BASIC_LINE_NUMBER)
+  if (line_number < MIN_BASIC_LINE_NUMBER)
     internal_error("Line number is below minimum");
 #endif
 
-#if (MAX_BASIC_LINE_NUMBER != LINE_TYPE_MAX)
-  if (*line > MAX_BASIC_LINE_NUMBER)
+#if (MAX_BASIC_LINE_NUMBER != LINE_NUMBER_TYPE_MAX)
+  if (line_number > MAX_BASIC_LINE_NUMBER)
     fail("The BASIC line numbers have become too large");
 #endif
 }
 
 static void
 inc_line_number(bool_type *line_incrementing_has_started,
-                line_type *line,
+                line_number_type *line_number,
                 step_type *step)
 {
   if(*line_incrementing_has_started)
   {
-    line_type old_line = *line;
+    line_number_type old_line = *line_number;
 
-    *line = (line_type) (*line + *step);
+    *line_number = (line_number_type) (*line_number + *step);
 
-    if (*line < old_line || *line + *step > LINE_TYPE_MAX)
-      internal_error("Line number overflow");
+    if (*line_number < old_line
+        || *line_number + *step > LINE_NUMBER_TYPE_MAX)
+        internal_error("Line number overflow");
   }
 
   *line_incrementing_has_started = 1;
 
-  check_line_number(line);
+  check_line_number(*line_number);
 }
 
 static void
-inc_line_count(counter_type *line_count)
+inc_line_count(line_counter_type *line_count)
 {
-  if (*line_count == COUNTER_MAX)
+  if (*line_count == LINE_COUNTER_TYPE_MAX)
     internal_error("Line count is about to overflow");
 
   ++*line_count;
 
-#if (MAX_BASIC_LINES != COUNTER_MAX)
+#if (MAX_BASIC_LINES != LINE_COUNTER_TYPE_MAX)
   if (*line_count > MAX_BASIC_LINES)
     fail("Line count has exceeded the set limit");
 #endif
@@ -230,13 +249,13 @@ check_pos(pos_type *pos, enum machine_type machine)
 static void
 process_scratch(char              *s,
                 enum machine_type machine,
-                enum case_type    cse,
-                counter_type      *line_count,
+                enum case_type    output_case,
+                line_counter_type *line_count,
                 pos_type          *pos)
 {
   while (*s)
   {
-    switch (cse)
+    switch (output_case)
     {
       case upper:  *s = (char) toupper(*s);  break;
       case lower:  *s = (char) tolower(*s);  break;
@@ -301,16 +320,16 @@ check_status(enum vemit_status status)
 }
 
 static enum vemit_status
-vemit(FILE              *fp,
-      enum machine_type machine,
-      enum case_type    cse,
-      counter_type      *line_count,
-      pos_type          *pos,
-      const char        *fmt,
-      va_list           ap)
+vemit(FILE               *output_file,
+      enum machine_type  machine,
+      enum case_type     output_case,
+      line_counter_type  *line_count,
+      pos_type           *pos,
+      const char         *fmt,
+      va_list            ap)
 {
   char scratch[SCRATCH_SIZE];
-  long int osize;
+  long int output_file_size;
   int vsp_rval = vsprintf(scratch, fmt, ap);
 
   if (vsp_rval < 0)
@@ -319,27 +338,27 @@ vemit(FILE              *fp,
   if (vsp_rval >= SCRATCH_SIZE)
     internal_error("Scratch buffer overrun");
 
-  process_scratch(scratch, machine, cse, line_count, pos);
+  process_scratch(scratch, machine, output_case, line_count, pos);
 
-  if (fprintf(fp, "%s", scratch) < 0)
+  if (fprintf(output_file, "%s", scratch) < 0)
     return emit_fail;
 
-  osize = ftell(fp);
+  output_file_size = ftell(output_file);
 
-  if (osize < 0)
+  if (output_file_size < 0)
     return ftell_fail;
 
-  if (osize > MAX_BASIC_PROG_SIZE)
+  if (output_file_size > MAX_BASIC_PROG_SIZE)
     return too_large;
 
   return ve_success;
 }
 
 static void
-emit(FILE              *fp,
+emit(FILE              *output_file,
      enum machine_type machine,
-     enum case_type    cse,
-     counter_type      *line_count,
+     enum case_type    output_case,
+     line_counter_type      *line_count,
      pos_type          *pos,
      const char        *fmt,
      ...)
@@ -348,23 +367,23 @@ emit(FILE              *fp,
   va_list ap;
 
   va_start(ap, fmt);
-  status = vemit(fp, machine, cse, line_count, pos, fmt, ap);
+  status = vemit(output_file, machine, output_case, line_count, pos, fmt, ap);
   va_end(ap);
 
   check_status(status);
 }
 
 static void
-emit_datum(FILE              *fp,
-           enum machine_type machine,
-           enum case_type    cse,
-           bool_type         typable,
-           bool_type         *line_incrementing_has_started,
-           counter_type      *line_count,
-           line_type         *line,
-           step_type         *step,
-           pos_type          *pos,
-           unsigned long int datum)
+emit_datum(FILE               *output_file,
+           enum machine_type  machine,
+           enum case_type     output_case,
+           bool_type          typable,
+           bool_type          *line_incrementing_has_started,
+           line_counter_type  *line_count,
+           line_number_type   *line_number,
+           step_type          *step,
+           pos_type           *pos,
+           unsigned long int  datum)
 {
   char scratch[SCRATCH_SIZE];
   int spr_rval = sprintf(scratch, "%s%lu", typable ? ", " : ",", datum);
@@ -376,18 +395,18 @@ emit_datum(FILE              *fp,
     internal_error("Scratch buffer overrun");
 
   if (*pos + strlen(scratch) > BASIC_LINE_WRAP_POS)
-    emit(fp, machine, cse, line_count, pos, "\n");
+    emit(output_file, machine, output_case, line_count, pos, "\n");
 
   if (*pos == 0)
   {
-    inc_line_number(line_incrementing_has_started, line, step);
-    emit(fp,
+    inc_line_number(line_incrementing_has_started, line_number, step);
+    emit(output_file,
          machine,
-         cse,
+         output_case,
          line_count,
          pos,
          "%hu DATA%s%lu",
-         *line,
+         *line_number,
          typable ? " " : "",
          datum);
 
@@ -396,7 +415,7 @@ emit_datum(FILE              *fp,
   }
   else
   {
-    emit(fp, machine, cse, line_count, pos, "%s", scratch);
+    emit(output_file, machine, output_case, line_count, pos, "%s", scratch);
 
     if (*pos > BASIC_LINE_WRAP_POS)
       internal_error("BASIC_LINE_WRAP_POS was not avoided");
@@ -404,16 +423,16 @@ emit_datum(FILE              *fp,
 }
 
 static void
-emit_line(FILE              *fp,
-          enum machine_type machine,
-          enum case_type    cse,
-          bool_type         typable,
-          bool_type         *line_incrementing_has_started,
-          counter_type      *line_count,
-          line_type         *line,
-          step_type         *step,
-          pos_type          *pos,
-          const char        *fmt, ...)
+emit_line(FILE               *output_file,
+          enum machine_type  machine,
+          enum case_type     output_case,
+          bool_type          typable,
+          bool_type          *line_incrementing_has_started,
+          line_counter_type  *line_count,
+          line_number_type   *line_number,
+          step_type          *step,
+          pos_type           *pos,
+          const char         *fmt, ...)
 {
   va_list ap;
   enum vemit_status status;
@@ -423,33 +442,33 @@ emit_line(FILE              *fp,
   if (*pos != 0)
     internal_error("Line emission did not start at position zero");
 
-  inc_line_number(line_incrementing_has_started, line, step);
+  inc_line_number(line_incrementing_has_started, line_number, step);
 
-  emit(fp, machine, cse, line_count, pos, "%hu ", *line);
+  emit(output_file, machine, output_case, line_count, pos, "%hu ", *line_number);
 
   va_start(ap, fmt);
-  status = vemit(fp, machine, cse, line_count, pos, fmt, ap);
+  status = vemit(output_file, machine, output_case, line_count, pos, fmt, ap);
   va_end(ap);
 
   check_status(status);
 
-  emit(fp, machine, cse, line_count, pos, "\n");
+  emit(output_file, machine, output_case, line_count, pos, "\n");
 }
 
 static bool_type
-match_arg(const char *arg, const char *shrt, const char *lng)
+arg_match(const char *arg, const char *shrt, const char *lng)
 {
   return (   strcmp(arg, shrt)==0
           || strcmp(arg,  lng)==0 );
 }
 
 static bool_type
-get_str_arg(char **pargv[], const char *shrt, const char *lng,
+match_string_arg(char **pargv[], const char *shrt, const char *lng,
             const char **s)
 {
   bool_type matched;
 
-  if ((matched = match_arg((*pargv)[0], shrt, lng)))
+  if ((matched = arg_match((*pargv)[0], shrt, lng)))
   {
     if (*s)
       fail("You can only set option %s once", (*pargv)[0]);
@@ -488,12 +507,12 @@ get_ushort(const char *s, bool_type *ok)
 }
 
 static bool_type
-get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
+match_loc_type_arg(char **pargv[], const char *shrt, const char *lng,
              unsigned short int *ps, bool_type *set)
 {
   bool_type matched;
 
-  if ((matched = match_arg((*pargv)[0], shrt, lng)))
+  if ((matched = arg_match((*pargv)[0], shrt, lng)))
   {
     bool_type ok = 0;
 
@@ -519,12 +538,12 @@ get_shrt_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static bool_type
-get_sw_arg(const char *arg, const char *shrt, const char *lng,
+match_switch_arg(const char *arg, const char *shrt, const char *lng,
            bool_type *sw)
 {
   bool_type matched = 0;
 
-  if ((matched = match_arg(arg, shrt, lng)))
+  if ((matched = arg_match(arg, shrt, lng)))
   {
     if (*sw)
       fail("Option %s has already been set", arg);
@@ -536,13 +555,13 @@ get_sw_arg(const char *arg, const char *shrt, const char *lng,
 }
 
 static bool_type
-get_m_arg(char **pargv[], const char *shrt, const char *lng,
+match_machine_arg(char **pargv[], const char *shrt, const char *lng,
           enum machine_type *machine)
 {
   bool_type matched = 0;
   const char *name = NULL;
 
-  if ((matched = get_str_arg(pargv, shrt, lng, &name)))
+  if ((matched = match_string_arg(pargv, shrt, lng, &name)))
   {
     if (*machine != default_machine)
       fail("You can only set the target architecture once");
@@ -556,13 +575,13 @@ get_m_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static bool_type
-get_f_arg(char **pargv[], const char *shrt, const char *lng,
+match_format_arg(char **pargv[], const char *shrt, const char *lng,
           enum format_type *fmt)
 {
   bool_type matched = 0;
   const char *opt = NULL;
 
-  if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
+  if ((matched = match_string_arg(pargv, shrt, lng, &opt)))
   {
     if (*fmt != default_format)
       fail("You can only set the file format once");
@@ -578,20 +597,20 @@ get_f_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static bool_type
-get_c_arg(char **pargv[], const char *shrt, const char *lng,
-          enum case_type *cse)
+match_case_arg(char **pargv[], const char *shrt, const char *lng,
+          enum case_type *output_case)
 {
   bool_type matched = 0;
   const char *opt = NULL;
 
-  if ((matched = get_str_arg(pargv, shrt, lng, &opt)))
+  if ((matched = match_string_arg(pargv, shrt, lng, &opt)))
   {
-    if (*cse != default_case)
+    if (*output_case != default_case)
       fail("You can only set the output case once");
 
-         if (strcmp(opt, "upper") == 0)  *cse = upper;
-    else if (strcmp(opt, "lower") == 0)  *cse = lower;
-    else if (strcmp(opt, "mixed") == 0)  *cse = mixed;
+         if (strcmp(opt, "upper") == 0)  *output_case = upper;
+    else if (strcmp(opt, "lower") == 0)  *output_case = lower;
+    else if (strcmp(opt, "mixed") == 0)  *output_case = mixed;
     else fail("Unknown case %s", (*pargv)[0]);
   }
 
@@ -666,11 +685,11 @@ format_name(enum format_type format)
 }
 
 static const char *
-case_name(enum case_type cse)
+case_name(enum case_type output_case)
 {
   const char *s = NULL;
 
-  switch(cse)
+  switch(output_case)
   {
     case upper:  s = "uppercase";   break;
     case lower:  s = "lowercase";   break;
@@ -687,9 +706,9 @@ defaults(void)
   printf("Default target architecture : %s\n", machine_name(DEFAULT_MACHINE));
   printf("Default input format        : %s\n", format_name(DEFAULT_FORMAT));
   printf("Default output case is      : %s\n", case_name(DEFAULT_CASE));
-  printf("Default output filename     : %s\n",
-                                        DEFAULT_OUTPUT_FILENAME);
-  printf("Default output filename     : %s (with --machine c64 --case lower)\n",
+  printf("Default output filename     : %s\n", DEFAULT_OUTPUT_FILENAME);
+  printf("Default output filename     : %s"
+         " (with --machine c64 --case lower)\n",
                                         C64_LC_DEFAULT_OUTPUT_FILENAME);
   exit(EXIT_SUCCESS);
 }
@@ -761,60 +780,67 @@ version(void)
 
 int main(int argc, char *argv[])
 {
-  enum machine_type machine = default_machine;
-  enum format_type format = default_format;
-  enum case_type cse = default_case;
-  const char *fname = NULL;
-  const char *ofname = NULL;
-  FILE *fp = NULL;
-  FILE *ofp = NULL;
-  bool_type    line_incrementing_has_started = 0;
-  counter_type line_count = 0;
-  line_type    line = 0;
-  step_type    step = DEFAULT_BASIC_LINE_STEP_SIZE;
-  pos_type pos = 0;
-  loc_type start = 0;
-  loc_type end   = 0;
-  loc_type exec  = 0;
-  bool_type start_set = 0;
-  bool_type exec_set = 0;
-  long int size = 0;
+  const char *input_filename = NULL;
+  FILE       *input_file  = NULL;
+
+  const char *output_filename = NULL;
+  FILE       *output_file = NULL;
+
+  long int input_file_size = 0;
+  long int output_file_size = 0;
   long int blob_size = 0;
-  long int osize = 0;
   long int remainder = 0;
-  bool_type print_diag = 0;
-  bool_type nowarn = 0;
+
+  enum machine_type  machine = default_machine;
+  enum format_type   input_file_format = default_format;
+  enum case_type     output_case = default_case;
+
+  bool_type extended_basic = 0;
   bool_type typable = 0;
   bool_type checksum = 0;
   bool_type remarks = 0;
-  bool_type extbas = 0;
+  bool_type nowarn = 0;
+  bool_type print_diag = 0;
+
+  bool_type          line_incrementing_has_started = 0;
+  line_counter_type  line_count = 0;
+  line_number_type   line_number = 0;
+  step_type          step = DEFAULT_BASIC_LINE_STEP_SIZE;
+
+  pos_type pos = 0;
+
+  bool_type start_set = 0;
+  loc_type  start = 0;
+  loc_type  end   = 0;
+  bool_type exec_set = 0;
+  loc_type  exec  = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
     fail("This machine cannot process 8-bit bytes");
 #endif
 
-  if (LINE_TYPE_MAX < MAX_BASIC_LINE_NUMBER)
-    fail("line_type does not have adequate range");
-
-  if (POS_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH)
-    fail("pos_type does not have adequate range");
-
-  if (COUNTER_MAX < MAX_BASIC_LINES)
-    fail("counter_type does not have adequate range");
-
   if (UCHAR_MAX > INT_MAX)
     internal_error("Cannot safely promote unsigned char to signed int");
 
-  if (UCHAR_MAX * 256 + 256 - 1 < LOC_MAX)
-    internal_error("Cannot safely calculate loc_type from two unsigned chars");
+  if (LINE_NUMBER_TYPE_MAX > INT_MAX
+     || LINE_COUNTER_TYPE_MAX > INT_MAX
+     || LOC_MAX > INT_MAX)
+        internal_error("printf() promotions are unsafe");
+
+  if (LINE_NUMBER_TYPE_MAX < MAX_BASIC_LINE_NUMBER)
+    fail("line_number_type does not have adequate range");
+
+  if (POS_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH
+     || POS_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
+    fail("pos_type does not have adequate range");
+
+  if (LINE_COUNTER_TYPE_MAX < MAX_BASIC_LINES)
+    fail("line_counter_type does not have adequate range");
 
   if (LOC_MAX < HIGHEST_RAM_ADDRESS)
-    internal_error("Cannot safely handle RAM addresses");
+    internal_error("Cannot safely calculate RAM addresses");
 
-  if (LOC_MAX > INT_MAX)
-    internal_error("printf() promotions are unsafe");
-
-  if (ULONG_MAX < MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+  if (LONG_MAX < MAX_MACHINE_LANGUAGE_BINARY_SIZE)
     internal_error("Cannot safely measure file sizes");
 
   if (LONG_MAX < HIGHEST_RAM_ADDRESS)
@@ -823,145 +849,144 @@ int main(int argc, char *argv[])
   if (argc > 0)
     while (*++argv)
     {
-           if (    match_arg (argv[0], "-h", "--help"))
+           if (    arg_match (argv[0], "-h", "--help"))
              help();
-      else if (    match_arg (argv[0], "-d", "--defaults"))
+      else if (    arg_match (argv[0], "-d", "--defaults"))
              defaults();
-      else if (    match_arg (argv[0], "-i", "--info"))
+      else if (    arg_match (argv[0], "-i", "--info"))
              info();
-      else if (    match_arg (argv[0], "-l", "--license"))
+      else if (    arg_match (argv[0], "-l", "--license"))
              license();
-      else if (    match_arg (argv[0], "-v", "--version"))
+      else if (    arg_match (argv[0], "-v", "--version"))
              version();
       else if (
-                   get_str_arg (&argv, "-o", "--output",   &ofname)
-                || get_shrt_arg(&argv, "-s", "--start",    &start, &start_set)
-                || get_shrt_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
-                || get_sw_arg(argv[0], "-n", "--nowarn",   &nowarn)
-                || get_sw_arg(argv[0], "-t", "--typable",  &typable)
-                || get_sw_arg(argv[0], "-k", "--checksum", &checksum)
-                || get_sw_arg(argv[0], "-x", "--extbas",   &extbas)
-                || get_sw_arg(argv[0], "-r", "--remarks",  &remarks)
-                || get_sw_arg(argv[0], "-p", "--print",    &print_diag)
-                || get_m_arg   (&argv, "-m", "--machine",  &machine)
-                || get_f_arg   (&argv, "-f", "--format",   &format)
-                || get_c_arg   (&argv, "-c", "--case",     &cse)
-              )
-            ;
+                match_string_arg(&argv, "-o", "--output",   &output_filename)
+           || match_loc_type_arg(&argv, "-s", "--start",    &start, &start_set)
+           || match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
+           || match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
+           || match_switch_arg(argv[0], "-t", "--typable",  &typable)
+           || match_switch_arg(argv[0], "-k", "--checksum", &checksum)
+           || match_switch_arg(argv[0], "-x", "--extbas",   &extended_basic)
+           || match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
+           || match_switch_arg(argv[0], "-p", "--print",    &print_diag)
+           || match_machine_arg (&argv, "-m", "--machine",  &machine)
+           || match_format_arg  (&argv, "-f", "--format",   &input_file_format)
+           || match_case_arg    (&argv, "-c", "--case",     &output_case)
+             )
+           ;
       else if (argv[0][0]=='-')
              fail("Unknown command line option %s", argv[0]);
       else
            {
-             if (fname)
+             if (input_filename)
                fail("Only one input filename may be specified");
 
-             fname = argv[0];
+             input_filename = argv[0];
            }
     }
 
   if (machine == default_machine)
     machine = DEFAULT_MACHINE;
 
-  if (format == default_format)
-    format = DEFAULT_FORMAT;
+  if (input_file_format == default_format)
+    input_file_format = DEFAULT_FORMAT;
 
-  if (format == prg && machine != c64)
+  if (input_file_format == prg && machine != c64)
     fail("PRG file format should only be used with the c64 target");
 
-  if (format == dragon && machine != coco)
+  if (input_file_format == dragon && machine != coco)
     fail("Dragon file format should only be used with the coco target");
 
-  if (format == rsdos && machine != coco)
+  if (input_file_format == rsdos && machine != coco)
     fail("RSDOS file format should only be used with the coco target");
 
-  if (extbas && machine != coco)
+  if (extended_basic && machine != coco)
     fail("Extended Color BASIC option should only be used"
          " with the coco target");
 
-  if (cse == default_case)
-    cse = DEFAULT_CASE;
+  if (output_case == default_case)
+    output_case = DEFAULT_CASE;
 
-  if (cse == lower && machine == coco)
+  if (output_case == lower && machine == coco)
     fail("Lowercase output is not useful for a Coco target");
 
-  if (cse == mixed)
+  if (output_case == mixed)
     fail("There is presently no target for mixed case output");
 
-  if (ofname == NULL)
+  if (output_filename == NULL)
   {
-    if (machine == c64 && cse == lower)
-      ofname = C64_LC_DEFAULT_OUTPUT_FILENAME;
+    if (machine == c64 && output_case == lower)
+      output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
     else
-      ofname = DEFAULT_OUTPUT_FILENAME;
+      output_filename = DEFAULT_OUTPUT_FILENAME;
   }
 
   if (checksum)
     typable = 1;
 
-  if (fname == NULL)
+  if (input_filename == NULL)
     fail("You must specify an input file");
 
   errno = 0;
 
-  fp = fopen(fname, "r");
+  input_file = fopen(input_filename, "r");
 
-  if (fp == NULL)
-    fail("Could not open file %s. Error number %d", fname, errno);
+  if (input_file == NULL)
+    fail("Could not open file %s. Error number %d", input_filename, errno);
 
-  if (fseek(fp, 0L, SEEK_END))
-    fail("Could not find the end of file %s. Error number %d", fname, errno);
+  if (fseek(input_file, 0L, SEEK_END))
+    fail("Could not find the end of file %s. Error number %d",
+                                         input_filename, errno);
 
-  size = ftell(fp);
+  input_file_size = ftell(input_file);
 
-  if (size < 0)
-    fail("Could not get size of file %s. Error number %d", fname, errno);
+  if (input_file_size < 0)
+    fail("Could not get size of file %s. Error number %d",
+                                     input_filename, errno);
 
-  if (size == 0)
-    fail("File %s is empty", fname);
+  if (input_file_size == 0)
+    fail("File %s is empty", input_filename);
 
-  if (format == prg && size < 3)
+  if (input_file_format == prg && input_file_size < 3)
     fail("With PRG file format selected,\n"
-         "input file %s must be at least 3 bytes long", fname);
+         "input file %s must be at least 3 bytes long", input_filename);
 
-  if (format == dragon && size < DRAGON_HEADER + 1)
+  if (input_file_format == dragon && input_file_size < DRAGON_HEADER + 1)
     fail("With Dragon file format selected,\n"
          "input file %s must be at least %d bytes long",
-                     fname, DRAGON_HEADER + 1);
+                     input_filename, DRAGON_HEADER + 1);
 
-  if (format == rsdos && size < 2 * COCO_AMBLE + 1)
+  if (input_file_format == rsdos && input_file_size < 2 * COCO_AMBLE + 1)
     fail("With RS-DOS file format selected,\n"
          "input file %s must be at least %d bytes long",
-                     fname, 2 * COCO_AMBLE + 1);
+                     input_filename, 2 * COCO_AMBLE + 1);
 
-  if (size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
-    fail("Input file %s is too large", fname);
+  if (input_file_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+    fail("Input file %s is too large", input_filename);
 
-  if (fseek(fp, 0L, SEEK_SET) < 0)
-    fail("Could not rewind file %s", fname);
+  if (fseek(input_file, 0L, SEEK_SET) < 0)
+    fail("Could not rewind file %s", input_filename);
 
-  if (format == binary)
-    blob_size = size;
+  if (input_file_format == binary)
+    blob_size = input_file_size;
 
-  if (format == prg)
+  if (input_file_format == prg)
   {
     int lo = 0, hi = 0;
     loc_type st = 0;
 
-    lo = fgetc(fp);
+    lo = xgetc(input_file, input_filename);
+    hi = xgetc(input_file, input_filename);
 
-    if (lo != EOF)
-      hi = fgetc(fp);
+    blob_size = input_file_size - 2;
 
-    if (lo == EOF || hi == EOF)
-      fail("Couldn't read from input file");
-
-    blob_size = size - 2;
     st = (unsigned short int)
             ((unsigned char) hi * 256 + (unsigned char) lo);
 
     if (st == 0x0801)
       fail("Input PRG file %s is unsuitable for use with BASICloader\n"
-           "Is it a BASIC program, or a hybrid BASIC/machine language program?");
+           "Is it a BASIC program, or a hybrid"
+           " BASIC/machine language program?");
 
     if (start_set && st != start)
       fail("Input PRG file %s gives a different start address ($%x)\n"
@@ -974,11 +999,12 @@ int main(int argc, char *argv[])
     start = st;
     start_set = 1;
 
-    if (fseek(fp, 2L, SEEK_SET) < 0)
-      fail("Couldn't operate on file %s. Error number %d", fname, errno);
+    if (fseek(input_file, 2L, SEEK_SET) < 0)
+      fail("Couldn't operate on file %s. Error number %d",
+                                     input_filename, errno);
   }
 
-  if (format == dragon)
+  if (input_file_format == dragon)
   {
     unsigned char d[DRAGON_HEADER];
     unsigned short int i = 0;
@@ -986,34 +1012,29 @@ int main(int argc, char *argv[])
     loc_type ex = 0;
 
     for (i = 0; i < DRAGON_HEADER; ++i)
-    {
-      int c = fgetc(fp);
-
-      if (c == EOF)
-        fail("Couldn't read from file %s. Error code %d", fname, errno);
-
-      d[i] = (unsigned char) c;
-    }
+      d[i] = xgetc(input_file, input_filename);
 
     if (d[0] != 0x55 || d[8] != 0xAA)
-      fail("Input file %s doesn't appear to be a Dragon DOS file", fname);
+      fail("Input file %s doesn't appear to be a Dragon DOS file",
+                       input_filename);
 
     if (d[1] == 0x1)
-      fail("Input Dragon DOS file %s appears to be a BASIC program", fname);
+      fail("Input Dragon DOS file %s appears to be a BASIC program",
+                                  input_filename);
 
     if (d[1] == 0x3)
       warning("Input Dragon DOS file %s"
-             " is an unsupported DosPlus FILETYPE\n", fname);
+             " is an unsupported DosPlus FILETYPE\n", input_filename);
 
     if (d[1] != 0x2)
       warning("Input Dragon DOS file %s"
-             " has an unknown FILETYPE\n", fname);
+             " has an unknown FILETYPE\n", input_filename);
 
-    blob_size = size - DRAGON_HEADER;
+    blob_size = input_file_size - DRAGON_HEADER;
 
     if (d[4] * 256 + d[5] != blob_size)
       fail("Input Dragon DOS file %s header"
-           "gives incorrect length", fname);
+           "gives incorrect length", input_filename);
 
     st = (loc_type) (d[2] * 256 + d[3]);
     ex = (loc_type) (d[6] * 256 + d[7]);
@@ -1029,12 +1050,12 @@ int main(int argc, char *argv[])
     if (ex < st)
       fail("The exec location in the header of the Dragon DOS file %s\n"
            "($%x) is below the start location of the binary blob ($%x)",
-           fname, exec, start);
+           input_filename, exec, start);
 
     if (ex > st + blob_size)
       fail("The exec location in the header of the Dragon DOS file %s\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
-           fname, exec, st + blob_size);
+           input_filename, exec, st + blob_size);
 
     start = st;
     start_set = 1;
@@ -1043,7 +1064,7 @@ int main(int argc, char *argv[])
     exec_set = 1;
   }
 
-  if (format == rsdos)
+  if (input_file_format == rsdos)
   {
     loc_type st = 0;
     loc_type ex = 0;
@@ -1052,27 +1073,20 @@ int main(int argc, char *argv[])
     unsigned char d[COCO_AMBLE];
 
     for (i = 0; i < COCO_AMBLE; ++i)
-    {
-      int c = fgetc(fp);
-
-      if (c == EOF)
-        fail("Could not read from file %s. Error code %d", fname, errno);
-
-      d[i] = (unsigned char) c;
-    }
+      d[i] = xgetc(input_file, input_filename);
 
     if (d[0] != 0x0)
-      fail("Input file %s is not properly formed as an RS-DOS file (bad header)",
-                       fname);
+      fail("Input file %s is not properly formed as an "
+           "RS-DOS file (bad header)", input_filename);
 
     ln = ((loc_type) d[1] * 256 + d[2]);
 
-    blob_size = size - 2 * COCO_AMBLE;
+    blob_size = input_file_size - 2 * COCO_AMBLE;
 
     if (ln != blob_size)
       fail("Input file %s length (%u) given in the header\n"
            "does not match measured length (%u)",
-                       fname, ln, blob_size);
+                       input_filename, ln, blob_size);
 
     st = (loc_type) (d[3] * 256 + d[4]);
 
@@ -1083,48 +1097,45 @@ int main(int argc, char *argv[])
     start = st;
     start_set = 1;
 
-    if (fseek(fp, -5L, SEEK_END) < 0)
-      fail("Couldn't operate on file %s. Error number %d", fname, errno);
+    if (fseek(input_file, -5L, SEEK_END) < 0)
+      fail("Couldn't operate on file %s. Error number %d",
+                                     input_filename, errno);
 
     for (i = 0; i < COCO_AMBLE; ++i)
-    {
-      int c = fgetc(fp);
-
-      if (c == EOF)
-        fail("Could not read from file %s. Error code %d", fname, errno);
-
-      d[i] = (unsigned char) c;
-    }
+      d[i] = xgetc(input_file, input_filename);
 
     if (d[0] == 0x0)
-      fail("Input RS-DOS file %s is segmented, and cannot be used", fname);
+      fail("Input RS-DOS file %s is segmented, and cannot be used",
+                              input_filename);
 
     if (d[0] != 0xff ||
         d[1] != 0x0  ||
         d[2] != 0x0)
       fail("Input file %s is not properly formed as an RS-DOS file (bad tail)",
-                       fname);
+                       input_filename);
 
     ex = (unsigned short int) (d[3] * 256 + d[4]);
 
     if (exec && ex != exec)
       fail("Input RS-DOS file %s gives a different exec address ($%x)\n"
-           "to the one given at the command line ($%x)", fname, ex, exec);
+           "to the one given at the command line ($%x)",
+                              input_filename, ex, exec);
 
     if (ex < st)
       fail("The exec location in the tail of the RS-DOS file %s\n"
            "($%x) is below the start location of the binary blob ($%x)",
-           fname, exec, start);
+           input_filename, exec, start);
 
     if (ex > st + blob_size)
       fail("The exec location in the tail of the RS-DOS file %s\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
-           fname, exec, st + blob_size);
+           input_filename, exec, st + blob_size);
 
     exec = ex;
 
-    if (fseek(fp, 5L, SEEK_SET) < 0)
-      fail("Couldn't operate on file %s. Error number %d", fname, errno);
+    if (fseek(input_file, 5L, SEEK_SET) < 0)
+      fail("Couldn't operate on file %s. Error number %d",
+                                     input_filename, errno);
   }
 
   if (start_set == 0)
@@ -1165,12 +1176,12 @@ int main(int argc, char *argv[])
     fail("The exec location given ($%x) is beyond\n"
          "the end location of the binary blob ($%x)", exec, end);
 
-  ofp = fopen(ofname, "w");
+  output_file = fopen(output_filename, "w");
 
-  if (ofp == NULL)
-    fail("Could not open file %s. Error number %d", fname, errno);
+  if (output_file == NULL)
+    fail("Could not open file %s. Error number %d", input_filename, errno);
 
-  if ( /* Suppress warning about comparison always false */
+  if (
 #if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
     (end > HIGHEST_RAM_ADDRESS) ||
 #endif
@@ -1192,30 +1203,30 @@ int main(int argc, char *argv[])
       warning("Program requires at least 8K of RAM");
   }
 
-  line = (typable) ? TYPABLE_START_LINE_NUMBER :
-                     DEFAULT_START_LINE_NUMBER;
+  line_number = typable ? TYPABLE_START_LINE_NUMBER :
+                          DEFAULT_START_LINE_NUMBER;
 
 #if (MIN_BASIC_LINE_NUMBER != 0)
-  if (line < MIN_BASIC_LINE_NUMBER)
+  if (line_number < MIN_BASIC_LINE_NUMBER)
     internal_error("Starting line number is below the minimum");
 #endif
 
-  step = (typable) ? TYPABLE_BASIC_LINE_STEP_SIZE :
-                     DEFAULT_BASIC_LINE_STEP_SIZE;
+  step = typable ? TYPABLE_BASIC_LINE_STEP_SIZE :
+                   DEFAULT_BASIC_LINE_STEP_SIZE;
 
-#define EMITLINEA(A)     emit_line(ofp, machine, cse, typable,\
- &line_incrementing_has_started, &line_count, &line, &step, &pos,\
+#define EMITLINEA(A)     emit_line(output_file, machine, output_case, typable,\
+ &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A);
 
-#define EMITLINEB(A,B)   emit_line(ofp, machine, cse, typable,\
- &line_incrementing_has_started, &line_count, &line, &step, &pos,\
+#define EMITLINEB(A,B)   emit_line(output_file, machine, output_case, typable,\
+ &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B);
 
-#define EMITLINEC(A,B,C) emit_line(ofp, machine, cse, typable,\
- &line_incrementing_has_started, &line_count, &line, &step, &pos,\
+#define EMITLINEC(A,B,C) emit_line(output_file, machine, output_case, typable,\
+ &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B, C);
 
-  if (machine == coco && extbas)
+  if (machine == coco && extended_basic)
     EMITLINEB(typable ? "CLEAR 200, %d" :
                         "CLEAR200,%d",
               start - 1)
@@ -1261,7 +1272,7 @@ int main(int argc, char *argv[])
     EMITLINEA("REM   This program was")
     EMITLINEA("REM Generated by BASICloader")
     if (use_date)
-      EMITLINEB("REM   on %-15s", s)
+    EMITLINEB("REM   on %-15s", s)
     EMITLINEA("REM See github.com/")
     EMITLINEA("REM      richardcavell")
   }
@@ -1269,7 +1280,7 @@ int main(int argc, char *argv[])
   if (!typable)
   {
     EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
-    EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line+3*step)
+    EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
     EMITLINEC("NEXT:%s%d:END", machine == coco ? "EXEC" : "SYS", exec)
     EMITLINEA("PRINT\"Error!\":END")
   }
@@ -1279,7 +1290,7 @@ int main(int argc, char *argv[])
     EMITLINEC("FOR P=%d TO %d", start, end)
     EMITLINEA("READ A")
     EMITLINEA("POKE P,A")
-    EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line+5*step)
+    EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
     EMITLINEA("NEXT P")
     EMITLINEC("%s %d", machine == coco ? "EXEC" : "SYS", exec)
     EMITLINEA("END")
@@ -1298,12 +1309,12 @@ int main(int argc, char *argv[])
     EMITLINEA("FOR I = 0 TO J")
     EMITLINEA("READ A")
     EMITLINEA("POKE P,A")
-    EMITLINEB("IF A<>PEEK(P) THEN GOTO %u", line + 12 * step)
+    EMITLINEB("IF A<>PEEK(P) THEN GOTO %u", line_number + 12 * step)
     EMITLINEA("C = C + A")
     EMITLINEA("P = P + 1")
     EMITLINEA("NEXT I")
-    EMITLINEB("IF C <> CS THEN GOTO %u", line + 5 * step)
-    EMITLINEB("IF P < Q THEN GOTO %u", line - 11 * step)
+    EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
+    EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
     EMITLINEC("%s %u", machine == c64 ? "SYS" : "EXEC", exec)
     EMITLINEA("END")
     EMITLINEA("PRINT \"There is an error\"")
@@ -1313,30 +1324,16 @@ int main(int argc, char *argv[])
     EMITLINEA("END")
   }
 
-#define EMITDATUM(A) emit_datum(ofp, machine, cse, typable,\
-&line_incrementing_has_started, &line_count, &line, &step, &pos,\
+#define EMITDATUM(A) emit_datum(output_file, machine, output_case, typable,\
+&line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
 A);
 
   if (!checksum)
   {
-    int c = 0;
     long int b = blob_size;
 
     while (b--)
-    {
-      c = fgetc(fp);
-
-      if (c == EOF)
-        fail("Couldn't read from file %s", fname);
-
-#if (UCHAR_MAX != UCHAR_MAX_8_BIT)
-      if ((unsigned char) c > UCHAR_MAX_8_BIT)
-        fail("Input file contains a value that's too high"
-             " for an 8-bit machine");
-#endif
-
-      EMITDATUM((unsigned char) c)
-    }
+      EMITDATUM(xgetc(input_file, input_filename))
   }
   else
   {
@@ -1349,75 +1346,63 @@ A);
       unsigned short int j = 0;
       unsigned long int cs = 0;
       unsigned long int old_cs = 0;
-      int c = 0;
 
       for (cs = 0, i = 0; i < CS_DATA_PER_LINE && b; ++i, --b)
       {
-        c = fgetc(fp);
-
-#if (UCHAR_MAX != UCHAR_MAX_8_BIT)
-        if ((unsigned char) c > UCHAR_MAX_8_BIT)
-          fail("Input file contains a value that's too high"
-               " for an 8-bit machine");
-#endif
-
-        if (c == EOF)
-          fail("Error reading from file %s", ofname);
-
-        d[i] = (unsigned char) c;
+        d[i] = xgetc(input_file, input_filename);
         old_cs = cs;
         cs += d[i];
         if (cs < old_cs)
           internal_error("Checksum overflow");
       }
 
-      EMITDATUM((unsigned long int) (line + step))
+      EMITDATUM((unsigned long int) (line_number + step))
       EMITDATUM(cs)
 
       for (j = 0; j < i; ++j)
         EMITDATUM(d[j])
 
       if (pos > 0)
-        emit(ofp, machine, cse, &line_count, &pos, "\n");
+        emit(output_file, machine, output_case, &line_count, &pos, "\n");
     }
   }
 
-  remainder = size - ftell(fp);
+  remainder = input_file_size - ftell(input_file);
 
-  if   ((format == binary  && remainder != 0)
-     || (format == rsdos   && remainder != 5)
-     || (format == dragon  && remainder != 0)
-     || (format == prg     && remainder != 0))
-    fail("Unexpected remaining bytes in input binary file %s", fname);
+  if   ((input_file_format == binary  && remainder != 0)
+     || (input_file_format == rsdos   && remainder != 5)
+     || (input_file_format == dragon  && remainder != 0)
+     || (input_file_format == prg     && remainder != 0))
+    fail("Unexpected remaining bytes in input file %s", input_filename);
 
-  if (fclose(fp))
-    fail("Couldn't close file %s", fname);
+  if (fclose(input_file))
+    fail("Couldn't close file %s", input_filename);
 
   if (pos > 0)
-    emit(ofp, machine, cse, &line_count, &pos, "\n");
+    emit(output_file, machine, output_case, &line_count, &pos, "\n");
 
-  osize = ftell(ofp);
+  output_file_size = ftell(output_file);
 
-  if (osize < 0)
+  if (output_file_size < 0)
     fail("Couldn't measure output file size");
 
-  if (osize > MAX_BASIC_PROG_SIZE)
+  if (output_file_size > MAX_BASIC_PROG_SIZE)
     fail("Generated program is too large");
 
-  if (fclose(ofp))
-    fail("Couldn't close file %s", ofname);
+  if (fclose(output_file))
+    fail("Couldn't close file %s", output_filename);
 
-  printf("BASIC program has been generated -> %s\n", ofname);
+  printf("BASIC program has been generated -> %s\n", output_filename);
 
   if (print_diag)
   {
     printf("Output is for the %s target architecture%s\n",
                               machine_name(machine),
-                              extbas ? " (with Extended BASIC)" : "");
+                              extended_basic ? " (with Extended BASIC)" : "");
 
     printf("The program is %s, %s form%s"
            " and with%s program comments\n",
-                               case_name(cse),
+                               case_name(output_case),
                                typable ? "typable" : "compact",
                                checksum ? " with checksumming" : "",
                                remarks ? "" : "out");
@@ -1430,7 +1415,7 @@ A);
     else
     printf("  Blob size      : %lu bytes\n", blob_size);
     printf("  BASIC program  : %u lines (%lu characters)\n",
-                               line_count, osize);
+                               line_count, output_file_size);
   }
 
   return EXIT_SUCCESS;
