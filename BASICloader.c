@@ -92,7 +92,7 @@ enum output_case_type
 
 typedef unsigned short int bool_type;
 typedef unsigned short int line_number_type;
-typedef line_number_type   step_type;
+typedef unsigned short int step_type;
 typedef unsigned short int pos_type;
 typedef unsigned short int line_counter_type;
 typedef unsigned short int loc_type;
@@ -130,7 +130,7 @@ internal_error(const char *fmt, ...)
   va_end(ap);
 
   (void) fprintf(stderr, "\nPlease report this to Richard Cavell\n"
-                         "at richardcavell@mail.com");
+                         "at richardcavell@mail.com\n");
 
   exit(EXIT_FAILURE);
 }
@@ -193,9 +193,9 @@ check_line_number(line_number_type line_number)
 }
 
 static void
-inc_line_number(bool_type *line_incrementing_has_started,
-                line_number_type *line_number,
-                step_type *step)
+inc_line_number(bool_type         *line_incrementing_has_started,
+                line_number_type  *line_number,
+                step_type         *step)
 {
   if(*line_incrementing_has_started == 1)
   {
@@ -255,22 +255,22 @@ check_pos(pos_type *pos, enum machine_type machine)
 }
 
 static void
-process_scratch(char                   *s,
-                enum machine_type      machine,
-                enum output_case_type  output_case,
-                line_counter_type      *line_count,
-                pos_type               *pos)
+process_output_text(char                   *output_text,
+                    enum machine_type      machine,
+                    enum output_case_type  output_case,
+                    line_counter_type      *line_count,
+                    pos_type               *pos)
 {
-  while (*s != '\0')
+  while (*output_text != '\0')
   {
     switch (output_case)
     {
-      case UPPER:  *s = (char) toupper(*s);  break;
-      case LOWER:  *s = (char) tolower(*s);  break;
-      default:                               break;
+      case UPPER:  *output_text = (char) toupper(*output_text);  break;
+      case LOWER:  *output_text = (char) tolower(*output_text);  break;
+      default:                                                   break;
     }
 
-    if (*s == '\n')
+    if (*output_text == '\n')
     {
       inc_line_count(line_count);
       *pos = 0;
@@ -284,7 +284,7 @@ process_scratch(char                   *s,
       check_pos(pos, machine);
     }
 
-    ++s;
+    ++output_text;
   }
 }
 
@@ -336,9 +336,9 @@ vemit(FILE                   *output_file,
       const char             *fmt,
       va_list                ap)
 {
-  char scratch[SCRATCH_SIZE];
-  long int output_file_size;
-  int vsp_rval = vsprintf(scratch, fmt, ap);
+  char      output_text[SCRATCH_SIZE];
+  long int  output_file_size;
+  int       vsp_rval = vsprintf(output_text, fmt, ap);
 
   if (vsp_rval < 0)
     return SCRATCH_FAIL;
@@ -346,9 +346,9 @@ vemit(FILE                   *output_file,
   if (vsp_rval >= SCRATCH_SIZE)
     internal_error("Scratch buffer overrun");
 
-  process_scratch(scratch, machine, output_case, line_count, pos);
+  process_output_text(output_text, machine, output_case, line_count, pos);
 
-  if (fprintf(output_file, "%s", scratch) < 0)
+  if (fprintf(output_file, "%s", output_text) < 0)
     return EMIT_FAIL;
 
   output_file_size = ftell(output_file);
@@ -664,50 +664,50 @@ help(void)
 static const char *
 machine_name(enum machine_type machine)
 {
-  const char *s = NULL;
+  const char *name = NULL;
 
   switch(machine)
   {
-    case COCO:    s = "coco";    break;
-    case DRAGON:  s = "dragon";  break;
-    case C64:     s = "c64";     break;
+    case COCO:    name = "coco";    break;
+    case DRAGON:  name = "dragon";  break;
+    case C64:     name = "c64";     break;
     default:      internal_error("Unhandled machine in machine_name()");
   }
 
-  return s;
+  return name;
 }
 
 static const char *
 format_name(enum input_file_format_type format)
 {
-  const char *s = NULL;
+  const char *name = NULL;
 
   switch(format)
   {
-    case BINARY:     s = "binary";  break;
-    case RSDOS:      s = "rsdos";   break;
-    case DRAGONDOS:  s = "dragon";  break;
-    case PRG:        s = "prg";     break;
+    case BINARY:     name = "binary";  break;
+    case RSDOS:      name = "rsdos";   break;
+    case DRAGONDOS:  name = "dragon";  break;
+    case PRG:        name = "prg";     break;
     default:         internal_error("Unhandled format in format_name()");
   }
 
-  return s;
+  return name;
 }
 
 static const char *
 case_name(enum output_case_type output_case)
 {
-  const char *s = NULL;
+  const char *name = NULL;
 
   switch(output_case)
   {
-    case UPPER:  s = "uppercase";   break;
-    case LOWER:  s = "lowercase";   break;
-    case MIXED:  s = "mixed case";  break;
+    case UPPER:  name = "upper";   break;
+    case LOWER:  name = "lower";   break;
+    case MIXED:  name = "mixed";  break;
     default:     internal_error("Unhandled case in case_name()");
   }
 
-  return s;
+  return name;
 }
 
 static void
@@ -715,7 +715,8 @@ defaults(void)
 {
   printf("Default target architecture : %s\n", machine_name(DEFAULT_MACHINE));
   printf("Default input format        : %s\n", format_name(DEFAULT_FORMAT));
-  printf("Default output case is      : %s\n", case_name(DEFAULT_CASE));
+  printf("Default output case is      : %s%scase\n", case_name(DEFAULT_CASE),
+                                        DEFAULT_CASE == MIXED ? " " : "");
   printf("Default output filename     : %s\n", DEFAULT_OUTPUT_FILENAME);
   printf("Default output filename     : %s"
          " (with --machine c64 --case lower)\n",
@@ -790,40 +791,41 @@ version(void)
 
 int main(int argc, char *argv[])
 {
-  const char *input_filename = NULL;
-  FILE       *input_file  = NULL;
+  const char *input_filename  = NULL;
+  FILE       *input_file      = NULL;
 
   const char *output_filename = NULL;
-  FILE       *output_file = NULL;
+  FILE       *output_file     = NULL;
 
-  long int input_file_size = 0;
-  long int output_file_size = 0;
-  long int blob_size = 0;
-  long int remainder = 0;
+  long int  input_file_size   = 0;
+  long int  output_file_size  = 0;
+  long int  blob_size         = 0;
+  long int  remainder         = 0;
 
   enum machine_type            machine            = NO_MACHINE_CHOSEN;
   enum input_file_format_type  input_file_format  = NO_FORMAT_CHOSEN;
   enum output_case_type        output_case        = NO_CASE_CHOSEN;
 
   bool_type extended_basic = 0;
-  bool_type typable = 0;
-  bool_type checksum = 0;
-  bool_type remarks = 0;
-  bool_type nowarn = 0;
-  bool_type print_diag = 0;
+  bool_type typable        = 0;
+  bool_type checksum       = 0;
+  bool_type remarks        = 0;
+  bool_type nowarn         = 0;
+  bool_type print_diag     = 0;
 
   bool_type          line_incrementing_has_started = 0;
-  line_counter_type  line_count = 0;
-  line_number_type   line_number = 0;
-  step_type          step = DEFAULT_BASIC_LINE_STEP_SIZE;
+  line_counter_type  line_count                    = 0;
+  line_number_type   line_number                   = 0;
+
+  step_type step = DEFAULT_BASIC_LINE_STEP_SIZE;
 
   pos_type pos = 0;
 
   bool_type start_set = 0;
-  loc_type  start = 0;
-  loc_type  end   = 0;
-  bool_type exec_set = 0;
-  loc_type  exec  = 0;
+  loc_type  start     = 0;
+  loc_type  end       = 0;
+  bool_type exec_set  = 0;
+  loc_type  exec      = 0;
 
 #if (UCHAR_MAX < UCHAR_MAX_8_BIT)
     fail("This machine cannot process 8-bit bytes");
@@ -1176,7 +1178,7 @@ int main(int argc, char *argv[])
 
   if (exec_set == 0)
   {
-    exec = start;
+    exec     = start;
     exec_set = 1;
   }
 
@@ -1211,19 +1213,19 @@ int main(int argc, char *argv[])
   if (machine == COCO && !nowarn)
   {
          if (end > HIGHEST_32K_ADDRESS)
-      warning("Program requires 64K of RAM");
+           warning("Program requires 64K of RAM");
     else if (end > HIGHEST_16K_ADDRESS)
-      warning("Program requires at least 32K of RAM");
+           warning("Program requires at least 32K of RAM");
     else if (end > HIGHEST_8K_ADDRESS)
-      warning("Program requires at least 16K of RAM");
+           warning("Program requires at least 16K of RAM");
     else if (end > HIGHEST_4K_ADDRESS)
-      warning("Program requires at least 8K of RAM");
+           warning("Program requires at least 8K of RAM");
   }
 
   if (machine == DRAGON && !nowarn)
   {
          if (end > HIGHEST_32K_ADDRESS)
-      warning("Program requires 64K of RAM");
+           warning("Program requires 64K of RAM");
   }
 
   line_number = typable ? TYPABLE_START_LINE_NUMBER :
@@ -1261,41 +1263,43 @@ int main(int argc, char *argv[])
 
   if (remarks == 1)
   {
-    char s[SCRATCH_SIZE];
+    char scratch[SCRATCH_SIZE];
     time_t t = 0;
     struct tm *tm;
-    int use_date = 1;
+    bool_type use_date = 1;
 
     errno = 0;
-    t = time(NULL);
-    if (t == (time_t) -1 || errno != 0)
-    {
-      use_date = 0;
-      warning("Couldn't get the current time. Error number : %d\n", errno);
-    }
 
-    if (use_date == 1)
+    t = time(NULL);
+
+    if (t != (time_t) -1 && errno == 0)
     {
       tm = localtime(&t);
 
-      if (tm == NULL)
+      if (tm != NULL)
+      {
+        if (strftime(scratch, sizeof scratch, "%d %B %Y", tm) == 0)
+        {
+          use_date = 0;
+          warning("Couldn't format date");
+        }
+      }
+      else
       {
         use_date = 0;
         warning("Couldn't convert the current time to local time");
       }
     }
-
-    if (use_date == 1)
+    else
     {
-      use_date = strftime(s, sizeof s, "%d %B %Y", tm) > 0;
-      if (use_date == 0)
-        warning("Couldn't format date");
+      use_date = 0;
+      warning("Couldn't get the current time. Error number : %d\n", errno);
     }
 
     EMITLINEA("REM   This program was")
-    EMITLINEA("REM Generated by BASICloader")
+    EMITLINEA("REM generated by BASICloader")
     if (use_date == 1)
-    EMITLINEB("REM   on %-15s", s)
+    EMITLINEB("REM   on %-15s", scratch)
     EMITLINEA("REM See github.com/")
     EMITLINEA("REM      richardcavell")
   }
@@ -1370,15 +1374,11 @@ A);
       unsigned short int i = 0;
       unsigned short int j = 0;
       unsigned long int cs = 0;
-      unsigned long int old_cs = 0;
 
-      for (cs = 0, i = 0; i < CS_DATA_PER_LINE && b; ++i, --b)
+      for (cs = 0, i = 0; i < CS_DATA_PER_LINE && b > 0; ++i, --b)
       {
         d[i] = xgetc(input_file, input_filename);
-        old_cs = cs;
         cs += d[i];
-        if (cs < old_cs)
-          internal_error("Checksum overflow");
       }
 
       EMITDATUM((unsigned long int) (line_number + step))
