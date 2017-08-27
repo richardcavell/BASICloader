@@ -17,9 +17,8 @@ compile BASICloader manually. This won't be difficult.
 
 Currently BASICloader supports the following target computers:
 
-  * TRS-80 Color Computer 1 and 2
-  * TRS-80 Color Computer 1 and 2 with Extended Color BASIC
-  * TRS-80 Color Computer 3
+  * TRS-80 Color Computer 1, 2 and 3
+  * TRS-80 Color Computer 1, 2 and 3 with Extended Color BASIC
   * Dragon 32 and Dragon 64
   * Commodore 64
 

@@ -15,34 +15,34 @@
 
 enum machine_type
 {
-  default_machine = 0,
-  coco,
-  dragon,
-  c64
+  NO_MACHINE_CHOSEN = 0,
+  COCO,
+  DRAGON,
+  C64
 };
 
-enum format_type
+enum input_file_format_type
 {
-  default_format = 0,
-  binary,
-  rsdos,
-  dragondos,
-  prg
+  NO_FORMAT_CHOSEN = 0,
+  BINARY,
+  RSDOS,
+  DRAGONDOS,
+  PRG
 };
 
-enum case_type
+enum output_case_type
 {
-  default_case = 0,
-  upper,
-  lower,
-  mixed
+  NO_CASE_CHOSEN = 0,
+  UPPER,
+  LOWER,
+  MIXED
 };
 
         /* User-modifiable values */
 
-#define           DEFAULT_MACHINE            coco
-#define           DEFAULT_FORMAT             binary
-#define           DEFAULT_CASE               upper
+#define           DEFAULT_MACHINE            COCO
+#define           DEFAULT_FORMAT             BINARY
+#define           DEFAULT_CASE               UPPER
 
 #define           DEFAULT_OUTPUT_FILENAME    "LOADER.BAS"
 #define    C64_LC_DEFAULT_OUTPUT_FILENAME    "loader"
@@ -81,8 +81,9 @@ enum case_type
 
 #define UCHAR_MAX_8_BIT 255
 
-#define DRAGON_HEADER 9
 #define COCO_AMBLE 5
+#define DRAGON_HEADER 9
+#define PRG_HEADER 2
 
     /* In maintaining this code, remember that this code is intended to
        be capable of being used with retro machines and compilers. Many
@@ -196,7 +197,7 @@ inc_line_number(bool_type *line_incrementing_has_started,
                 line_number_type *line_number,
                 step_type *step)
 {
-  if(*line_incrementing_has_started)
+  if(*line_incrementing_has_started == 1)
   {
     line_number_type old_line = *line_number;
 
@@ -233,15 +234,15 @@ check_pos(pos_type *pos, enum machine_type machine)
 
   switch(machine)
   {
-    case coco:
+    case COCO:
       max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
       break;
 
-    case dragon:
+    case DRAGON:
       max_basic_line_length = DRAGON_MAX_BASIC_LINE_LENGTH;
       break;
 
-    case c64:
+    case C64:
       max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
       break;
 
@@ -254,18 +255,18 @@ check_pos(pos_type *pos, enum machine_type machine)
 }
 
 static void
-process_scratch(char              *s,
-                enum machine_type machine,
-                enum case_type    output_case,
-                line_counter_type *line_count,
-                pos_type          *pos)
+process_scratch(char                   *s,
+                enum machine_type      machine,
+                enum output_case_type  output_case,
+                line_counter_type      *line_count,
+                pos_type               *pos)
 {
-  while (*s)
+  while (*s != '\0')
   {
     switch (output_case)
     {
-      case upper:  *s = (char) toupper(*s);  break;
-      case lower:  *s = (char) tolower(*s);  break;
+      case UPPER:  *s = (char) toupper(*s);  break;
+      case LOWER:  *s = (char) tolower(*s);  break;
       default:                               break;
     }
 
@@ -289,11 +290,11 @@ process_scratch(char              *s,
 
 enum vemit_status
 {
-  ve_success = 0,
-  scratch_fail,
-  emit_fail,
-  ftell_fail,
-  too_large
+  VE_SUCCESS = 0,
+  SCRATCH_FAIL,
+  EMIT_FAIL,
+  FTELL_FAIL,
+  TOO_LARGE
 };
 
 static void
@@ -301,22 +302,22 @@ check_status(enum vemit_status status)
 {
   switch(status)
   {
-    case ve_success:
+    case VE_SUCCESS:
       break;
 
-    case scratch_fail:
+    case SCRATCH_FAIL:
       fail("Couldn't write to scratch area");
       break;
 
-    case emit_fail:
+    case EMIT_FAIL:
       fail("Couldn't write to output file. Error number %d", errno);
       break;
 
-    case ftell_fail:
+    case FTELL_FAIL:
       fail("Couldn't operate on output file. Error number %d", errno);
       break;
 
-    case too_large:
+    case TOO_LARGE:
       fail("Generated BASIC program is too large");
       break;
 
@@ -327,20 +328,20 @@ check_status(enum vemit_status status)
 }
 
 static enum vemit_status
-vemit(FILE               *output_file,
-      enum machine_type  machine,
-      enum case_type     output_case,
-      line_counter_type  *line_count,
-      pos_type           *pos,
-      const char         *fmt,
-      va_list            ap)
+vemit(FILE                   *output_file,
+      enum machine_type      machine,
+      enum output_case_type  output_case,
+      line_counter_type      *line_count,
+      pos_type               *pos,
+      const char             *fmt,
+      va_list                ap)
 {
   char scratch[SCRATCH_SIZE];
   long int output_file_size;
   int vsp_rval = vsprintf(scratch, fmt, ap);
 
   if (vsp_rval < 0)
-    return scratch_fail;
+    return SCRATCH_FAIL;
 
   if (vsp_rval >= SCRATCH_SIZE)
     internal_error("Scratch buffer overrun");
@@ -348,29 +349,29 @@ vemit(FILE               *output_file,
   process_scratch(scratch, machine, output_case, line_count, pos);
 
   if (fprintf(output_file, "%s", scratch) < 0)
-    return emit_fail;
+    return EMIT_FAIL;
 
   output_file_size = ftell(output_file);
 
   if (output_file_size < 0)
-    return ftell_fail;
+    return FTELL_FAIL;
 
   if (output_file_size > MAX_BASIC_PROG_SIZE)
-    return too_large;
+    return TOO_LARGE;
 
-  return ve_success;
+  return VE_SUCCESS;
 }
 
 static void
-emit(FILE              *output_file,
-     enum machine_type machine,
-     enum case_type    output_case,
+emit(FILE                   *output_file,
+     enum machine_type      machine,
+     enum output_case_type  output_case,
      line_counter_type      *line_count,
-     pos_type          *pos,
-     const char        *fmt,
+     pos_type               *pos,
+     const char             *fmt,
      ...)
 {
-  enum vemit_status status = ve_success;
+  enum vemit_status status = VE_SUCCESS;
   va_list ap;
 
   va_start(ap, fmt);
@@ -381,16 +382,16 @@ emit(FILE              *output_file,
 }
 
 static void
-emit_datum(FILE               *output_file,
-           enum machine_type  machine,
-           enum case_type     output_case,
-           bool_type          typable,
-           bool_type          *line_incrementing_has_started,
-           line_counter_type  *line_count,
-           line_number_type   *line_number,
-           step_type          *step,
-           pos_type           *pos,
-           unsigned long int  datum)
+emit_datum(FILE                   *output_file,
+           enum machine_type      machine,
+           enum output_case_type  output_case,
+           bool_type              typable,
+           bool_type              *line_incrementing_has_started,
+           line_counter_type      *line_count,
+           line_number_type       *line_number,
+           step_type              *step,
+           pos_type               *pos,
+           unsigned long int      datum)
 {
   char scratch[SCRATCH_SIZE];
   int spr_rval = sprintf(scratch, "%s%lu", typable ? ", " : ",", datum);
@@ -430,16 +431,16 @@ emit_datum(FILE               *output_file,
 }
 
 static void
-emit_line(FILE               *output_file,
-          enum machine_type  machine,
-          enum case_type     output_case,
-          bool_type          typable,
-          bool_type          *line_incrementing_has_started,
-          line_counter_type  *line_count,
-          line_number_type   *line_number,
-          step_type          *step,
-          pos_type           *pos,
-          const char         *fmt, ...)
+emit_line(FILE                   *output_file,
+          enum machine_type      machine,
+          enum output_case_type  output_case,
+          bool_type              typable,
+          bool_type              *line_incrementing_has_started,
+          line_counter_type      *line_count,
+          line_number_type       *line_number,
+          step_type              *step,
+          pos_type               *pos,
+          const char             *fmt, ...)
 {
   va_list ap;
   enum vemit_status status;
@@ -473,11 +474,11 @@ static bool_type
 match_string_arg(char **pargv[], const char *shrt, const char *lng,
             const char **s)
 {
-  bool_type matched;
+  bool_type matched = arg_match((*pargv)[0], shrt, lng);
 
-  if ((matched = arg_match((*pargv)[0], shrt, lng)))
+  if (matched == 1)
   {
-    if (*s)
+    if (*s != NULL)
       fail("You can only set option %s once", (*pargv)[0]);
 
     if ((*pargv)[1] == NULL)
@@ -505,7 +506,7 @@ get_ushort(const char *s, bool_type *ok)
   *ok = ( s != NULL
           && *s != '\0'
           && strtol(s,NULL,0) >= 0
-          && endptr
+          && endptr != NULL
           && (*endptr=='\0')
           && (errno == 0)
           && (l <= USHRT_MAX) );
@@ -517,18 +518,18 @@ static bool_type
 match_loc_type_arg(char **pargv[], const char *shrt, const char *lng,
              unsigned short int *ps, bool_type *set)
 {
-  bool_type matched;
+  bool_type matched = arg_match((*pargv)[0], shrt, lng);
 
-  if ((matched = arg_match((*pargv)[0], shrt, lng)))
+  if (matched == 1)
   {
     bool_type ok = 0;
 
-    if (*set)
+    if (*set != 0)
       fail("Option %s can only be set once", (*pargv)[0]);
 
     *ps = get_ushort((*pargv)[1], &ok);
 
-    if (!ok)
+    if (ok == 0)
       fail("Invalid argument to %s", (*pargv)[0]);
 
 #if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
@@ -548,11 +549,11 @@ static bool_type
 match_switch_arg(const char *arg, const char *shrt, const char *lng,
            bool_type *sw)
 {
-  bool_type matched = 0;
+  bool_type matched = arg_match(arg, shrt, lng);
 
-  if ((matched = arg_match(arg, shrt, lng)))
+  if (matched == 1)
   {
-    if (*sw)
+    if (*sw == 1)
       fail("Option %s has already been set", arg);
 
     *sw = 1;
@@ -565,17 +566,17 @@ static bool_type
 match_machine_arg(char **pargv[], const char *shrt, const char *lng,
           enum machine_type *machine)
 {
-  bool_type matched = 0;
   const char *name = NULL;
+  bool_type matched = match_string_arg(pargv, shrt, lng, &name);
 
-  if ((matched = match_string_arg(pargv, shrt, lng, &name)))
+  if (matched == 1)
   {
-    if (*machine != default_machine)
+    if (*machine != NO_MACHINE_CHOSEN)
       fail("You can only set the target architecture once");
 
-         if (strcmp(name, "coco") == 0)   *machine = coco;
-    else if (strcmp(name, "dragon") == 0) *machine = dragon;
-    else if (strcmp(name, "c64") == 0)    *machine = c64;
+         if (strcmp(name, "coco") == 0)   *machine = COCO;
+    else if (strcmp(name, "dragon") == 0) *machine = DRAGON;
+    else if (strcmp(name, "c64") == 0)    *machine = C64;
     else fail("Unknown machine %s", (*pargv)[0]);
   }
 
@@ -584,20 +585,20 @@ match_machine_arg(char **pargv[], const char *shrt, const char *lng,
 
 static bool_type
 match_format_arg(char **pargv[], const char *shrt, const char *lng,
-          enum format_type *fmt)
+          enum input_file_format_type *fmt)
 {
-  bool_type matched = 0;
   const char *opt = NULL;
+  bool_type matched =match_string_arg(pargv, shrt, lng, &opt);
 
-  if ((matched = match_string_arg(pargv, shrt, lng, &opt)))
+  if (matched == 1)
   {
-    if (*fmt != default_format)
+    if (*fmt != NO_FORMAT_CHOSEN)
       fail("You can only set the file format once");
 
-         if (strcmp(opt, "binary") == 0)  *fmt = binary;
-    else if (strcmp(opt, "rsdos") == 0)   *fmt = rsdos;
-    else if (strcmp(opt, "dragon") == 0)  *fmt = dragondos;
-    else if (strcmp(opt, "prg") == 0)     *fmt = prg;
+         if (strcmp(opt, "binary") == 0)  *fmt = BINARY;
+    else if (strcmp(opt, "rsdos") == 0)   *fmt = RSDOS;
+    else if (strcmp(opt, "dragon") == 0)  *fmt = DRAGONDOS;
+    else if (strcmp(opt, "prg") == 0)     *fmt = PRG;
     else fail("Unknown file format %s", (*pargv)[0]);
   }
 
@@ -606,19 +607,19 @@ match_format_arg(char **pargv[], const char *shrt, const char *lng,
 
 static bool_type
 match_case_arg(char **pargv[], const char *shrt, const char *lng,
-          enum case_type *output_case)
+          enum output_case_type *output_case)
 {
-  bool_type matched = 0;
   const char *opt = NULL;
+  bool_type matched = match_string_arg(pargv, shrt, lng, &opt);
 
-  if ((matched = match_string_arg(pargv, shrt, lng, &opt)))
+  if (matched == 1)
   {
-    if (*output_case != default_case)
+    if (*output_case != NO_CASE_CHOSEN)
       fail("You can only set the output case once");
 
-         if (strcmp(opt, "upper") == 0)  *output_case = upper;
-    else if (strcmp(opt, "lower") == 0)  *output_case = lower;
-    else if (strcmp(opt, "mixed") == 0)  *output_case = mixed;
+         if (strcmp(opt, "upper") == 0)  *output_case = UPPER;
+    else if (strcmp(opt, "lower") == 0)  *output_case = LOWER;
+    else if (strcmp(opt, "mixed") == 0)  *output_case = MIXED;
     else fail("Unknown case %s", (*pargv)[0]);
   }
 
@@ -667,9 +668,9 @@ machine_name(enum machine_type machine)
 
   switch(machine)
   {
-    case coco:    s = "coco";    break;
-    case dragon:  s = "dragon";  break;
-    case c64:     s = "c64";     break;
+    case COCO:    s = "coco";    break;
+    case DRAGON:  s = "dragon";  break;
+    case C64:     s = "c64";     break;
     default:      internal_error("Unhandled machine in machine_name()");
   }
 
@@ -677,16 +678,16 @@ machine_name(enum machine_type machine)
 }
 
 static const char *
-format_name(enum format_type format)
+format_name(enum input_file_format_type format)
 {
   const char *s = NULL;
 
   switch(format)
   {
-    case binary:     s = "binary";  break;
-    case rsdos:      s = "rsdos";   break;
-    case dragondos:  s = "dragon";  break;
-    case prg:        s = "prg";     break;
+    case BINARY:     s = "binary";  break;
+    case RSDOS:      s = "rsdos";   break;
+    case DRAGONDOS:  s = "dragon";  break;
+    case PRG:        s = "prg";     break;
     default:         internal_error("Unhandled format in format_name()");
   }
 
@@ -694,15 +695,15 @@ format_name(enum format_type format)
 }
 
 static const char *
-case_name(enum case_type output_case)
+case_name(enum output_case_type output_case)
 {
   const char *s = NULL;
 
   switch(output_case)
   {
-    case upper:  s = "uppercase";   break;
-    case lower:  s = "lowercase";   break;
-    case mixed:  s = "mixed case";  break;
+    case UPPER:  s = "uppercase";   break;
+    case LOWER:  s = "lowercase";   break;
+    case MIXED:  s = "mixed case";  break;
     default:     internal_error("Unhandled case in case_name()");
   }
 
@@ -800,9 +801,9 @@ int main(int argc, char *argv[])
   long int blob_size = 0;
   long int remainder = 0;
 
-  enum machine_type  machine = default_machine;
-  enum format_type   input_file_format = default_format;
-  enum case_type     output_case = default_case;
+  enum machine_type            machine            = NO_MACHINE_CHOSEN;
+  enum input_file_format_type  input_file_format  = NO_FORMAT_CHOSEN;
+  enum output_case_type        output_case        = NO_CASE_CHOSEN;
 
   bool_type extended_basic = 0;
   bool_type typable = 0;
@@ -888,53 +889,53 @@ int main(int argc, char *argv[])
              fail("Unknown command line option %s", argv[0]);
       else
            {
-             if (input_filename)
+             if (input_filename != NULL)
                fail("Only one input filename may be specified");
 
              input_filename = argv[0];
            }
     }
 
-  if (machine == default_machine)
+  if (machine == NO_MACHINE_CHOSEN)
     machine = DEFAULT_MACHINE;
 
-  if (input_file_format == default_format)
+  if (input_file_format == NO_FORMAT_CHOSEN)
     input_file_format = DEFAULT_FORMAT;
 
-  if (input_file_format == prg && machine != c64)
+  if (input_file_format == PRG && machine != C64)
     fail("PRG file format should only be used with the c64 target");
 
-  if (input_file_format == dragondos && machine != dragon)
+  if (input_file_format == DRAGONDOS && machine != DRAGON)
     fail("Dragon file format should only be used with the dragon target");
 
-  if (input_file_format == rsdos && machine != coco)
+  if (input_file_format == RSDOS && machine != COCO)
     fail("RSDOS file format should only be used with the coco target");
 
-  if (extended_basic && machine != coco)
+  if (extended_basic && machine != COCO)
     fail("Extended Color BASIC option should only be used"
          " with the coco target");
 
-  if (output_case == default_case)
+  if (output_case == NO_CASE_CHOSEN)
     output_case = DEFAULT_CASE;
 
-  if (output_case == lower && machine == coco)
+  if (output_case == LOWER && machine == COCO)
     fail("Lowercase output is not useful for a Coco target");
 
-  if (output_case == lower && machine == dragon)
+  if (output_case == LOWER && machine == DRAGON)
     fail("Lowercase output is not useful for a Dragon target");
 
-  if (output_case == mixed)
+  if (output_case == MIXED)
     fail("There is presently no target for mixed case output");
 
   if (output_filename == NULL)
   {
-    if (machine == c64 && output_case == lower)
+    if (machine == C64 && output_case == LOWER)
       output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
     else
       output_filename = DEFAULT_OUTPUT_FILENAME;
   }
 
-  if (checksum)
+  if (checksum == 1)
     typable = 1;
 
   if (input_filename == NULL)
@@ -960,16 +961,16 @@ int main(int argc, char *argv[])
   if (input_file_size == 0)
     fail("File %s is empty", input_filename);
 
-  if (input_file_format == prg && input_file_size < 3)
+  if (input_file_format == PRG && input_file_size < 3)
     fail("With PRG file format selected,\n"
          "input file %s must be at least 3 bytes long", input_filename);
 
-  if (input_file_format == dragondos && input_file_size < DRAGON_HEADER + 1)
+  if (input_file_format == DRAGONDOS && input_file_size < DRAGON_HEADER + 1)
     fail("With Dragon file format selected,\n"
          "input file %s must be at least %d bytes long",
                      input_filename, DRAGON_HEADER + 1);
 
-  if (input_file_format == rsdos && input_file_size < 2 * COCO_AMBLE + 1)
+  if (input_file_format == RSDOS && input_file_size < 2 * COCO_AMBLE + 1)
     fail("With RS-DOS file format selected,\n"
          "input file %s must be at least %d bytes long",
                      input_filename, 2 * COCO_AMBLE + 1);
@@ -980,12 +981,12 @@ int main(int argc, char *argv[])
   if (fseek(input_file, 0L, SEEK_SET) < 0)
     fail("Could not rewind file %s", input_filename);
 
-  if (input_file_format == binary)
+  if (input_file_format == BINARY)
     blob_size = input_file_size;
 
-  if (input_file_format == prg)
+  if (input_file_format == PRG)
   {
-    int lo = 0, hi = 0;
+    unsigned char lo = 0, hi = 0;
     loc_type st = 0;
 
     lo = xgetc(input_file, input_filename);
@@ -993,31 +994,30 @@ int main(int argc, char *argv[])
 
     blob_size = input_file_size - 2;
 
-    st = (unsigned short int)
-            ((unsigned char) hi * 256 + (unsigned char) lo);
+    st = (loc_type) (hi * 256 + lo);
 
     if (st == 0x0801)
       fail("Input PRG file %s is unsuitable for use with BASICloader\n"
            "Is it a BASIC program, or a hybrid"
            " BASIC/machine language program?");
 
-    if (start_set && st != start)
+    if (start_set == 1 && st != start)
       fail("Input PRG file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
-    if (exec_set && st != exec)
+    if (exec_set == 1 && st != exec)
       fail("Input PRG file %s gives a different start address ($%x)\n"
            "to the exec address given at the command line ($%x)", st, exec);
 
     start = st;
     start_set = 1;
 
-    if (fseek(input_file, 2L, SEEK_SET) < 0)
+    if (fseek(input_file, (long int) PRG_HEADER, SEEK_SET) < 0)
       fail("Couldn't operate on file %s. Error number %d",
                                      input_filename, errno);
   }
 
-  if (input_file_format == dragondos)
+  if (input_file_format == DRAGONDOS)
   {
     unsigned char d[DRAGON_HEADER];
     unsigned short int i = 0;
@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[])
 
     if (d[1] == 0x3)
       warning("Input Dragon DOS file %s"
-             " is an unsupported DosPlus FILETYPE\n", input_filename);
+             " is an unsupported DosPlus file\n", input_filename);
 
     if (d[1] != 0x2)
       warning("Input Dragon DOS file %s"
@@ -1052,11 +1052,11 @@ int main(int argc, char *argv[])
     st = (loc_type) (d[2] * 256 + d[3]);
     ex = (loc_type) (d[6] * 256 + d[7]);
 
-    if (start_set && st != start)
+    if (start_set == 1 && st != start)
       fail("Input Dragon DOS file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
-    if (exec_set && ex != exec)
+    if (exec_set == 1 && ex != exec)
       fail("Input Dragon DOS file %s gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)", ex, exec);
 
@@ -1077,11 +1077,11 @@ int main(int argc, char *argv[])
     exec_set = 1;
   }
 
-  if (input_file_format == rsdos)
+  if (input_file_format == RSDOS)
   {
     loc_type st = 0;
     loc_type ex = 0;
-    long int ln = 0;
+    loc_type ln = 0;
     unsigned short int i = 0;
     unsigned char d[COCO_AMBLE];
 
@@ -1092,7 +1092,7 @@ int main(int argc, char *argv[])
       fail("Input file %s is not properly formed as an "
            "RS-DOS file (bad header)", input_filename);
 
-    ln = ((loc_type) d[1] * 256 + d[2]);
+    ln = (loc_type) (d[1] * 256 + d[2]);
 
     blob_size = input_file_size - 2 * COCO_AMBLE;
 
@@ -1103,14 +1103,14 @@ int main(int argc, char *argv[])
 
     st = (loc_type) (d[3] * 256 + d[4]);
 
-    if (start_set && st != start)
+    if (start_set == 1 && st != start)
       fail("Input RS-DOS file %s gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
     start = st;
     start_set = 1;
 
-    if (fseek(input_file, -5L, SEEK_END) < 0)
+    if (fseek(input_file, (long int) -COCO_AMBLE, SEEK_END) < 0)
       fail("Couldn't operate on file %s. Error number %d",
                                      input_filename, errno);
 
@@ -1127,9 +1127,9 @@ int main(int argc, char *argv[])
       fail("Input file %s is not properly formed as an RS-DOS file (bad tail)",
                        input_filename);
 
-    ex = (unsigned short int) (d[3] * 256 + d[4]);
+    ex = (loc_type) (d[3] * 256 + d[4]);
 
-    if (exec && ex != exec)
+    if (exec == 1 && ex != exec)
       fail("Input RS-DOS file %s gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)",
                               input_filename, ex, exec);
@@ -1146,7 +1146,7 @@ int main(int argc, char *argv[])
 
     exec = ex;
 
-    if (fseek(input_file, 5L, SEEK_SET) < 0)
+    if (fseek(input_file, (long int) COCO_AMBLE, SEEK_SET) < 0)
       fail("Couldn't operate on file %s. Error number %d",
                                      input_filename, errno);
   }
@@ -1155,15 +1155,15 @@ int main(int argc, char *argv[])
   {
     switch(machine)
     {
-      case coco:
+      case COCO:
            start = COCO_DEFAULT_START_ADDRESS;
            break;
 
-      case dragon:
+      case DRAGON:
            start = DRAGON_DEFAULT_START_ADDRESS;
            break;
 
-      case c64:
+      case C64:
            start = C64_DEFAULT_START_ADDRESS;
            break;
 
@@ -1208,7 +1208,7 @@ int main(int argc, char *argv[])
     fail("The machine language blob would overflow the 64K RAM limit");
   }
 
-  if (machine == coco && !nowarn)
+  if (machine == COCO && !nowarn)
   {
          if (end > HIGHEST_32K_ADDRESS)
       warning("Program requires 64K of RAM");
@@ -1220,7 +1220,7 @@ int main(int argc, char *argv[])
       warning("Program requires at least 8K of RAM");
   }
 
-  if (machine == dragon && !nowarn)
+  if (machine == DRAGON && !nowarn)
   {
          if (end > HIGHEST_32K_ADDRESS)
       warning("Program requires 64K of RAM");
@@ -1249,17 +1249,17 @@ int main(int argc, char *argv[])
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B, C);
 
-  if (machine == dragon || (machine == coco && extended_basic))
+  if (machine == DRAGON || (machine == COCO && extended_basic))
     EMITLINEB(typable ? "CLEAR 200, %d" :
                         "CLEAR200,%d",
               start - 1)
 
-  if (machine == c64)
+  if (machine == C64)
     EMITLINEC(typable ? "POKE 55,%d:POKE 56,%d" :
                         "POKE55,%d:POKE56,%d",
               start%256, start/256)
 
-  if (remarks)
+  if (remarks == 1)
   {
     char s[SCRATCH_SIZE];
     time_t t = 0;
@@ -1268,13 +1268,13 @@ int main(int argc, char *argv[])
 
     errno = 0;
     t = time(NULL);
-    if (t == (time_t) -1 || errno)
+    if (t == (time_t) -1 || errno != 0)
     {
       use_date = 0;
       warning("Couldn't get the current time. Error number : %d\n", errno);
     }
 
-    if (use_date)
+    if (use_date == 1)
     {
       tm = localtime(&t);
 
@@ -1285,7 +1285,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    if (use_date)
+    if (use_date == 1)
     {
       use_date = strftime(s, sizeof s, "%d %B %Y", tm) > 0;
       if (use_date == 0)
@@ -1294,36 +1294,36 @@ int main(int argc, char *argv[])
 
     EMITLINEA("REM   This program was")
     EMITLINEA("REM Generated by BASICloader")
-    if (use_date)
+    if (use_date == 1)
     EMITLINEB("REM   on %-15s", s)
     EMITLINEA("REM See github.com/")
     EMITLINEA("REM      richardcavell")
   }
 
-  if (!typable)
+  if (typable == 0)
   {
     EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
     EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
-    EMITLINEC("NEXT:%s%d:END", (machine == coco || machine == dragon) ?
+    EMITLINEC("NEXT:%s%d:END", (machine == COCO || machine == DRAGON) ?
                                "EXEC" : "SYS", exec)
     EMITLINEA("PRINT\"Error!\":END")
   }
 
-  if (typable && !checksum)
+  if (typable == 1 && checksum == 0)
   {
     EMITLINEC("FOR P=%d TO %d", start, end)
     EMITLINEA("READ A")
     EMITLINEA("POKE P,A")
     EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
     EMITLINEA("NEXT P")
-    EMITLINEC("%s %d", (machine == coco || machine == dragon) ?
+    EMITLINEC("%s %d", (machine == COCO || machine == DRAGON) ?
               "EXEC" : "SYS", exec)
     EMITLINEA("END")
     EMITLINEA("PRINT \"Error!\"")
     EMITLINEA("END")
   }
 
-  if (checksum)
+  if (checksum == 1)
   {
     EMITLINEB("P = %u", start)
     EMITLINEB("Q = %u", end)
@@ -1340,7 +1340,7 @@ int main(int argc, char *argv[])
     EMITLINEA("NEXT I")
     EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
     EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
-    EMITLINEC("%s %u", machine == c64 ? "SYS" : "EXEC", exec)
+    EMITLINEC("%s %u", machine == C64 ? "SYS" : "EXEC", exec)
     EMITLINEA("END")
     EMITLINEA("PRINT \"There is an error\"")
     EMITLINEA("PRINT \"on line \";L;\"!\"")
@@ -1353,7 +1353,7 @@ int main(int argc, char *argv[])
 &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
 A);
 
-  if (!checksum)
+  if (checksum == 0)
   {
     long int b = blob_size;
 
@@ -1364,7 +1364,7 @@ A);
   {
     long int b = blob_size;
 
-    while (b)
+    while (b != 0)
     {
       unsigned char d[CS_DATA_PER_LINE];
       unsigned short int i = 0;
@@ -1394,13 +1394,13 @@ A);
 
   remainder = input_file_size - ftell(input_file);
 
-  if   ((input_file_format == binary     && remainder != 0)
-     || (input_file_format == rsdos      && remainder != 5)
-     || (input_file_format == dragondos  && remainder != 0)
-     || (input_file_format == prg        && remainder != 0))
+  if   ((input_file_format == BINARY     && remainder != 0)
+     || (input_file_format == RSDOS      && remainder != 5)
+     || (input_file_format == DRAGONDOS  && remainder != 0)
+     || (input_file_format == PRG        && remainder != 0))
     fail("Unexpected remaining bytes in input file %s", input_filename);
 
-  if (fclose(input_file))
+  if (fclose(input_file) != 0)
     fail("Couldn't close file %s", input_filename);
 
   if (pos > 0)
@@ -1414,12 +1414,12 @@ A);
   if (output_file_size > MAX_BASIC_PROG_SIZE)
     fail("Generated program is too large");
 
-  if (fclose(output_file))
+  if (fclose(output_file) != 0)
     fail("Couldn't close file %s", output_filename);
 
   printf("BASIC program has been generated -> %s\n", output_filename);
 
-  if (print_diag)
+  if (print_diag == 1)
   {
     printf("Output is for the %s target architecture%s\n",
                               machine_name(machine),
