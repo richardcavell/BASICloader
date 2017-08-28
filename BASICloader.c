@@ -60,7 +60,7 @@ enum output_case_type
 #define      COCO_DEFAULT_START_ADDRESS      0x3e00
 #define    DRAGON_DEFAULT_START_ADDRESS      0x3e00
 
-#define             SCRATCH_SIZE             300
+#define        OUTPUT_TEXT_BUFFER_SIZE       300
 
         /* End of user-modifiable values */
 
@@ -161,6 +161,39 @@ warning(const char *fmt, ...)
     warning_fail();
 }
 
+static void
+check_type_limits(void)
+{
+#if (UCHAR_MAX < UCHAR_MAX_8_BIT)
+    internal_error("This machine cannot process 8-bit bytes");
+#endif
+
+  if (UCHAR_MAX > INT_MAX)
+    internal_error("Cannot safely promote unsigned char to signed int");
+
+  if (LINE_NUMBER_TYPE_MAX > INT_MAX
+     || LINE_COUNTER_TYPE_MAX > INT_MAX
+     || LOC_MAX > INT_MAX)
+        internal_error("printf() promotions are unsafe");
+
+  if (LINE_NUMBER_TYPE_MAX < MAX_BASIC_LINE_NUMBER)
+    internal_error("line_number_type does not have adequate range");
+
+  if (POS_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH
+     || POS_TYPE_MAX < DRAGON_MAX_BASIC_LINE_LENGTH
+     || POS_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
+    internal_error("pos_type does not have adequate range");
+
+  if (LINE_COUNTER_TYPE_MAX < MAX_BASIC_LINES)
+    internal_error("line_counter_type does not have adequate range");
+
+  if (LOC_MAX < HIGHEST_RAM_ADDRESS)
+    internal_error("Cannot safely calculate RAM addresses");
+
+  if (LONG_MAX < MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+    internal_error("Cannot safely measure file sizes");
+}
+
 static unsigned char
 xgetc(FILE *input_file, const char *input_filename)
 {
@@ -185,6 +218,12 @@ fill_array(unsigned char arr[], unsigned int size, FILE *input_file, const char 
 
   for (i = 0; i < size; ++i)
     arr[i] = xgetc(input_file, input_filename);
+}
+
+static loc_type
+construct_pointer(unsigned char hi, unsigned char lo)
+{
+  return (loc_type) (hi * 256 + lo);
 }
 
 static void
@@ -345,14 +384,14 @@ vemit(FILE                   *output_file,
       const char             *fmt,
       va_list                ap)
 {
-  char      output_text[SCRATCH_SIZE];
+  char      output_text[OUTPUT_TEXT_BUFFER_SIZE];
   long int  output_file_size;
   int       vsp_rval = vsprintf(output_text, fmt, ap);
 
   if (vsp_rval < 0)
     return SCRATCH_FAIL;
 
-  if (vsp_rval >= SCRATCH_SIZE)
+  if (vsp_rval >= OUTPUT_TEXT_BUFFER_SIZE)
     internal_error("Scratch buffer overrun");
 
   process_output_text(output_text, machine, output_case, line_count, pos);
@@ -402,16 +441,16 @@ emit_datum(FILE                   *output_file,
            pos_type               *pos,
            unsigned long int      datum)
 {
-  char scratch[SCRATCH_SIZE];
-  int spr_rval = sprintf(scratch, "%s%lu", typable ? ", " : ",", datum);
+  char output_text[OUTPUT_TEXT_BUFFER_SIZE];
+  int spr_rval = sprintf(output_text, "%s%lu", typable ? ", " : ",", datum);
 
   if (spr_rval < 0)
-    fail("Couldn't write to scratch area in emit_datum()");
+    fail("Couldn't write to output text area in emit_datum()");
 
-  if (spr_rval >= SCRATCH_SIZE)
-    internal_error("Scratch buffer overrun");
+  if (spr_rval >= OUTPUT_TEXT_BUFFER_SIZE)
+    internal_error("Output text buffer overrun");
 
-  if (*pos + strlen(scratch) > BASIC_LINE_WRAP_POS)
+  if (*pos + strlen(output_text) > BASIC_LINE_WRAP_POS)
     emit(output_file, machine, output_case, line_count, pos, "\n");
 
   if (*pos == 0)
@@ -432,7 +471,8 @@ emit_datum(FILE                   *output_file,
   }
   else
   {
-    emit(output_file, machine, output_case, line_count, pos, "%s", scratch);
+    emit(output_file, machine, output_case, line_count, pos,
+         "%s", output_text);
 
     if (*pos > BASIC_LINE_WRAP_POS)
       internal_error("BASIC_LINE_WRAP_POS was not avoided");
@@ -475,8 +515,8 @@ emit_line(FILE                   *output_file,
 static bool_type
 arg_match(const char *arg, const char *shrt, const char *lng)
 {
-  return (   strcmp(arg, shrt)==0
-          || strcmp(arg,  lng)==0 );
+  return ( ( shrt != NULL && strcmp(arg, shrt) == 0 )
+                          || strcmp(arg,  lng) == 0 );
 }
 
 static bool_type
@@ -662,9 +702,9 @@ help(void)
   puts("  -c  --case      Output case (upper/lower)");
   puts("  -r  --remarks   Add remarks to output program");
   puts("  -t  --typable   Unpack the program and use spaces");
-  puts("  -y  --verify    Verify the success of each POKE");
-  puts("  -k  --checksum  Calculate and verify checksums");
-  puts("  -x  --extbas    Assume Extended Color BASIC (coco only)");
+  puts("      --verify    Verify the success of each POKE");
+  puts("      --checksum  Calculate and verify checksums");
+  puts("      --extbas    Assume Extended Color BASIC (coco only)");
   puts("  -s  --start     Start memory location");
   puts("  -e  --exec      Exec memory location");
   puts("  -p  --print     Print some diagnostic info");
@@ -848,37 +888,7 @@ int main(int argc, char *argv[])
   bool_type exec_set  = 0;
   loc_type  exec      = 0;
 
-#if (UCHAR_MAX < UCHAR_MAX_8_BIT)
-    fail("This machine cannot process 8-bit bytes");
-#endif
-
-  if (UCHAR_MAX > INT_MAX)
-    internal_error("Cannot safely promote unsigned char to signed int");
-
-  if (LINE_NUMBER_TYPE_MAX > INT_MAX
-     || LINE_COUNTER_TYPE_MAX > INT_MAX
-     || LOC_MAX > INT_MAX)
-        internal_error("printf() promotions are unsafe");
-
-  if (LINE_NUMBER_TYPE_MAX < MAX_BASIC_LINE_NUMBER)
-    fail("line_number_type does not have adequate range");
-
-  if (POS_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH
-     || POS_TYPE_MAX < DRAGON_MAX_BASIC_LINE_LENGTH
-     || POS_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
-    fail("pos_type does not have adequate range");
-
-  if (LINE_COUNTER_TYPE_MAX < MAX_BASIC_LINES)
-    fail("line_counter_type does not have adequate range");
-
-  if (LOC_MAX < HIGHEST_RAM_ADDRESS)
-    internal_error("Cannot safely calculate RAM addresses");
-
-  if (LONG_MAX < MAX_MACHINE_LANGUAGE_BINARY_SIZE)
-    internal_error("Cannot safely measure file sizes");
-
-  if (LONG_MAX < HIGHEST_RAM_ADDRESS)
-    internal_error("Cannot safely measure length of target machine files");
+  check_type_limits();
 
   if (argc > 0)
     while (*++argv)
@@ -899,9 +909,9 @@ int main(int argc, char *argv[])
           || match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
           || match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
           || match_switch_arg(argv[0], "-t", "--typable",  &typable)
-          || match_switch_arg(argv[0], "-y", "--verify",   &verify)
-          || match_switch_arg(argv[0], "-k", "--checksum", &checksum)
-          || match_switch_arg(argv[0], "-x", "--extbas",   &extended_basic)
+          || match_switch_arg(argv[0], NULL, "--verify",   &verify)
+          || match_switch_arg(argv[0], NULL, "--checksum", &checksum)
+          || match_switch_arg(argv[0], NULL, "--extbas",   &extended_basic)
           || match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
           || match_switch_arg(argv[0], "-p", "--print",    &print_diag)
           || match_machine_arg (&argv, "-m", "--machine",  &machine)
@@ -1017,7 +1027,7 @@ int main(int argc, char *argv[])
 
     blob_size = input_file_size - 2;
 
-    st = (loc_type) (header[1] * 256 + header[0]);
+    st = construct_pointer(header[1], header[0]);
 
     if (st == 0x0801)
       fail("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
@@ -1075,12 +1085,12 @@ int main(int argc, char *argv[])
 
     blob_size = input_file_size - DRAGON_HEADER;
 
-    if (header[4] * 256 + header[5] != blob_size)
+    if (construct_pointer(header[4], header[5]) != blob_size)
       fail("The header of input Dragon DOS file \"%s\""
            " gives incorrect length", input_filename);
 
-    st = (loc_type) (header[2] * 256 + header[3]);
-    ex = (loc_type) (header[6] * 256 + header[7]);
+    st = construct_pointer(header[2], header[3]);
+    ex = construct_pointer(header[6], header[7]);
 
     if (start_set == 1 && st != start)
       fail("Input Dragon DOS file \"%s\" gives a different start address ($%x)\n"
@@ -1120,7 +1130,7 @@ int main(int argc, char *argv[])
       fail("Input file \"%s\" is not properly formed as an "
            "RS-DOS file (bad header)", input_filename);
 
-    ln = (loc_type) (amble[1] * 256 + amble[2]);
+    ln = construct_pointer(amble[1], amble[2]);
 
     blob_size = input_file_size - 2 * COCO_AMBLE;
 
@@ -1129,7 +1139,7 @@ int main(int argc, char *argv[])
            "does not match measured length (%u)",
                        input_filename, ln, blob_size);
 
-    st = (loc_type) (amble[3] * 256 + amble[4]);
+    st = construct_pointer(amble[3], amble[4]);
 
     if (start_set == 1 && st != start)
       fail("Input RS-DOS file \"%s\" gives a different start address ($%x)\n"
@@ -1154,7 +1164,7 @@ int main(int argc, char *argv[])
       fail("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
                        input_filename);
 
-    ex = (loc_type) (amble[3] * 256 + amble[4]);
+    ex = construct_pointer(amble[3], amble[4]);
 
     if (exec == 1 && ex != exec)
       fail("Input RS-DOS file \"%s\" gives a different exec address ($%x)\n"
@@ -1292,7 +1302,7 @@ typable, &line_incrementing_has_started, &line_count, &line_number, &step,\
 
   if (remarks == 1)
   {
-    char scratch[SCRATCH_SIZE];
+    char date_text[OUTPUT_TEXT_BUFFER_SIZE];
     time_t t = 0;
     struct tm *tm;
     bool_type use_date = 1;
@@ -1307,7 +1317,7 @@ typable, &line_incrementing_has_started, &line_count, &line_number, &step,\
 
       if (tm != NULL)
       {
-        if (strftime(scratch, sizeof scratch, "%d %B %Y", tm) == 0)
+        if (strftime(date_text, sizeof date_text, "%d %B %Y", tm) == 0)
         {
           use_date = 0;
           warning("Couldn't format date");
@@ -1328,7 +1338,7 @@ typable, &line_incrementing_has_started, &line_count, &line_number, &step,\
     EMITLINEA("REM   This program was")
     EMITLINEA("REM generated by BASICloader")
     if (use_date == 1)
-    EMITLINEB("REM   on %-15s", scratch)
+    EMITLINEB("REM   on %-15s", date_text)
     EMITLINEA("REM See github.com/")
     EMITLINEA("REM      richardcavell")
   }

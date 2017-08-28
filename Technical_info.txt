@@ -19,7 +19,8 @@ that you have created yourself.
 
 A program that is created with the -y or --verify option will read every
 memory location after writing it. This can be useful to detect when memory
-writes are failing for some reason (such as inadequate RAM installed).
+writes are failing for some reason (such as having an insufficient amount
+of RAM).
 
 However, all of the target machines use memory mapping to allocate memory
 areas to, for example, the operating system and BASIC interpreter. While
@@ -75,6 +76,6 @@ from the emulated Commodore 64 as a raw text file if you use the "File
 system directory" feature with "Enable IEC Device" switched on.
 
 == Use of the output with petcat ==
-petcat require lowercase input, so use the --case lower option. The
+petcat requires lowercase input, so use the --case lower option. The
 README.txt file contains the appropriate commands to build and run a
 .D64 disk image.
