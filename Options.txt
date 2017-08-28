@@ -9,17 +9,18 @@ up this list by running BASICloader with the -h option:
 https://github.com/richardcavell/BASICloader
 Usage: BASICloader [options] [filename]
 
-  -o  --output    Output file
-  -m  --machine   Target machine (coco/c64)
+  -o  --output    Output filename
+  -m  --machine   Target machine (coco/dragon/c64)
   -f  --format    Input file format (binary/rsdos/dragon/prg)
   -c  --case      Output case (upper/lower)
-  -r  --remarks   Add remarks to the program
-  -t  --typable   Unpacked, one instruction per line
-  -k  --checksum  Include checksums in the DATA
-  -x  --extbas    Assume Extended Color BASIC
-  -s  --start     Start location
-  -e  --exec      Exec location
-  -p  --print     Print diagnostic info about the generated program
+  -r  --remarks   Add remarks to output program
+  -t  --typable   Unpack the program and use spaces
+  -y  --verify    Verify the success of POKE loop before executing
+  -k  --checksum  Calculate and verify checksums
+  -x  --extbas    Assume Extended Color BASIC (coco only)
+  -s  --start     Start memory location
+  -e  --exec      Exec memory location
+  -p  --print     Print some diagnostic info
   -n  --nowarn    Don't warn about RAM requirements
   -d  --defaults  Print option defaults
   -l  --license   Your license to use these programs
@@ -72,6 +73,20 @@ other switches are off by default.
       in steps of 1.
 
       Turning this option on makes the output much more readable and typable.
+
+  -y  --verify    Verify the success of POKE loop before executing
+
+      The BASIC program will PEEK() each memory location after POKEing it,
+      to verify that the write was successful.
+
+      This will detect when a machine does not have enough installed RAM
+      (which is only relevant to Coco and Dragon targets). There might also
+      be other reasons to verify that the writes were successful.
+
+      However, it should be used with caution. If the machine language blob
+      overlaps with any address that is subject to memory mapping, then the
+      verification might fail even when the write was successful and the
+      machine language program can be reliably executed.
 
   -k  --checksum  Include checksums in the DATA
 

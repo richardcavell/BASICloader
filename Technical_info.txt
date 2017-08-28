@@ -9,15 +9,33 @@ map. Neither BASICloader nor the program emitted by it can ensure that your
 memory map is laid out sensibly, with no overlaps.
 
 You will need to study the memory map of the target machine precisely.
-For the coco target, you must consider what will be the minimum amount
-of RAM for your target machine.
+For the coco and dragon targets, you must consider what will be the minimum
+amount of RAM for your target machine.
 
 Generally, you should only be using BASICloader on machine language blobs
 that you have created yourself.
 
+== The --verify option ==
+
+A program that is created with the -y or --verify option will read every
+memory location after writing it. This can be useful to detect when memory
+writes are failing for some reason (such as inadequate RAM installed).
+
+However, all of the target machines use memory mapping to allocate memory
+areas to, for example, the operating system and BASIC interpreter. While
+the BASIC program is running, these things will be mapped in and so the
+verification process will fail if you are writing into those areas.
+
+Yet, if your machine language program correctly swaps the memory map around
+once it starts, it would have worked just fine, even though the verification
+process would have failed.
+
+Please use the --verify option only if you are quite sure of what you are
+doing.
+
 == Emitted instructions ==
 
-For the coco with Extended Color BASIC, and
+For the coco with Extended Color BASIC
  * the emitted program will contain a CLEAR command
 
 For the dragon:
@@ -46,10 +64,11 @@ BASIC and machine language. They are intended to be run like this:
   LOAD "*",8,1
   RUN
 
-These files cannot be used with BASICloader, since if they were run with
-BASICloader they would overwrite the loader program.
+These files cannot be used with BASICloader, since they would overwrite
+the loader program.
 
 == Use of the output with VICE ==
+
 Use the --case lower option to generate lowercase output. You can then
 paste the output directly into the VICE emulation window, or inspect it
 from the emulated Commodore 64 as a raw text file if you use the "File

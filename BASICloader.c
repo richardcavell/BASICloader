@@ -649,17 +649,18 @@ help(void)
   print_version();
   puts("Usage: BASICloader [options] [filename]");
   puts("");
-  puts("  -o  --output    Output file");
+  puts("  -o  --output    Output filename");
   puts("  -m  --machine   Target machine (coco/dragon/c64)");
   puts("  -f  --format    Input file format (binary/rsdos/dragon/prg)");
   puts("  -c  --case      Output case (upper/lower)");
-  puts("  -r  --remarks   Add remarks to the program");
-  puts("  -t  --typable   Unpacked, one instruction per line");
-  puts("  -k  --checksum  Include checksums in the DATA");
-  puts("  -x  --extbas    Assume Extended Color BASIC");
-  puts("  -s  --start     Start location");
-  puts("  -e  --exec      Exec location");
-  puts("  -p  --print     Print diagnostic info about the generated program");
+  puts("  -r  --remarks   Add remarks to output program");
+  puts("  -t  --typable   Unpack the program and use spaces");
+  puts("  -y  --verify    Verify the success of POKE loop before executing");
+  puts("  -k  --checksum  Calculate and verify checksums");
+  puts("  -x  --extbas    Assume Extended Color BASIC (coco only)");
+  puts("  -s  --start     Start memory location");
+  puts("  -e  --exec      Exec memory location");
+  puts("  -p  --print     Print some diagnostic info");
   puts("  -n  --nowarn    Don't warn about RAM requirements");
   puts("  -d  --defaults  Print option defaults");
   puts("  -l  --license   Your license to use these programs");
@@ -820,6 +821,7 @@ int main(int argc, char *argv[])
 
   bool_type extended_basic = 0;
   bool_type typable        = 0;
+  bool_type verify         = 0;
   bool_type checksum       = 0;
   bool_type remarks        = 0;
   bool_type nowarn         = 0;
@@ -890,6 +892,7 @@ int main(int argc, char *argv[])
            || match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
            || match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
            || match_switch_arg(argv[0], "-t", "--typable",  &typable)
+           || match_switch_arg(argv[0], "-y", "--verify",   &verify)
            || match_switch_arg(argv[0], "-k", "--checksum", &checksum)
            || match_switch_arg(argv[0], "-x", "--extbas",   &extended_basic)
            || match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
@@ -1266,6 +1269,10 @@ int main(int argc, char *argv[])
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B, C);
 
+#define EMITLINEE(A,B,C,D,E) emit_line(output_file, machine, output_case,\
+typable, &line_incrementing_has_started, &line_count, &line_number, &step,\
+&pos, A, B, C, D, E);
+
   if (machine == DRAGON || (machine == COCO && extended_basic))
     EMITLINEB(typable ? "CLEAR 200, %d" :
                         "CLEAR200,%d",
@@ -1319,7 +1326,14 @@ int main(int argc, char *argv[])
     EMITLINEA("REM      richardcavell")
   }
 
-  if (typable == 0)
+  if (typable == 0 && verify == 0)
+  {
+    EMITLINEE("FORP=%dTO%d:READA:POKEP,A:NEXT:%s%d:END",
+              start, end, (machine == COCO || machine == DRAGON) ?
+                          "EXEC" : "SYS", exec)
+  }
+
+  if (typable == 0 && verify == 1)
   {
     EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
     EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
@@ -1328,7 +1342,18 @@ int main(int argc, char *argv[])
     EMITLINEA("PRINT\"Error!\":END")
   }
 
-  if (typable == 1 && checksum == 0)
+  if (typable == 1 && checksum == 0 && verify == 0)
+  {
+    EMITLINEC("FOR P=%d TO %d", start, end)
+    EMITLINEA("READ A")
+    EMITLINEA("POKE P,A")
+    EMITLINEA("NEXT P")
+    EMITLINEC("%s %d", (machine == COCO || machine == DRAGON) ?
+              "EXEC" : "SYS", exec)
+    EMITLINEA("END")
+  }
+
+  if (typable == 1 && checksum == 0 && verify == 1)
   {
     EMITLINEC("FOR P=%d TO %d", start, end)
     EMITLINEA("READ A")
@@ -1342,7 +1367,30 @@ int main(int argc, char *argv[])
     EMITLINEA("END")
   }
 
-  if (checksum == 1)
+  if (checksum == 1 && verify == 0)
+  {
+    EMITLINEB("P = %u", start)
+    EMITLINEB("Q = %u", end)
+    EMITLINEA("READ L, CS")
+    EMITLINEA("C = 0")
+    EMITLINEA("J = Q - P")
+    EMITLINEC("IF J > %d THEN J = %d", CS_DATA_PER_LINE, CS_DATA_PER_LINE)
+    EMITLINEA("FOR I = 0 TO J")
+    EMITLINEA("READ A")
+    EMITLINEA("POKE P,A")
+    EMITLINEA("C = C + A")
+    EMITLINEA("P = P + 1")
+    EMITLINEA("NEXT I")
+    EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
+    EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
+    EMITLINEC("%s %u", machine == C64 ? "SYS" : "EXEC", exec)
+    EMITLINEA("END")
+    EMITLINEA("PRINT \"There is an error\"")
+    EMITLINEA("PRINT \"on line\";L;\"!\"")
+    EMITLINEA("END")
+  }
+
+  if (checksum == 1 && verify == 1)
   {
     EMITLINEB("P = %u", start)
     EMITLINEB("Q = %u", end)
@@ -1362,7 +1410,7 @@ int main(int argc, char *argv[])
     EMITLINEC("%s %u", machine == C64 ? "SYS" : "EXEC", exec)
     EMITLINEA("END")
     EMITLINEA("PRINT \"There is an error\"")
-    EMITLINEA("PRINT \"on line \";L;\"!\"")
+    EMITLINEA("PRINT \"on line\";L;\"!\"")
     EMITLINEA("END")
     EMITLINEA("PRINT \"Error while poking memory!\"")
     EMITLINEA("END")
