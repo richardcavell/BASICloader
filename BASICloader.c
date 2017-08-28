@@ -167,7 +167,7 @@ xgetc(FILE *input_file, const char *input_filename)
   int c = fgetc(input_file);
 
 #if (UCHAR_MAX != UCHAR_MAX_8_BIT)
-  if ((unsigned char) c > UCHAR_MAX_8_BIT)
+  if (c > UCHAR_MAX_8_BIT)
     fail("Input file contains a value that's too high"
          " for an 8-bit machine");
 #endif
@@ -506,18 +506,25 @@ get_ushort(const char *text, bool_type *ok)
 {
   char *endptr = NULL;
   unsigned long int l = 0;
+  int base = 0;
 
   errno = 0;
 
+  if (text != NULL && text[0] == '$')
+  {
+    base = 16;
+    ++text;
+  }
+
   if (text != NULL)
-    l = strtoul(text, &endptr, 0);
+    l = strtoul(text, &endptr, base);
 
   *ok = ( text != NULL
           && *text != '\0'
-          && strtol(text,NULL,0) >= 0
           && endptr != NULL
           && (*endptr=='\0')
           && (errno == 0)
+          && strtol(text,NULL,base) >= 0
           && (l <= USHRT_MAX) );
 
   return (unsigned short int) l;
@@ -655,7 +662,7 @@ help(void)
   puts("  -c  --case      Output case (upper/lower)");
   puts("  -r  --remarks   Add remarks to output program");
   puts("  -t  --typable   Unpack the program and use spaces");
-  puts("  -y  --verify    Verify the success of POKE loop before executing");
+  puts("  -y  --verify    Verify the success of each POKE");
   puts("  -k  --checksum  Calculate and verify checksums");
   puts("  -x  --extbas    Assume Extended Color BASIC (coco only)");
   puts("  -s  --start     Start memory location");
@@ -887,21 +894,21 @@ int main(int argc, char *argv[])
       else if (    arg_match (argv[0], "-v", "--version"))
              version();
       else if (
-                match_string_arg(&argv, "-o", "--output",   &output_filename)
-           || match_loc_type_arg(&argv, "-s", "--start",    &start, &start_set)
-           || match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
-           || match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
-           || match_switch_arg(argv[0], "-t", "--typable",  &typable)
-           || match_switch_arg(argv[0], "-y", "--verify",   &verify)
-           || match_switch_arg(argv[0], "-k", "--checksum", &checksum)
-           || match_switch_arg(argv[0], "-x", "--extbas",   &extended_basic)
-           || match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
-           || match_switch_arg(argv[0], "-p", "--print",    &print_diag)
-           || match_machine_arg (&argv, "-m", "--machine",  &machine)
-           || match_format_arg  (&argv, "-f", "--format",   &input_file_format)
-           || match_case_arg    (&argv, "-c", "--case",     &output_case)
-             )
-           ;
+               match_string_arg(&argv, "-o", "--output",   &output_filename)
+          || match_loc_type_arg(&argv, "-s", "--start",    &start, &start_set)
+          || match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
+          || match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
+          || match_switch_arg(argv[0], "-t", "--typable",  &typable)
+          || match_switch_arg(argv[0], "-y", "--verify",   &verify)
+          || match_switch_arg(argv[0], "-k", "--checksum", &checksum)
+          || match_switch_arg(argv[0], "-x", "--extbas",   &extended_basic)
+          || match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
+          || match_switch_arg(argv[0], "-p", "--print",    &print_diag)
+          || match_machine_arg (&argv, "-m", "--machine",  &machine)
+          || match_format_arg  (&argv, "-f", "--format",   &input_file_format)
+          || match_case_arg    (&argv, "-c", "--case",     &output_case)
+            )
+          ;
       else if (argv[0][0]=='-')
              fail("Unknown command line option %s", argv[0]);
       else
@@ -1056,8 +1063,8 @@ int main(int argc, char *argv[])
         break;
 
       case 0x3:
-        warning("Input Dragon DOS file \"%s\""
-                " is an unsupported DosPlus file\n", input_filename);
+       fail("Input Dragon DOS file \"%s\""
+            " is an unsupported DosPlus file\n", input_filename);
         break;
 
       default:

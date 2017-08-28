@@ -74,7 +74,7 @@ other switches are off by default.
 
       Turning this option on makes the output much more readable and typable.
 
-  -y  --verify    Verify the success of POKE loop before executing
+  -y  --verify    Verify the success of each POKE
 
       The BASIC program will PEEK() each memory location after POKEing it,
       to verify that the write was successful.
