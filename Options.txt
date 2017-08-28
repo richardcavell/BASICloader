@@ -15,9 +15,11 @@ Usage: BASICloader [options] [filename]
   -c  --case      Output case (upper/lower)
   -r  --remarks   Add remarks to output program
   -t  --typable   Unpack the program and use spaces
-  -y  --verify    Verify the success of POKE loop before executing
-  -k  --checksum  Calculate and verify checksums
-  -x  --extbas    Assume Extended Color BASIC (coco only)
+      --verify    Verify the success of each POKE
+      --checksum  Calculate and verify checksums
+      --extbas    Assume Extended Color BASIC (coco only)
+      --line      Starting line number
+      --step      The amount added to line numbers
   -s  --start     Start memory location
   -e  --exec      Exec memory location
   -p  --print     Print some diagnostic info
@@ -74,7 +76,7 @@ other switches are off by default.
 
       Turning this option on makes the output much more readable and typable.
 
-  -y  --verify    Verify the success of each POKE
+      --verify    Verify the success of each POKE
 
       The BASIC program will PEEK() each memory location after POKEing it,
       to verify that the write was successful.
@@ -88,7 +90,7 @@ other switches are off by default.
       verification might fail even when the write was successful and the
       machine language program can be reliably executed.
 
-  -k  --checksum  Include checksums in the DATA
+      --checksum  Include checksums in the DATA
 
       Each line of the output program that contains a DATA statement will
       include a checksum, which is helpful to ensure that the program has
@@ -98,11 +100,19 @@ other switches are off by default.
 
       Using this option will turn on --typable automatically.
 
-  -x  --extbas    Assume Extended Color BASIC
+      --extbas    Assume Extended Color BASIC
 
       Only to be used with --machine coco. Assume that the target machine
       has Extended Color BASIC. The emitted program will include a CLEAR
       command that is unknown to Color Computers without Extended Color BASIC.
+
+      --line      Starting line number
+
+      The BASIC program will start with this line number.
+
+      --step      The amount added to line numbers
+
+      The BASIC line numbers will increase by this amount.
 
   -s  --start     Start location
 
@@ -110,8 +120,8 @@ other switches are off by default.
       BASIC program is run on the target machine.  Some machine language
       programs must be constructed at a particular start address, while
       others are relocatable.  Each architecture has a default start
-      location. The Coco default assumes that you have 16K minimum. The
-      Dragon default is suitable for machines with 32K as well as 64K.
+      location. The Coco default is suitable for 16K, 32K and 64K machines.
+      The Dragon default is suitable for machines with 32K as well as 64K.
 
   -e  --exec      Exec location
 

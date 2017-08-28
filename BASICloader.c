@@ -49,8 +49,10 @@ enum output_case_type
 
 #define     DEFAULT_START_LINE_NUMBER        MIN_BASIC_LINE_NUMBER
 #define     TYPABLE_START_LINE_NUMBER        10
+#define         MAX_START_LINE_NUMBER        63000
 #define     DEFAULT_BASIC_LINE_STEP_SIZE     1
 #define     TYPABLE_BASIC_LINE_STEP_SIZE     10
+#define         MAX_LINE_NUMBER_STEP         60000
 #define         MAX_BASIC_LINES              10000
 #define         MAX_BASIC_PROG_SIZE          65000
 #define             BASIC_LINE_WRAP_POS      75
@@ -572,7 +574,7 @@ get_ushort(const char *text, bool_type *ok)
 
 static bool_type
 match_loc_type_arg(char **pargv[], const char *shrt, const char *lng,
-             unsigned short int *ps, bool_type *set)
+                   loc_type *ps, bool_type *set)
 {
   bool_type matched = arg_match((*pargv)[0], shrt, lng);
 
@@ -592,6 +594,64 @@ match_loc_type_arg(char **pargv[], const char *shrt, const char *lng,
     if (*ps > HIGHEST_RAM_ADDRESS)
       fail("%s cannot be greater than %x", (*pargv)[0], HIGHEST_RAM_ADDRESS);
 #endif
+
+    ++(*pargv);
+
+    *set = 1;
+  }
+
+  return matched;
+}
+
+static bool_type
+match_line_type_arg(char **pargv[], const char *shrt, const char *lng,
+                    line_number_type *pl, bool_type *set)
+{
+  bool_type matched = arg_match((*pargv)[0], shrt, lng);
+
+  if (matched == 1)
+  {
+    bool_type ok = 0;
+
+    if (*set != 0)
+      fail("Option %s can only be set once", (*pargv)[0]);
+
+    *pl = get_ushort((*pargv)[1], &ok);
+
+    if (ok == 0)
+      fail("Invalid argument to %s", (*pargv)[0]);
+
+    if (*pl > MAX_START_LINE_NUMBER)
+      fail("%s cannot be higher than %d", (*pargv)[0], MAX_START_LINE_NUMBER);
+
+    ++(*pargv);
+
+    *set = 1;
+  }
+
+  return matched;
+}
+
+static bool_type
+match_step_type_arg(char **pargv[], const char *shrt, const char *lng,
+                    step_type *ps, bool_type *set)
+{
+  bool_type matched = arg_match((*pargv)[0], shrt, lng);
+
+  if (matched == 1)
+  {
+    bool_type ok = 0;
+
+    if (*set != 0)
+      fail("Option %s can only be set once", (*pargv)[0]);
+
+    *ps = get_ushort((*pargv)[1], &ok);
+
+    if (ok == 0)
+      fail("Invalid argument to %s", (*pargv)[0]);
+
+    if (*ps > MAX_LINE_NUMBER_STEP)
+      fail("%s cannot be higher than %d", (*pargv)[0], MAX_LINE_NUMBER_STEP);
 
     ++(*pargv);
 
@@ -705,6 +765,8 @@ help(void)
   puts("      --verify    Verify the success of each POKE");
   puts("      --checksum  Calculate and verify checksums");
   puts("      --extbas    Assume Extended Color BASIC (coco only)");
+  puts("      --line      Starting line number");
+  puts("      --step      The amount added to line numbers");
   puts("  -s  --start     Start memory location");
   puts("  -e  --exec      Exec memory location");
   puts("  -p  --print     Print some diagnostic info");
@@ -877,8 +939,10 @@ int main(int argc, char *argv[])
   bool_type          line_incrementing_has_started = 0;
   line_counter_type  line_count                    = 0;
   line_number_type   line_number                   = 0;
+  bool_type          line_number_set               = 0;
 
-  step_type step = DEFAULT_BASIC_LINE_STEP_SIZE;
+  step_type step     = DEFAULT_BASIC_LINE_STEP_SIZE;
+  bool_type step_set = 0;
 
   pos_type pos = 0;
 
@@ -893,32 +957,35 @@ int main(int argc, char *argv[])
   if (argc > 0)
     while (*++argv)
     {
-           if (    arg_match (argv[0], "-h", "--help"))
+           if (     arg_match (argv[0], "-h", "--help"))
              help();
-      else if (    arg_match (argv[0], "-d", "--defaults"))
+      else if (     arg_match (argv[0], "-d", "--defaults"))
              defaults();
-      else if (    arg_match (argv[0], "-i", "--info"))
+      else if (     arg_match (argv[0], "-i", "--info"))
              info();
-      else if (    arg_match (argv[0], "-l", "--license"))
+      else if (     arg_match (argv[0], "-l", "--license"))
              license();
-      else if (    arg_match (argv[0], "-v", "--version"))
+      else if (     arg_match (argv[0], "-v", "--version"))
              version();
       else if (
-               match_string_arg(&argv, "-o", "--output",   &output_filename)
-          || match_loc_type_arg(&argv, "-s", "--start",    &start, &start_set)
-          || match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
-          || match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
-          || match_switch_arg(argv[0], "-t", "--typable",  &typable)
-          || match_switch_arg(argv[0], NULL, "--verify",   &verify)
-          || match_switch_arg(argv[0], NULL, "--checksum", &checksum)
-          || match_switch_arg(argv[0], NULL, "--extbas",   &extended_basic)
-          || match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
-          || match_switch_arg(argv[0], "-p", "--print",    &print_diag)
-          || match_machine_arg (&argv, "-m", "--machine",  &machine)
-          || match_format_arg  (&argv, "-f", "--format",   &input_file_format)
-          || match_case_arg    (&argv, "-c", "--case",     &output_case)
-            )
-          ;
+                match_string_arg(&argv, "-o", "--output",   &output_filename)
+          ||  match_loc_type_arg(&argv, "-s", "--start",    &start, &start_set)
+          ||  match_loc_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
+          || match_line_type_arg(&argv, NULL, "--line",     &line_number,
+                                                              &line_number_set)
+          || match_step_type_arg(&argv, NULL, "--step",     &step,  &step_set)
+          ||  match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
+          ||  match_switch_arg(argv[0], "-t", "--typable",  &typable)
+          ||  match_switch_arg(argv[0], NULL, "--verify",   &verify)
+          ||  match_switch_arg(argv[0], NULL, "--checksum", &checksum)
+          ||  match_switch_arg(argv[0], NULL, "--extbas",   &extended_basic)
+          ||  match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
+          ||  match_switch_arg(argv[0], "-p", "--print",    &print_diag)
+          ||  match_machine_arg (&argv, "-m", "--machine",  &machine)
+          ||  match_format_arg  (&argv, "-f", "--format",   &input_file_format)
+          ||  match_case_arg    (&argv, "-c", "--case",     &output_case)
+              )
+           ;
       else if (argv[0][0]=='-')
              fail("Unknown command line option %s", argv[0]);
       else
@@ -1263,16 +1330,18 @@ int main(int argc, char *argv[])
            warning("Program requires 64K of RAM");
   }
 
-  line_number = typable ? TYPABLE_START_LINE_NUMBER :
-                          DEFAULT_START_LINE_NUMBER;
+  if (line_number_set == 0)
+    line_number = typable ? TYPABLE_START_LINE_NUMBER :
+                            DEFAULT_START_LINE_NUMBER;
 
 #if (MIN_BASIC_LINE_NUMBER != 0)
   if (line_number < MIN_BASIC_LINE_NUMBER)
     internal_error("Starting line number is below the minimum");
 #endif
 
-  step = typable ? TYPABLE_BASIC_LINE_STEP_SIZE :
-                   DEFAULT_BASIC_LINE_STEP_SIZE;
+  if (step_set == 0)
+    step = typable ? TYPABLE_BASIC_LINE_STEP_SIZE :
+                     DEFAULT_BASIC_LINE_STEP_SIZE;
 
 #define EMITLINEA(A)     emit_line(output_file, machine, output_case, typable,\
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
