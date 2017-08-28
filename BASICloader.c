@@ -173,9 +173,18 @@ xgetc(FILE *input_file, const char *input_filename)
 #endif
 
   if (c == EOF)
-    fail("Error reading from file %s. Error code %d", input_filename, errno);
+    fail("Unexpected end of file while reading file \"%s\". Error code %d", input_filename, errno);
 
   return (unsigned char) c;
+}
+
+static void
+fill_array(unsigned char arr[], unsigned int size, FILE *input_file, const char *input_filename)
+{
+  unsigned short int i = 0;
+
+  for (i = 0; i < size; ++i)
+    arr[i] = xgetc(input_file, input_filename);
 }
 
 static void
@@ -493,19 +502,19 @@ match_string_arg(char **pargv[], const char *shrt, const char *lng,
 }
 
 static unsigned short int
-get_ushort(const char *s, bool_type *ok)
+get_ushort(const char *text, bool_type *ok)
 {
   char *endptr = NULL;
   unsigned long int l = 0;
 
   errno = 0;
 
-  if (s != NULL)
-    l = strtoul(s, &endptr, 0);
+  if (text != NULL)
+    l = strtoul(text, &endptr, 0);
 
-  *ok = ( s != NULL
-          && *s != '\0'
-          && strtol(s,NULL,0) >= 0
+  *ok = ( text != NULL
+          && *text != '\0'
+          && strtol(text,NULL,0) >= 0
           && endptr != NULL
           && (*endptr=='\0')
           && (errno == 0)
@@ -564,7 +573,7 @@ match_switch_arg(const char *arg, const char *shrt, const char *lng,
 
 static bool_type
 match_machine_arg(char **pargv[], const char *shrt, const char *lng,
-          enum machine_type *machine)
+                  enum machine_type *machine)
 {
   const char *name = NULL;
   bool_type matched = match_string_arg(pargv, shrt, lng, &name);
@@ -577,7 +586,7 @@ match_machine_arg(char **pargv[], const char *shrt, const char *lng,
          if (strcmp(name, "coco") == 0)   *machine = COCO;
     else if (strcmp(name, "dragon") == 0) *machine = DRAGON;
     else if (strcmp(name, "c64") == 0)    *machine = C64;
-    else fail("Unknown machine %s", (*pargv)[0]);
+    else fail("Unknown machine \"%s\"", (*pargv)[0]);
   }
 
   return matched;
@@ -585,7 +594,7 @@ match_machine_arg(char **pargv[], const char *shrt, const char *lng,
 
 static bool_type
 match_format_arg(char **pargv[], const char *shrt, const char *lng,
-          enum input_file_format_type *fmt)
+                 enum input_file_format_type *fmt)
 {
   const char *opt = NULL;
   bool_type matched =match_string_arg(pargv, shrt, lng, &opt);
@@ -599,7 +608,7 @@ match_format_arg(char **pargv[], const char *shrt, const char *lng,
     else if (strcmp(opt, "rsdos") == 0)   *fmt = RSDOS;
     else if (strcmp(opt, "dragon") == 0)  *fmt = DRAGONDOS;
     else if (strcmp(opt, "prg") == 0)     *fmt = PRG;
-    else fail("Unknown file format %s", (*pargv)[0]);
+    else fail("Unknown file format \"%s\"", (*pargv)[0]);
   }
 
   return matched;
@@ -607,7 +616,7 @@ match_format_arg(char **pargv[], const char *shrt, const char *lng,
 
 static bool_type
 match_case_arg(char **pargv[], const char *shrt, const char *lng,
-          enum output_case_type *output_case)
+               enum output_case_type *output_case)
 {
   const char *opt = NULL;
   bool_type matched = match_string_arg(pargv, shrt, lng, &opt);
@@ -620,7 +629,7 @@ match_case_arg(char **pargv[], const char *shrt, const char *lng,
          if (strcmp(opt, "upper") == 0)  *output_case = UPPER;
     else if (strcmp(opt, "lower") == 0)  *output_case = LOWER;
     else if (strcmp(opt, "mixed") == 0)  *output_case = MIXED;
-    else fail("Unknown case %s", (*pargv)[0]);
+    else fail("Unknown case \"%s\"", (*pargv)[0]);
   }
 
   return matched;
@@ -662,7 +671,7 @@ help(void)
 }
 
 static const char *
-machine_name(enum machine_type machine)
+machine_to_text(enum machine_type machine)
 {
   const char *name = NULL;
 
@@ -671,14 +680,14 @@ machine_name(enum machine_type machine)
     case COCO:    name = "coco";    break;
     case DRAGON:  name = "dragon";  break;
     case C64:     name = "c64";     break;
-    default:      internal_error("Unhandled machine in machine_name()");
+    default:      internal_error("Unhandled machine in machine_to_text()");
   }
 
   return name;
 }
 
 static const char *
-format_name(enum input_file_format_type format)
+format_to_text(enum input_file_format_type format)
 {
   const char *name = NULL;
 
@@ -688,23 +697,23 @@ format_name(enum input_file_format_type format)
     case RSDOS:      name = "rsdos";   break;
     case DRAGONDOS:  name = "dragon";  break;
     case PRG:        name = "prg";     break;
-    default:         internal_error("Unhandled format in format_name()");
+    default:         internal_error("Unhandled format in format_to_text()");
   }
 
   return name;
 }
 
 static const char *
-case_name(enum output_case_type output_case)
+case_to_text(enum output_case_type output_case)
 {
   const char *name = NULL;
 
   switch(output_case)
   {
-    case UPPER:  name = "upper";   break;
-    case LOWER:  name = "lower";   break;
-    case MIXED:  name = "mixed";  break;
-    default:     internal_error("Unhandled case in case_name()");
+    case UPPER:  name = "uppercase";   break;
+    case LOWER:  name = "lowercase";   break;
+    case MIXED:  name = "mixed case";  break;
+    default:     internal_error("Unhandled case in case_to_text()");
   }
 
   return name;
@@ -713,14 +722,15 @@ case_name(enum output_case_type output_case)
 static void
 defaults(void)
 {
-  printf("Default target architecture : %s\n", machine_name(DEFAULT_MACHINE));
-  printf("Default input format        : %s\n", format_name(DEFAULT_FORMAT));
-  printf("Default output case is      : %s%scase\n", case_name(DEFAULT_CASE),
-                                        DEFAULT_CASE == MIXED ? " " : "");
-  printf("Default output filename     : %s\n", DEFAULT_OUTPUT_FILENAME);
-  printf("Default output filename     : %s"
-         " (with --machine c64 --case lower)\n",
+  printf("Default target architecture : %s\n",
+                                        machine_to_text(DEFAULT_MACHINE));
+  printf("Default input format        : %s\n", format_to_text(DEFAULT_FORMAT));
+  printf("Default output is           : %s\n", case_to_text(DEFAULT_CASE));
+  printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
+  printf("Default output filename     : \"%s\""
+                                        " (with --machine c64 --case lower)\n",
                                         C64_LC_DEFAULT_OUTPUT_FILENAME);
+
   exit(EXIT_SUCCESS);
 }
 
@@ -741,6 +751,7 @@ info(void)
   puts("");
   puts("BASICloader therefore generates programs similar to the type-in programs");
   puts("printed in 1980s computer magazines.");
+
   exit(EXIT_SUCCESS);
 }
 
@@ -779,6 +790,7 @@ license(void)
   puts("    that is not unreasonable.");
   puts("");
   puts("You should not allow people to assume that you wrote the BASIC code yourself.");
+
   exit(EXIT_SUCCESS);
 }
 
@@ -948,127 +960,133 @@ int main(int argc, char *argv[])
   input_file = fopen(input_filename, "r");
 
   if (input_file == NULL)
-    fail("Could not open file %s. Error number %d", input_filename, errno);
+    fail("Could not open file \"%s\". Error number %d", input_filename, errno);
 
   if (fseek(input_file, 0L, SEEK_END))
-    fail("Could not find the end of file %s. Error number %d",
+    fail("Could not find the end of file \"%s\". Error number %d",
                                          input_filename, errno);
 
   input_file_size = ftell(input_file);
 
   if (input_file_size < 0)
-    fail("Could not get size of file %s. Error number %d",
+    fail("Could not get size of file \"%s\". Error number %d",
                                      input_filename, errno);
 
   if (input_file_size == 0)
-    fail("File %s is empty", input_filename);
+    fail("File \"%s\" is empty", input_filename);
 
   if (input_file_format == PRG && input_file_size < 3)
     fail("With PRG file format selected,\n"
-         "input file %s must be at least 3 bytes long", input_filename);
+         "input file \"%s\" must be at least 3 bytes long", input_filename);
 
   if (input_file_format == DRAGONDOS && input_file_size < DRAGON_HEADER + 1)
     fail("With Dragon file format selected,\n"
-         "input file %s must be at least %d bytes long",
+         "input file \"%s\" must be at least %d bytes long",
                      input_filename, DRAGON_HEADER + 1);
 
   if (input_file_format == RSDOS && input_file_size < 2 * COCO_AMBLE + 1)
     fail("With RS-DOS file format selected,\n"
-         "input file %s must be at least %d bytes long",
+         "input file \"%s\" must be at least %d bytes long",
                      input_filename, 2 * COCO_AMBLE + 1);
 
   if (input_file_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
-    fail("Input file %s is too large", input_filename);
+    fail("Input file \"%s\" is too large", input_filename);
 
   if (fseek(input_file, 0L, SEEK_SET) < 0)
-    fail("Could not rewind file %s", input_filename);
+    fail("Could not rewind file \"%s\"", input_filename);
 
   if (input_file_format == BINARY)
     blob_size = input_file_size;
 
   if (input_file_format == PRG)
   {
-    unsigned char lo = 0, hi = 0;
+    unsigned char header[PRG_HEADER];
     loc_type st = 0;
 
-    lo = xgetc(input_file, input_filename);
-    hi = xgetc(input_file, input_filename);
+    fill_array(header, sizeof header, input_file, input_filename);
 
     blob_size = input_file_size - 2;
 
-    st = (loc_type) (hi * 256 + lo);
+    st = (loc_type) (header[1] * 256 + header[0]);
 
     if (st == 0x0801)
-      fail("Input PRG file %s is unsuitable for use with BASICloader\n"
+      fail("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
            "Is it a BASIC program, or a hybrid"
            " BASIC/machine language program?");
 
     if (start_set == 1 && st != start)
-      fail("Input PRG file %s gives a different start address ($%x)\n"
+      fail("Input PRG file \"%s\" gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
     if (exec_set == 1 && st != exec)
-      fail("Input PRG file %s gives a different start address ($%x)\n"
+      fail("Input PRG file \"%s\" gives a different exec address ($%x)\n"
            "to the exec address given at the command line ($%x)", st, exec);
 
     start = st;
     start_set = 1;
 
     if (fseek(input_file, (long int) PRG_HEADER, SEEK_SET) < 0)
-      fail("Couldn't operate on file %s. Error number %d",
+      fail("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
   }
 
   if (input_file_format == DRAGONDOS)
   {
-    unsigned char d[DRAGON_HEADER];
-    unsigned short int i = 0;
+    unsigned char header[DRAGON_HEADER];
     loc_type st = 0;
     loc_type ex = 0;
 
-    for (i = 0; i < DRAGON_HEADER; ++i)
-      d[i] = xgetc(input_file, input_filename);
+    fill_array(header, sizeof header, input_file, input_filename);
 
-    if (d[0] != 0x55 || d[8] != 0xAA)
-      fail("Input file %s doesn't appear to be a Dragon DOS file",
+    if (header[0] != 0x55 || header[8] != 0xAA)
+      fail("Input file \"%s\" doesn't appear to be a Dragon DOS file",
                        input_filename);
 
-    if (d[1] == 0x1)
-      fail("Input Dragon DOS file %s appears to be a BASIC program",
-                                  input_filename);
+    switch(header[1])
+    {
+      case 0x1:
+        fail("Input Dragon DOS file \"%s\" appears to be a BASIC program",
+                                      input_filename);
+        break;
 
-    if (d[1] == 0x3)
-      warning("Input Dragon DOS file %s"
-             " is an unsupported DosPlus file\n", input_filename);
+      case 0x2:
+        break;
 
-    if (d[1] != 0x2)
-      warning("Input Dragon DOS file %s"
+      case 0x3:
+        warning("Input Dragon DOS file \"%s\""
+                " is an unsupported DosPlus file\n", input_filename);
+        break;
+
+      default:
+        fail("Input Dragon DOS file \"%s\""
              " has an unknown FILETYPE\n", input_filename);
+        break;
+    }
 
     blob_size = input_file_size - DRAGON_HEADER;
 
-    if (d[4] * 256 + d[5] != blob_size)
-      fail("Input Dragon DOS file %s header"
-           "gives incorrect length", input_filename);
+    if (header[4] * 256 + header[5] != blob_size)
+      fail("The header of input Dragon DOS file \"%s\""
+           " gives incorrect length", input_filename);
 
-    st = (loc_type) (d[2] * 256 + d[3]);
-    ex = (loc_type) (d[6] * 256 + d[7]);
+    st = (loc_type) (header[2] * 256 + header[3]);
+    ex = (loc_type) (header[6] * 256 + header[7]);
 
     if (start_set == 1 && st != start)
-      fail("Input Dragon DOS file %s gives a different start address ($%x)\n"
+      fail("Input Dragon DOS file \"%s\" gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
     if (exec_set == 1 && ex != exec)
-      fail("Input Dragon DOS file %s gives a different exec address ($%x)\n"
+      fail("Input Dragon DOS file \"%s\" gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)", ex, exec);
 
     if (ex < st)
-      fail("The exec location in the header of the Dragon DOS file %s\n"
+      fail("The exec location in the header of the Dragon DOS file \"%s\"\n"
            "($%x) is below the start location of the binary blob ($%x)",
            input_filename, exec, start);
 
     if (ex > st + blob_size)
-      fail("The exec location in the header of the Dragon DOS file %s\n"
+      fail("The exec location in the header of the Dragon DOS file \"%s\"\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
            input_filename, exec, st + blob_size);
 
@@ -1084,72 +1102,69 @@ int main(int argc, char *argv[])
     loc_type st = 0;
     loc_type ex = 0;
     loc_type ln = 0;
-    unsigned short int i = 0;
-    unsigned char d[COCO_AMBLE];
+    unsigned char amble[COCO_AMBLE];
 
-    for (i = 0; i < COCO_AMBLE; ++i)
-      d[i] = xgetc(input_file, input_filename);
+    fill_array(amble, sizeof amble, input_file, input_filename);
 
-    if (d[0] != 0x0)
-      fail("Input file %s is not properly formed as an "
+    if (amble[0] != 0x0)
+      fail("Input file \"%s\" is not properly formed as an "
            "RS-DOS file (bad header)", input_filename);
 
-    ln = (loc_type) (d[1] * 256 + d[2]);
+    ln = (loc_type) (amble[1] * 256 + amble[2]);
 
     blob_size = input_file_size - 2 * COCO_AMBLE;
 
     if (ln != blob_size)
-      fail("Input file %s length (%u) given in the header\n"
+      fail("Input file \"%s\" length (%u) given in the header\n"
            "does not match measured length (%u)",
                        input_filename, ln, blob_size);
 
-    st = (loc_type) (d[3] * 256 + d[4]);
+    st = (loc_type) (amble[3] * 256 + amble[4]);
 
     if (start_set == 1 && st != start)
-      fail("Input RS-DOS file %s gives a different start address ($%x)\n"
+      fail("Input RS-DOS file \"%s\" gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, start);
 
     start = st;
     start_set = 1;
 
     if (fseek(input_file, (long int) -COCO_AMBLE, SEEK_END) < 0)
-      fail("Couldn't operate on file %s. Error number %d",
+      fail("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
 
-    for (i = 0; i < COCO_AMBLE; ++i)
-      d[i] = xgetc(input_file, input_filename);
+    fill_array(amble, sizeof amble, input_file, input_filename);
 
-    if (d[0] == 0x0)
-      fail("Input RS-DOS file %s is segmented, and cannot be used",
+    if (amble[0] == 0x0)
+      fail("Input RS-DOS file \"%s\" is segmented, and cannot be used",
                               input_filename);
 
-    if (d[0] != 0xff ||
-        d[1] != 0x0  ||
-        d[2] != 0x0)
-      fail("Input file %s is not properly formed as an RS-DOS file (bad tail)",
+    if (amble[0] != 0xff ||
+        amble[1] != 0x0  ||
+        amble[2] != 0x0)
+      fail("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
                        input_filename);
 
-    ex = (loc_type) (d[3] * 256 + d[4]);
+    ex = (loc_type) (amble[3] * 256 + amble[4]);
 
     if (exec == 1 && ex != exec)
-      fail("Input RS-DOS file %s gives a different exec address ($%x)\n"
+      fail("Input RS-DOS file \"%s\" gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)",
                               input_filename, ex, exec);
 
     if (ex < st)
-      fail("The exec location in the tail of the RS-DOS file %s\n"
+      fail("The exec location in the tail of the RS-DOS file \"%s\"\n"
            "($%x) is below the start location of the binary blob ($%x)",
            input_filename, exec, start);
 
     if (ex > st + blob_size)
-      fail("The exec location in the tail of the RS-DOS file %s\n"
+      fail("The exec location in the tail of the RS-DOS file \"%s\"\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
            input_filename, exec, st + blob_size);
 
     exec = ex;
 
     if (fseek(input_file, (long int) COCO_AMBLE, SEEK_SET) < 0)
-      fail("Couldn't operate on file %s. Error number %d",
+      fail("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
   }
 
@@ -1198,7 +1213,7 @@ int main(int argc, char *argv[])
   output_file = fopen(output_filename, "w");
 
   if (output_file == NULL)
-    fail("Could not open file %s. Error number %d", input_filename, errno);
+    fail("Could not open file \"%s\". Error number %d", input_filename, errno);
 
   if (
 #if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
@@ -1398,10 +1413,10 @@ A);
      || (input_file_format == RSDOS      && remainder != 5)
      || (input_file_format == DRAGONDOS  && remainder != 0)
      || (input_file_format == PRG        && remainder != 0))
-    fail("Unexpected remaining bytes in input file %s", input_filename);
+    fail("Unexpected remaining bytes in input file \"%s\"", input_filename);
 
   if (fclose(input_file) != 0)
-    fail("Couldn't close file %s", input_filename);
+    fail("Couldn't close file \"%s\"", input_filename);
 
   if (pos > 0)
     emit(output_file, machine, output_case, &line_count, &pos, "\n");
@@ -1415,19 +1430,19 @@ A);
     fail("Generated program is too large");
 
   if (fclose(output_file) != 0)
-    fail("Couldn't close file %s", output_filename);
+    fail("Couldn't close file \"%s\"", output_filename);
 
-  printf("BASIC program has been generated -> %s\n", output_filename);
+  printf("BASIC program has been generated -> \"%s\"\n", output_filename);
 
   if (print_diag == 1)
   {
     printf("Output is for the %s target architecture%s\n",
-                              machine_name(machine),
+                              machine_to_text(machine),
                               extended_basic ? " (with Extended BASIC)" : "");
 
     printf("The program is %s, %s form%s"
            " and with%s program comments\n",
-                               case_name(output_case),
+                               case_to_text(output_case),
                                typable ? "typable" : "compact",
                                checksum ? " with checksumming" : "",
                                remarks ? "" : "out");
