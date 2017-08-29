@@ -76,27 +76,27 @@
 
 enum target_architecture_choice
 {
-  NO_TARGET_ARCHITECTURE_CHOSEN = 0,
-  COCO,
-  DRAGON,
-  C64
+    NO_TARGET_ARCHITECTURE_CHOSEN = 0,
+    COCO,
+    DRAGON,
+    C64
 };
 
 enum input_file_format_choice
 {
-  NO_INPUT_FILE_FORMAT_CHOSEN = 0,
-  BINARY,
-  RS_DOS,
-  DRAGON_DOS,
-  PRG
+    NO_INPUT_FILE_FORMAT_CHOSEN = 0,
+    BINARY,
+    RS_DOS,
+    DRAGON_DOS,
+    PRG
 };
 
 enum output_case_choice
 {
-  NO_OUTPUT_CASE_CHOSEN = 0,
-  UPPERCASE,
-  LOWERCASE,
-  MIXED_CASE
+    NO_OUTPUT_CASE_CHOSEN = 0,
+    UPPERCASE,
+    LOWERCASE,
+    MIXED_CASE
 };
 
 typedef unsigned short int boolean_type;
@@ -105,7 +105,8 @@ typedef unsigned short int line_number_step_type;
 typedef unsigned short int line_position_type;
 typedef unsigned short int line_counter_type;
 typedef unsigned short int memory_location_type;
-typedef long int           file_size_type;
+
+typedef   signed long  int file_size_type;
 
 #define LINE_NUMBER_TYPE_MAX      (line_number_type) -1
 #define LINE_NUMBER_STEP_TYPE_MAX (line_number_step_type) -1
@@ -348,7 +349,7 @@ get_character_from_input_file(FILE *input_file, const char *input_filename)
 
 static void
 get_header_or_preamble_or_postamble(unsigned char arr[], unsigned int size,
-                                  FILE *input_file, const char *input_filename)
+                              FILE *input_file, const char *input_filename)
 {
     unsigned short int i = 0;
 
@@ -651,7 +652,7 @@ emit_datum(FILE                             *output_file,
              output_case,
              line_count,
              line_position,
-             "%hu DATA%s%lu",
+             "%u DATA%s%lu",
              *line_number,
              typable ? " " : "",
             datum);
@@ -701,7 +702,7 @@ emit_line(FILE                             *output_file,
          output_case,
          line_count,
          line_position,
-         "%hu ",
+         "%u ",
          *line_number);
 
     va_start(ap, fmt);
@@ -758,8 +759,8 @@ match_string_arg(char **pargv[], const char *shrt, const char *lng,
 static unsigned short int
 get_ushort(const char *text, boolean_type *ok)
 {
-    char *endptr = NULL;
     unsigned long int l = 0;
+    char *endptr = NULL;
     int base = 0;
 
     errno = 0;
@@ -848,29 +849,29 @@ static boolean_type
 match_line_number_step_type_arg(char **pargv[], const char *shrt, const char *lng,
                     line_number_step_type *ps, boolean_type *set)
 {
-  boolean_type matched = command_line_arg_matches((*pargv)[0], shrt, lng);
+    boolean_type matched = command_line_arg_matches((*pargv)[0], shrt, lng);
 
-  if (matched == 1)
-  {
-    boolean_type ok = 0;
+    if (matched == 1)
+    {
+        boolean_type ok = 0;
 
-    if (*set != 0)
-      fail("Option %s can only be set once", (*pargv)[0]);
+        if (*set != 0)
+            fail("Option %s can only be set once", (*pargv)[0]);
 
-    *ps = get_ushort((*pargv)[1], &ok);
+        *ps = get_ushort((*pargv)[1], &ok);
 
-    if (ok == 0)
-      fail("Invalid argument to %s", (*pargv)[0]);
+        if (ok == 0)
+            fail("Invalid argument to %s", (*pargv)[0]);
 
-    if (*ps > MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
-      fail("%s cannot be higher than %d", (*pargv)[0], MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+        if (*ps > MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+            fail("%s cannot be higher than %d", (*pargv)[0], MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
-    ++(*pargv);
+        ++(*pargv);
 
-    *set = 1;
-  }
+        *set = 1;
+    }
 
-  return matched;
+    return matched;
 }
 
 static boolean_type
@@ -911,6 +912,18 @@ match_target_architecture_arg(char **pargv[], const char *shrt, const char *lng,
     return matched;
 }
 
+static void
+set_target_architecture(enum target_architecture_choice *target_architecture,
+                        boolean_type extended_basic)
+{
+    if (*target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
+        *target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
+
+    if (extended_basic && *target_architecture != COCO)
+        fail("Extended Color BASIC option should only be used"
+             " with the coco target");
+}
+
 static boolean_type
 match_format_arg(char **pargv[], const char *shrt, const char *lng,
                  enum input_file_format_choice *fmt)
@@ -924,13 +937,30 @@ match_format_arg(char **pargv[], const char *shrt, const char *lng,
             fail("You can only set the file format once");
 
              if (strcmp(opt, "binary") == 0)  *fmt = BINARY;
-        else if (strcmp(opt, "RS_DOS") == 0)   *fmt = RS_DOS;
+        else if (strcmp(opt, "rsdos") == 0)   *fmt = RS_DOS;
         else if (strcmp(opt, "dragon") == 0)  *fmt = DRAGON_DOS;
         else if (strcmp(opt, "prg") == 0)     *fmt = PRG;
         else fail("Unknown file format \"%s\"", (*pargv)[0]);
     }
 
     return matched;
+}
+
+static void
+set_input_file_format(enum target_architecture_choice target_architecture,
+                      enum input_file_format_choice   *input_file_format)
+{
+    if (*input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
+        *input_file_format = DEFAULT_INPUT_FILE_FORMAT;
+
+    if (*input_file_format == PRG        && target_architecture != C64)
+        fail("PRG file format should only be used with the c64 target");
+
+    if (*input_file_format == DRAGON_DOS && target_architecture != DRAGON)
+        fail("Dragon file format should only be used with the dragon target");
+
+    if (*input_file_format == RS_DOS     && target_architecture != COCO)
+        fail("RS_DOS file format should only be used with the coco target");
 }
 
 static boolean_type
@@ -952,6 +982,44 @@ match_case_arg(char **pargv[], const char *shrt, const char *lng,
     }
 
     return matched;
+}
+
+static void
+set_output_case(enum target_architecture_choice target_architecture,
+                enum output_case_choice         *output_case)
+{
+    if (*output_case == NO_OUTPUT_CASE_CHOSEN)
+        *output_case =  DEFAULT_OUTPUT_CASE;
+
+    if (*output_case == LOWERCASE && target_architecture == COCO)
+        fail("Lowercase output is not useful for a Coco target");
+
+    if (*output_case == LOWERCASE && target_architecture == DRAGON)
+        fail("Lowercase output is not useful for a Dragon target");
+
+    if (*output_case == MIXED_CASE)
+        fail("There is presently no target for mixed case output");
+}
+
+static void
+set_output_filename(enum target_architecture_choice target_architecture,
+                    enum output_case_choice         output_case,
+                    const char                      **output_filename)
+{
+    if (*output_filename == NULL)
+    {
+        if (target_architecture == C64 && output_case == LOWERCASE)
+          *output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
+        else
+          *output_filename = DEFAULT_OUTPUT_FILENAME;
+    }
+}
+
+static void
+set_typable(boolean_type *typable, boolean_type checksum)
+{
+    if (checksum == 1)
+        *typable = 1;
 }
 
 static void
@@ -1207,47 +1275,11 @@ int main(int argc, char *argv[])
            }
     }
 
-    if (target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
-        target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
-
-    if (input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
-        input_file_format = DEFAULT_INPUT_FILE_FORMAT;
-
-    if (input_file_format == PRG && target_architecture != C64)
-        fail("PRG file format should only be used with the c64 target");
-
-    if (input_file_format == DRAGON_DOS && target_architecture != DRAGON)
-        fail("Dragon file format should only be used with the dragon target");
-
-    if (input_file_format == RS_DOS && target_architecture != COCO)
-        fail("RS_DOS file format should only be used with the coco target");
-
-    if (extended_basic && target_architecture != COCO)
-        fail("Extended Color BASIC option should only be used"
-             " with the coco target");
-
-    if (output_case == NO_OUTPUT_CASE_CHOSEN)
-        output_case = DEFAULT_OUTPUT_CASE;
-
-    if (output_case == LOWERCASE && target_architecture == COCO)
-        fail("Lowercase output is not useful for a Coco target");
-
-    if (output_case == LOWERCASE && target_architecture == DRAGON)
-        fail("Lowercase output is not useful for a Dragon target");
-
-    if (output_case == MIXED_CASE)
-        fail("There is presently no target for mixed case output");
-
-    if (output_filename == NULL)
-    {
-        if (target_architecture == C64 && output_case == LOWERCASE)
-          output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
-        else
-          output_filename = DEFAULT_OUTPUT_FILENAME;
-    }
-
-    if (checksum == 1)
-        typable = 1;
+    set_target_architecture(&target_architecture, extended_basic);
+    set_input_file_format(target_architecture, &input_file_format);
+    set_output_case(target_architecture, &output_case);
+    set_output_filename(target_architecture, output_case, &output_filename);
+    set_typable(&typable, checksum);
 
     if (input_filename == NULL)
         fail("You must specify an input file");
@@ -1474,28 +1506,28 @@ int main(int argc, char *argv[])
     if (blob_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
         fail("Input file \"%s\" is too large", input_filename);
 
-  if (start_set == 0)
-  {
-    switch(target_architecture)
+    if (start_set == 0)
     {
-      case COCO:
-           start = COCO_DEFAULT_START_MEMORY_LOCATION;
-           break;
+        switch(target_architecture)
+        {
+            case COCO:
+                start = COCO_DEFAULT_START_MEMORY_LOCATION;
+                break;
 
-      case DRAGON:
-           start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
-           break;
+            case DRAGON:
+                start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
+                break;
 
-      case C64:
-           start = C64_DEFAULT_START_MEMORY_LOCATION;
-           break;
+            case C64:
+                start = C64_DEFAULT_START_MEMORY_LOCATION;
+                break;
 
-      default:
-           internal_error("Unhandled target architecture in start switch");
+            default:
+                internal_error("Unhandled target architecture in start switch");
+        }
+
+        start_set = 1;
     }
-
-    start_set = 1;
-  }
 
     if (exec_set == 0)
     {
@@ -1633,95 +1665,95 @@ int main(int argc, char *argv[])
     EMITLINEA("REM      richardcavell")
   }
 
-  if (typable == 0 && verify == 0)
-  {
-    EMITLINEE("FORP=%dTO%d:READA:POKEP,A:NEXT:%s%d:END",
-              start, end, (target_architecture == COCO || target_architecture == DRAGON) ?
-                          "EXEC" : "SYS", exec)
-  }
-
-  if (typable == 0 && verify == 1)
-  {
-    EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
-    EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
-    EMITLINEC("NEXT:%s%d:END", (target_architecture == COCO || target_architecture == DRAGON) ?
+    if (typable == 0 && verify == 0)
+    {
+        EMITLINEE("FORP=%dTO%d:READA:POKEP,A:NEXT:%s%d:END",
+                  start, end, (target_architecture == COCO || target_architecture == DRAGON) ?
                                "EXEC" : "SYS", exec)
-    EMITLINEA("PRINT\"Error!\":END")
-  }
+    }
 
-  if (typable == 1 && checksum == 0 && verify == 0)
-  {
-    EMITLINEC("FOR P=%d TO %d", start, end)
-    EMITLINEA("READ A")
-    EMITLINEA("POKE P,A")
-    EMITLINEA("NEXT P")
-    EMITLINEC("%s %d", (target_architecture == COCO || target_architecture == DRAGON) ?
-              "EXEC" : "SYS", exec)
-    EMITLINEA("END")
-  }
+    if (typable == 0 && verify == 1)
+    {
+        EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
+        EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
+        EMITLINEC("NEXT:%s%d:END", (target_architecture == COCO || target_architecture == DRAGON) ?
+                                    "EXEC" : "SYS", exec)
+        EMITLINEA("PRINT\"Error!\":END")
+    }
 
-  if (typable == 1 && checksum == 0 && verify == 1)
-  {
-    EMITLINEC("FOR P=%d TO %d", start, end)
-    EMITLINEA("READ A")
-    EMITLINEA("POKE P,A")
-    EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
-    EMITLINEA("NEXT P")
-    EMITLINEC("%s %d", (target_architecture == COCO || target_architecture == DRAGON) ?
-              "EXEC" : "SYS", exec)
-    EMITLINEA("END")
-    EMITLINEA("PRINT \"Error!\"")
-    EMITLINEA("END")
-  }
+    if (typable == 1 && checksum == 0 && verify == 0)
+    {
+        EMITLINEC("FOR P=%d TO %d", start, end)
+        EMITLINEA("READ A")
+        EMITLINEA("POKE P,A")
+        EMITLINEA("NEXT P")
+        EMITLINEC("%s %d", (target_architecture == COCO || target_architecture == DRAGON) ?
+                  "EXEC" : "SYS", exec)
+        EMITLINEA("END")
+    }
 
-  if (checksum == 1 && verify == 0)
-  {
-    EMITLINEB("P = %u", start)
-    EMITLINEB("Q = %u", end)
-    EMITLINEA("READ L, CS")
-    EMITLINEA("C = 0")
-    EMITLINEA("J = Q - P")
-    EMITLINEC("IF J > %d THEN J = %d", CHECKSUMMED_DATA_PER_LINE, CHECKSUMMED_DATA_PER_LINE)
-    EMITLINEA("FOR I = 0 TO J")
-    EMITLINEA("READ A")
-    EMITLINEA("POKE P,A")
-    EMITLINEA("C = C + A")
-    EMITLINEA("P = P + 1")
-    EMITLINEA("NEXT I")
-    EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
-    EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
-    EMITLINEC("%s %u", target_architecture == C64 ? "SYS" : "EXEC", exec)
-    EMITLINEA("END")
-    EMITLINEA("PRINT \"There is an error\"")
-    EMITLINEA("PRINT \"on line\";L;\"!\"")
-    EMITLINEA("END")
-  }
+    if (typable == 1 && checksum == 0 && verify == 1)
+    {
+        EMITLINEC("FOR P=%d TO %d", start, end)
+        EMITLINEA("READ A")
+        EMITLINEA("POKE P,A")
+        EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
+        EMITLINEA("NEXT P")
+        EMITLINEC("%s %d", (target_architecture == COCO || target_architecture == DRAGON) ?
+                  "EXEC" : "SYS", exec)
+        EMITLINEA("END")
+        EMITLINEA("PRINT \"Error!\"")
+        EMITLINEA("END")
+    }
 
-  if (checksum == 1 && verify == 1)
-  {
-    EMITLINEB("P = %u", start)
-    EMITLINEB("Q = %u", end)
-    EMITLINEA("READ L, CS")
-    EMITLINEA("C = 0")
-    EMITLINEA("J = Q - P")
-    EMITLINEC("IF J > %d THEN J = %d", CHECKSUMMED_DATA_PER_LINE, CHECKSUMMED_DATA_PER_LINE)
-    EMITLINEA("FOR I = 0 TO J")
-    EMITLINEA("READ A")
-    EMITLINEA("POKE P,A")
-    EMITLINEB("IF A<>PEEK(P) THEN GOTO %u", line_number + 12 * step)
-    EMITLINEA("C = C + A")
-    EMITLINEA("P = P + 1")
-    EMITLINEA("NEXT I")
-    EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
-    EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
-    EMITLINEC("%s %u", target_architecture == C64 ? "SYS" : "EXEC", exec)
-    EMITLINEA("END")
-    EMITLINEA("PRINT \"There is an error\"")
-    EMITLINEA("PRINT \"on line\";L;\"!\"")
-    EMITLINEA("END")
-    EMITLINEA("PRINT \"Error while poking memory!\"")
-    EMITLINEA("END")
-  }
+    if (checksum == 1 && verify == 0)
+    {
+        EMITLINEB("P = %u", start)
+        EMITLINEB("Q = %u", end)
+        EMITLINEA("READ L, CS")
+        EMITLINEA("C = 0")
+        EMITLINEA("J = Q - P")
+        EMITLINEC("IF J > %d THEN J = %d", CHECKSUMMED_DATA_PER_LINE, CHECKSUMMED_DATA_PER_LINE)
+        EMITLINEA("FOR I = 0 TO J")
+        EMITLINEA("READ A")
+        EMITLINEA("POKE P,A")
+        EMITLINEA("C = C + A")
+        EMITLINEA("P = P + 1")
+        EMITLINEA("NEXT I")
+        EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
+        EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
+        EMITLINEC("%s %u", target_architecture == C64 ? "SYS" : "EXEC", exec)
+        EMITLINEA("END")
+        EMITLINEA("PRINT \"There is an error\"")
+        EMITLINEA("PRINT \"on line\";L;\"!\"")
+        EMITLINEA("END")
+    }
+
+    if (checksum == 1 && verify == 1)
+    {
+        EMITLINEB("P = %u", start)
+        EMITLINEB("Q = %u", end)
+        EMITLINEA("READ L, CS")
+        EMITLINEA("C = 0")
+        EMITLINEA("J = Q - P")
+        EMITLINEC("IF J > %d THEN J = %d", CHECKSUMMED_DATA_PER_LINE, CHECKSUMMED_DATA_PER_LINE)
+        EMITLINEA("FOR I = 0 TO J")
+        EMITLINEA("READ A")
+        EMITLINEA("POKE P,A")
+        EMITLINEB("IF A<>PEEK(P) THEN GOTO %u", line_number + 12 * step)
+        EMITLINEA("C = C + A")
+        EMITLINEA("P = P + 1")
+        EMITLINEA("NEXT I")
+        EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
+        EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
+        EMITLINEC("%s %u", target_architecture == C64 ? "SYS" : "EXEC", exec)
+        EMITLINEA("END")
+        EMITLINEA("PRINT \"There is an error\"")
+        EMITLINEA("PRINT \"on line\";L;\"!\"")
+        EMITLINEA("END")
+        EMITLINEA("PRINT \"Error while poking memory!\"")
+        EMITLINEA("END")
+    }
 
 #define EMITDATUM(A) emit_datum(output_file, target_architecture,\
 output_case, typable, &line_incrementing_has_started, &line_count,\
