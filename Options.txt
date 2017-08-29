@@ -34,7 +34,7 @@ You can specify the options and filename in any order.  If an option takes
 another parameter, use a space.
 
 You can see the defaults for -o, -m, -f and -c by using the -d option. All
-other switches are off by default.
+on/off switches are off by default.
 
   -o  --output    Output file
 
