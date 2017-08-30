@@ -1,14 +1,18 @@
-/* BASICloader.c
-
-   A program by Richard Cavell (c) 2017
-   https://github.com/richardcavell/BASICloader
-*/
-
 /*
-   In maintaining this code, remember that this code is intended to
-   be capable of being used with retro machines and compilers. Many
-   of these machines and compilers are really limited, and predate
-   *all* C standards.
+     BASICloader.c
+
+     A program by Richard Cavell (c) 2017
+     https://github.com/richardcavell/BASICloader
+
+   Coding standards:
+
+   * We strictly use C89
+   * No external libraries, no POSIX, no GNU extensions
+   * Everything in one file to make building easier
+   * Every error that can reasonably be detected, is detected
+   * This code is intended to be capable of being compiled with
+     retro machines and compilers. Many of these machines and
+     compilers are really limited, and predate *all* C standards.
 */
 
 #include <stdio.h>
@@ -74,6 +78,10 @@
 #define DRAGON_DOS_FILE_HEADER_SIZE 9
 #define        PRG_FILE_HEADER_SIZE 2
 
+#define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE + 1)
+#define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
+#define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
+
 enum target_architecture_choice
 {
     NO_TARGET_ARCHITECTURE_CHOSEN = 0,
@@ -108,12 +116,12 @@ typedef unsigned short int memory_location_type;
 
 typedef   signed long  int file_size_type;
 
-#define LINE_NUMBER_TYPE_MAX      (line_number_type) -1
-#define LINE_NUMBER_STEP_TYPE_MAX (line_number_step_type) -1
-#define LINE_POSITION_TYPE_MAX    (line_position_type) -1
-#define LINE_COUNTER_TYPE_MAX     (line_counter_type) -1
-#define MEMORY_LOCATION_TYPE_MAX  (memory_location_type) -1
-#define FILE_SIZE_TYPE_MAX        LONG_MAX
+#define LINE_NUMBER_TYPE_MAX       (line_number_type)       -1
+#define LINE_NUMBER_STEP_TYPE_MAX  (line_number_step_type)  -1
+#define LINE_POSITION_TYPE_MAX     (line_position_type)     -1
+#define LINE_COUNTER_TYPE_MAX      (line_counter_type)      -1
+#define MEMORY_LOCATION_TYPE_MAX   (memory_location_type)   -1
+#define FILE_SIZE_TYPE_MAX         LONG_MAX
 
 static void internal_error(const char *fmt, ...);
 
@@ -130,16 +138,10 @@ check_user_defined_type_limits(void)
     if (LINE_NUMBER_TYPE_MAX < MAX_BASIC_LINE_NUMBER)
         internal_error("Line number type has insufficient range");
 
-    if (LINE_NUMBER_STEP_TYPE_MAX < MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
-        internal_error("Line number step type has insufficient range");
-
     if (LINE_POSITION_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH   ||
         LINE_POSITION_TYPE_MAX < DRAGON_MAX_BASIC_LINE_LENGTH ||
         LINE_POSITION_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
         internal_error("Line position type has insufficient range");
-
-    if (LINE_COUNTER_TYPE_MAX < MAXIMUM_BASIC_LINE_COUNT)
-        internal_error("Line counter type has insufficient range");
 
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
         internal_error("Memory location type has insufficient range");
@@ -331,6 +333,26 @@ warning(const char *fmt, ...)
         fail_while_printing_warning();
 }
 
+static void
+check_input_file_size(long int input_file_size,
+                     const char *input_filename)
+{
+    if (input_file_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+        fail("Input file \"%s\" is too large", input_filename);
+}
+
+static file_size_type
+get_file_position(FILE *file, const char *filename)
+{
+    file_size_type file_size = ftell(file);
+
+    if (file_size < 0)
+        fail("Could not get size of file \"%s\". Error number %d",
+                                           filename, errno);
+
+    return file_size;
+}
+
 static unsigned char
 get_character_from_input_file(FILE *input_file, const char *input_filename)
 {
@@ -444,7 +466,10 @@ check_line_position(enum target_architecture_choice target_architecture,
     }
 
     if (*line_position > max_basic_line_length)
-        internal_error("BASIC maximum line length exceeded");
+        internal_error("BASIC maximum line length for the target architecture was exceeded");
+
+    if (*line_position > MAXIMUM_BASIC_LINE_LENGTH)
+        internal_error("Maximum BASIC line length was not avoided");
 }
 
 static void
@@ -626,7 +651,7 @@ emit_datum(FILE                             *output_file,
            line_position_type               *line_position,
            unsigned long int                datum)
 {
-    char possible_output_buffer[OUTPUT_TEXT_BUFFER_SIZE];
+    char possible_output_buffer[OUTPUT_TEXT_BUFFER_SIZE] = "";
     int sprintf_return_value = sprintf(possible_output_buffer,
                                        "%s%lu", typable ? ", " : ",", datum);
 
@@ -655,10 +680,7 @@ emit_datum(FILE                             *output_file,
              "%u DATA%s%lu",
              *line_number,
              typable ? " " : "",
-            datum);
-
-        if (*line_position > MAXIMUM_BASIC_LINE_LENGTH)
-            internal_error("MAXIMUM_BASIC_LINE_LENGTH is set too low");
+             datum);
     }
     else
     {
@@ -669,9 +691,6 @@ emit_datum(FILE                             *output_file,
              line_position,
              "%s",
              possible_output_buffer);
-
-        if (*line_position > MAXIMUM_BASIC_LINE_LENGTH)
-            internal_error("MAXIMUM_BASIC_LINE_LENGTH was not avoided");
     }
 }
 
@@ -679,7 +698,6 @@ static void
 emit_line(FILE                             *output_file,
           enum target_architecture_choice  target_architecture,
           enum output_case_choice          output_case,
-          boolean_type                     typable,
           boolean_type                     *line_incrementing_has_started,
           line_counter_type                *line_count,
           line_number_type                 *line_number,
@@ -689,8 +707,6 @@ emit_line(FILE                             *output_file,
 {
     va_list ap;
     enum vemit_status status;
-
-    (void) typable;
 
     if (*line_position != 0)
         internal_error("Line emission did not start at position zero");
@@ -1023,6 +1039,28 @@ set_typable(boolean_type *typable, boolean_type checksum)
 }
 
 static void
+set_line_number(boolean_type      line_number_set,
+                line_number_type  *line_number,
+                boolean_type      typable)
+{
+    if (line_number_set == 0)
+        *line_number = typable ?
+                       TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
+                       DEFAULT_STARTING_BASIC_LINE_NUMBER;
+}
+
+static void
+set_step(boolean_type           step_set,
+         line_number_step_type  *step,
+         boolean_type           typable)
+{
+    if (step_set == 0)
+        *step = typable ?
+                TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
+                DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+}
+
+static void
 print_version_text(void)
 {
     puts("BASICloader (under development)");
@@ -1116,8 +1154,8 @@ display_defaults(void)
     printf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
     printf("Default output is           : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
     printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
-    printf("Default output filename     : \"%s\" (with --machine c64 --case lower)\n"
-                                                   , C64_LC_DEFAULT_OUTPUT_FILENAME);
+    printf("Default output filename     : \"%s\" (with --machine c64 --case lower)\n",
+                                                     C64_LC_DEFAULT_OUTPUT_FILENAME);
 
     exit(EXIT_SUCCESS);
 }
@@ -1220,7 +1258,7 @@ int main(int argc, char *argv[])
     line_number_type   line_number                    = 0;
 
     boolean_type step_set      = 0;
-    line_number_step_type step = DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+    line_number_step_type step = 0;
 
     line_position_type pos = 0;
 
@@ -1295,32 +1333,27 @@ int main(int argc, char *argv[])
         fail("Could not find the end of file \"%s\". Error number %d",
                                                input_filename, errno);
 
-    input_file_size = ftell(input_file);
-
-    if (input_file_size < 0)
-        fail("Could not get size of file \"%s\". Error number %d",
-                                           input_filename, errno);
+    input_file_size = get_file_position(input_file, input_filename);
 
     if (input_file_size == 0)
         fail("File \"%s\" is empty", input_filename);
 
-    if (input_file_format == PRG && input_file_size < 3)
+    if (input_file_format == PRG && input_file_size < PRG_FILE_SIZE_MINIMUM)
         fail("With PRG file format selected,\n"
-             "input file \"%s\" must be at least 3 bytes long", input_filename);
+             "input file \"%s\" must be at least %u bytes long",
+             input_filename, (unsigned int) PRG_FILE_SIZE_MINIMUM);
 
-    if (input_file_format == DRAGON_DOS && input_file_size < DRAGON_DOS_FILE_HEADER_SIZE + 1)
+    if (input_file_format == DRAGON_DOS && input_file_size < DRAGON_DOS_FILE_SIZE_MINIMUM)
         fail("With Dragon file format selected,\n"
-             "input file \"%s\" must be at least %d bytes long",
-             input_filename, DRAGON_DOS_FILE_HEADER_SIZE + 1);
+             "input file \"%s\" must be at least %u bytes long",
+             input_filename, (unsigned int) DRAGON_DOS_FILE_SIZE_MINIMUM);
 
-    if (input_file_format == RS_DOS && input_file_size <
-        (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE + 1))
+    if (input_file_format == RS_DOS && input_file_size < RS_DOS_FILE_SIZE_MINIMUM)
         fail("With RS-DOS file format selected,\n"
-             "input file \"%s\" must be at least %d bytes long",
-             input_filename, RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE + 1);
+             "input file \"%s\" must be at least %u bytes long",
+             input_filename, (unsigned int) RS_DOS_FILE_SIZE_MINIMUM);
 
-    if (input_file_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
-        fail("Input file \"%s\" is too large", input_filename);
+    check_input_file_size(input_file_size, input_filename);
 
     if (fseek(input_file, 0L, SEEK_SET) < 0)
         fail("Could not rewind file \"%s\"", input_filename);
@@ -1503,8 +1536,7 @@ int main(int argc, char *argv[])
                                      input_filename, errno);
   }
 
-    if (blob_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
-        fail("Input file \"%s\" is too large", input_filename);
+    check_input_file_size(blob_size, input_filename);
 
     if (start_set == 0)
     {
@@ -1581,33 +1613,26 @@ int main(int argc, char *argv[])
             warning("Program requires 64K of RAM");
     }
 
-    if (line_number_set == 0)
-        line_number = typable ?
-                      TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
-                      DEFAULT_STARTING_BASIC_LINE_NUMBER;
-
-    if (step_set == 0)
-        step = typable ?
-               TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
-               DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+    set_line_number(line_number_set, &line_number, typable);
+    set_step(step_set, &step, typable);
 
 #define EMITLINEA(A)\
- emit_line(output_file, target_architecture, output_case, typable,\
+ emit_line(output_file, target_architecture, output_case,\
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A);
 
 #define EMITLINEB(A,B)\
- emit_line(output_file, target_architecture, output_case, typable,\
+ emit_line(output_file, target_architecture, output_case,\
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B);
 
 #define EMITLINEC(A,B,C)\
- emit_line(output_file, target_architecture, output_case, typable,\
+ emit_line(output_file, target_architecture, output_case,\
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B, C);
 
 #define EMITLINEE(A,B,C,D,E)\
- emit_line(output_file, target_architecture, output_case, typable,\
+ emit_line(output_file, target_architecture, output_case,\
  &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
  A, B, C, D, E);
 
@@ -1794,7 +1819,7 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
         }
     }
 
-    remainder = input_file_size - ftell(input_file);
+    remainder = input_file_size - get_file_position(input_file, input_filename);
 
     if   ((input_file_format == BINARY      && remainder != 0)
        || (input_file_format == RS_DOS      && remainder != 5)
@@ -1808,7 +1833,7 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
     if (pos > 0)
         emit(output_file, target_architecture, output_case, &line_count, &pos, "\n");
 
-    output_file_size = ftell(output_file);
+    output_file_size = get_file_position(output_file, output_filename);
 
     if (output_file_size < 0)
         fail("Couldn't measure output file size");
