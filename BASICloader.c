@@ -1,18 +1,18 @@
 /*
-     BASICloader.c
+      BASICloader.c
 
-     A program by Richard Cavell (c) 2017
-     https://github.com/richardcavell/BASICloader
+      A program by Richard Cavell (c) 2017
+      https://github.com/richardcavell/BASICloader
 
-   Coding standards:
+    Coding standards:
 
-   * We strictly use C89
-   * No external libraries, no POSIX, no GNU extensions
-   * Everything in one file to make building easier
-   * Every error that can reasonably be detected, is detected
-   * This code is intended to be capable of being compiled with
-     retro machines and compilers. Many of these machines and
-     compilers are really limited, and predate *all* C standards.
+    * We strictly use C89
+    * No external libraries, no POSIX, no GNU extensions
+    * Everything in one file to make building easier
+    * Every error that can reasonably be detected, is detected
+    * This code is intended to be capable of being compiled with
+      retro machines and compilers. Many of these machines and
+      compilers are really limited, and predate *all* C standards.
 */
 
 #include <stdio.h>
@@ -53,9 +53,10 @@
 
 #define OUTPUT_TEXT_BUFFER_SIZE 300
 
-        /* End of user-modifiable values */
+#define MAX_INPUT_FILE_SIZE 65000
+#define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65000
 
-#define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65536
+        /* End of user-modifiable values */
 
 #define HIGHEST_RAM_ADDRESS 0xffff
 #define HIGHEST_64K_ADDRESS 0xffff
@@ -81,6 +82,9 @@
 #define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE + 1)
 #define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
 #define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
+
+#define MAX_INPUT_FILE_CONTENT_SIZE 65535
+#define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
 
 enum target_architecture_choice
 {
@@ -113,17 +117,31 @@ typedef unsigned short int line_number_step_type;
 typedef unsigned short int line_position_type;
 typedef unsigned short int line_counter_type;
 typedef unsigned short int memory_location_type;
+typedef unsigned short int target_architecture_file_size_type;
 
-typedef   signed long  int file_size_type;
+#define LINE_NUMBER_TYPE_MAX                    (line_number_type)                    -1
+#define LINE_NUMBER_STEP_TYPE_MAX               (line_number_step_type)               -1
+#define LINE_POSITION_TYPE_MAX                  (line_position_type)                  -1
+#define LINE_COUNTER_TYPE_MAX                   (line_counter_type)                   -1
+#define MEMORY_LOCATION_TYPE_MAX                (memory_location_type)                -1
+#define TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX  (target_architecture_file_size_type)  -1
 
-#define LINE_NUMBER_TYPE_MAX       (line_number_type)       -1
-#define LINE_NUMBER_STEP_TYPE_MAX  (line_number_step_type)  -1
-#define LINE_POSITION_TYPE_MAX     (line_position_type)     -1
-#define LINE_COUNTER_TYPE_MAX      (line_counter_type)      -1
-#define MEMORY_LOCATION_TYPE_MAX   (memory_location_type)   -1
-#define FILE_SIZE_TYPE_MAX         LONG_MAX
+static void
+internal_error(const char *fmt, ...)
+{
+    va_list ap;
 
-static void internal_error(const char *fmt, ...);
+    (void) fprintf(stderr, "Internal error: ");
+
+    va_start(ap, fmt);
+    (void) vfprintf(stderr, fmt, ap);
+    va_end(ap);
+
+    (void) fprintf(stderr, "\nPlease report this to Richard Cavell\n"
+                           "at richardcavell@mail.com\n");
+
+    exit(EXIT_FAILURE);
+}
 
 static void
 check_type_limits(void)
@@ -146,7 +164,7 @@ check_user_defined_type_limits(void)
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
         internal_error("Memory location type has insufficient range");
 
-    if (FILE_SIZE_TYPE_MAX < LONG_MAX)
+    if (TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX < MAX_INPUT_FILE_CONTENT_SIZE)
         internal_error("File size type has insufficient range");
 }
 
@@ -218,8 +236,8 @@ check_basic_program_parameter_macros(void)
     if (MAXIMUM_BASIC_LINE_COUNT > LINE_COUNTER_TYPE_MAX)
         internal_error("MAXIMUM_BASIC_LINE_COUNT is greater than LINE_COUNTER_TYPE_MAX");
 
-    if (MAXIMUM_BASIC_PROGRAM_SIZE > FILE_SIZE_TYPE_MAX)
-        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE is greater than FILE_SIZE_TYPE_MAX");
+    if (MAXIMUM_BASIC_PROGRAM_SIZE > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE is greater than TARGET_ARCHITECTURE_FILE_SIZE_MAX");
 
     if (CHECKSUMMED_DATA_PER_LINE < 1)
         internal_error("CHECKSUMMED_DATA_PER_LINE must be at least 1");
@@ -249,13 +267,23 @@ check_output_text_buffer_size_macro(void)
 }
 
 static void
+check_max_input_file_size_macro(void)
+{
+    if (MAX_INPUT_FILE_SIZE > LONG_MAX)
+        internal_error("MAX_INPUT_FILE_SIZE is above the standard library capability");
+
+    if (MAX_INPUT_FILE_SIZE > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        internal_error("MAX_INPUT_FILE_SIZE is above the maximum possible");
+}
+
+static void
 check_max_machine_language_binary_size_macro(void)
 {
     if (MAX_MACHINE_LANGUAGE_BINARY_SIZE > LONG_MAX)
         internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE cannot be safely measured");
 
-    if (MAX_MACHINE_LANGUAGE_BINARY_SIZE > FILE_SIZE_TYPE_MAX)
-        internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE is above FILE_TYPE_MAX");
+    if (MAX_MACHINE_LANGUAGE_BINARY_SIZE > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE is above the maximum possible");
 }
 
 static void
@@ -271,6 +299,7 @@ check_user_modifiable_macros(void)
     check_basic_program_parameter_macros();
     check_memory_location_macros();
     check_output_text_buffer_size_macro();
+    check_max_input_file_size_macro();
     check_max_machine_language_binary_size_macro();
 }
 
@@ -286,23 +315,6 @@ fail(const char *fmt, ...)
     va_end(ap);
 
     (void) fprintf(stderr, "\n");
-
-    exit(EXIT_FAILURE);
-}
-
-static void
-internal_error(const char *fmt, ...)
-{
-    va_list ap;
-
-    (void) fprintf(stderr, "Internal error: ");
-
-    va_start(ap, fmt);
-    (void) vfprintf(stderr, fmt, ap);
-    va_end(ap);
-
-    (void) fprintf(stderr, "\nPlease report this to Richard Cavell\n"
-                           "at richardcavell@mail.com\n");
 
     exit(EXIT_FAILURE);
 }
@@ -337,14 +349,23 @@ static void
 check_input_file_size(long int input_file_size,
                      const char *input_filename)
 {
-    if (input_file_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+    if (input_file_size > MAX_INPUT_FILE_SIZE)
         fail("Input file \"%s\" is too large", input_filename);
 }
 
-static file_size_type
+static void
+check_blob_size(long int blob_size,
+                const char *input_filename)
+{
+    if (blob_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+        fail("The machine language content of input file \"%s\" is too large", input_filename);
+}
+
+
+static long int
 get_file_position(FILE *file, const char *filename)
 {
-    file_size_type file_size = ftell(file);
+    long int file_size = ftell(file);
 
     if (file_size < 0)
         fail("Could not get size of file \"%s\". Error number %d",
@@ -380,7 +401,7 @@ get_header_or_preamble_or_postamble(unsigned char arr[], unsigned int size,
 }
 
 static memory_location_type
-construct_16bit_pointer(unsigned char hi, unsigned char lo)
+construct_16bit_value(unsigned char hi, unsigned char lo)
 {
     return (memory_location_type) (hi * 256 + lo);
 }
@@ -703,7 +724,8 @@ emit_line(FILE                             *output_file,
           line_number_type                 *line_number,
           line_number_step_type            *step,
           line_position_type               *line_position,
-          const char                       *fmt, ...)
+          const char                       *fmt,
+          ...)
 {
     va_list ap;
     enum vemit_status status;
@@ -892,7 +914,7 @@ match_line_number_step_type_arg(char **pargv[], const char *shrt, const char *ln
 
 static boolean_type
 match_switch_arg(const char *arg, const char *shrt, const char *lng,
-           boolean_type *sw)
+                 boolean_type *sw)
 {
     boolean_type matched = command_line_arg_matches(arg, shrt, lng);
 
@@ -1373,7 +1395,7 @@ int main(int argc, char *argv[])
 
         blob_size = input_file_size - PRG_FILE_HEADER_SIZE;
 
-        st = construct_16bit_pointer(header[1], header[0]);
+        st = construct_16bit_value(header[1], header[0]);
 
         if (st == 0x0801)
             fail("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
@@ -1431,12 +1453,12 @@ int main(int argc, char *argv[])
 
     blob_size = input_file_size - DRAGON_DOS_FILE_HEADER_SIZE;
 
-    if (construct_16bit_pointer(header[4], header[5]) != blob_size)
+    if (construct_16bit_value(header[4], header[5]) != blob_size)
       fail("The header of input Dragon DOS file \"%s\""
            " gives incorrect length", input_filename);
 
-    st = construct_16bit_pointer(header[2], header[3]);
-    ex = construct_16bit_pointer(header[6], header[7]);
+    st = construct_16bit_value(header[2], header[3]);
+    ex = construct_16bit_value(header[6], header[7]);
 
     if (start_set == 1 && st != start)
       fail("Input Dragon DOS file \"%s\" gives a different start address ($%x)\n"
@@ -1467,7 +1489,7 @@ int main(int argc, char *argv[])
   {
     memory_location_type st = 0;
     memory_location_type ex = 0;
-    memory_location_type ln = 0;
+    target_architecture_file_size_type ln = 0;
     unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE];
     unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE];
 
@@ -1477,7 +1499,7 @@ int main(int argc, char *argv[])
       fail("Input file \"%s\" is not properly formed as an "
            "RS-DOS file (bad header)", input_filename);
 
-    ln = construct_16bit_pointer(preamble[1], preamble[2]);
+    ln = construct_16bit_value(preamble[1], preamble[2]);
 
     blob_size = input_file_size
        - (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE);
@@ -1487,7 +1509,7 @@ int main(int argc, char *argv[])
            "does not match measured length (%u)",
                        input_filename, ln, blob_size);
 
-    st = construct_16bit_pointer(preamble[3], preamble[4]);
+    st = construct_16bit_value(preamble[3], preamble[4]);
 
     if (start_set == 1 && st != start)
       fail("Input RS-DOS file \"%s\" gives a different start address ($%x)\n"
@@ -1512,7 +1534,7 @@ int main(int argc, char *argv[])
       fail("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
                        input_filename);
 
-    ex = construct_16bit_pointer(postamble[3], postamble[4]);
+    ex = construct_16bit_value(postamble[3], postamble[4]);
 
     if (exec == 1 && ex != exec)
       fail("Input RS-DOS file \"%s\" gives a different exec address ($%x)\n"
@@ -1536,7 +1558,7 @@ int main(int argc, char *argv[])
                                      input_filename, errno);
   }
 
-    check_input_file_size(blob_size, input_filename);
+    check_blob_size(blob_size, input_filename);
 
     if (start_set == 0)
     {
