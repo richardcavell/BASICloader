@@ -34,6 +34,16 @@ process would have failed.
 Please use the --verify option only if you are quite sure of what you are
 doing.
 
+== The Coco 3 ==
+
+The Color Computer 3 can have up to 512 kilobytes of RAM. However, BASICloader
+will only construct the machine language program and execute it within the
+first 64 kilobytes. If your code needs more than that, it will have to do its
+own memory management once the machine language blob is being executed.
+
+BASICloader only works within the first 64 kilobytes of RAM.  RAM extender
+type hardware is not supported directly.
+
 == Emitted instructions ==
 
 For the coco with Extended Color BASIC

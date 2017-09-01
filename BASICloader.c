@@ -39,12 +39,12 @@
 
 #define         DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE 1
 #define TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE 10
-#define         MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE 63000
+#define         MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE 60000
 
-#define MAXIMUM_BASIC_LINE_COUNT   10000
-#define MAXIMUM_BASIC_PROGRAM_SIZE 65000
-#define MAXIMUM_BASIC_LINE_LENGTH  75
+#define MAXIMUM_BASIC_LINE_COUNT   1000
+#define MAXIMUM_BASIC_PROGRAM_SIZE 40000
 
+#define MAXIMUM_BASIC_LINE_LENGTH 75
 #define CHECKSUMMED_DATA_PER_LINE 10
 
 #define   COCO_DEFAULT_START_MEMORY_LOCATION 0x3e00
@@ -65,6 +65,8 @@
 #define HIGHEST_8K_ADDRESS  0x1fff
 #define HIGHEST_4K_ADDRESS  0x0fff
 
+#define EIGHT_BIT_UCHAR_MAX 255
+
 #define COCO_MAX_BASIC_LINE_LENGTH   249
 #define DRAGON_MAX_BASIC_LINE_LENGTH 249
 #define C64_MAX_BASIC_LINE_LENGTH    79
@@ -72,7 +74,9 @@
 #define MIN_BASIC_LINE_NUMBER 0
 #define MAX_BASIC_LINE_NUMBER 63999
 
-#define EIGHT_BIT_UCHAR_MAX 255
+#define LINE_COUNT_BENCHMARK 100
+
+#define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
 
 #define   RS_DOS_FILE_PREAMBLE_SIZE 5
 #define  RS_DOS_FILE_POSTAMBLE_SIZE 5
@@ -82,34 +86,6 @@
 #define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE + 1)
 #define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
 #define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
-
-#define MAX_INPUT_FILE_CONTENT_SIZE 65535
-#define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
-
-enum target_architecture_choice
-{
-    NO_TARGET_ARCHITECTURE_CHOSEN = 0,
-    COCO,
-    DRAGON,
-    C64
-};
-
-enum input_file_format_choice
-{
-    NO_INPUT_FILE_FORMAT_CHOSEN = 0,
-    BINARY,
-    RS_DOS,
-    DRAGON_DOS,
-    PRG
-};
-
-enum output_case_choice
-{
-    NO_OUTPUT_CASE_CHOSEN = 0,
-    UPPERCASE,
-    LOWERCASE,
-    MIXED_CASE
-};
 
 typedef unsigned short int boolean_type;
 typedef unsigned short int line_number_type;
@@ -126,6 +102,44 @@ typedef unsigned short int target_architecture_file_size_type;
 #define MEMORY_LOCATION_TYPE_MAX                (memory_location_type)                -1
 #define TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX  (target_architecture_file_size_type)  -1
 
+enum target_architecture_choice
+{
+    NO_TARGET_ARCHITECTURE_CHOSEN = 0,
+    COCO,
+    DRAGON,
+    C64
+};
+
+#define   COCO_TEXT "coco"
+#define DRAGON_TEXT "dragon"
+#define    C64_TEXT "c64"
+
+enum input_file_format_choice
+{
+    NO_INPUT_FILE_FORMAT_CHOSEN = 0,
+    BINARY,
+    RS_DOS,
+    DRAGON_DOS,
+    PRG
+};
+
+#define     BINARY_TEXT "binary"
+#define     RS_DOS_TEXT "rsdos"
+#define DRAGON_DOS_TEXT "dragon"
+#define        PRG_TEXT "prg"
+
+enum output_case_choice
+{
+    NO_OUTPUT_CASE_CHOSEN = 0,
+    UPPERCASE,
+    LOWERCASE,
+    MIXED_CASE
+};
+
+#define  UPPERCASE_TEXT "upper"
+#define  LOWERCASE_TEXT "lower"
+#define MIXED_CASE_TEXT "mixed"
+
 static void
 internal_error(const char *fmt, ...)
 {
@@ -137,7 +151,8 @@ internal_error(const char *fmt, ...)
     (void) vfprintf(stderr, fmt, ap);
     va_end(ap);
 
-    (void) fprintf(stderr, "\nPlease report this to Richard Cavell\n"
+    (void) fprintf(stderr, "\n"
+                           "Please report this to Richard Cavell\n"
                            "at richardcavell@mail.com\n");
 
     exit(EXIT_FAILURE);
@@ -161,50 +176,59 @@ check_user_defined_type_limits(void)
         LINE_POSITION_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
         internal_error("Line position type has insufficient range");
 
+    if (LINE_COUNTER_TYPE_MAX < LINE_COUNT_BENCHMARK)
+        internal_error("Line counter type has insufficient range");
+
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
         internal_error("Memory location type has insufficient range");
 
-    if (TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX < MAX_INPUT_FILE_CONTENT_SIZE)
-        internal_error("File size type has insufficient range");
+    if (TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX < TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        internal_error("Target architecture file size type has insufficient range");
 }
 
 static void
 check_default_starting_basic_line_number_macro(void)
 {
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is below the minimum possible");
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
+                       "is below the minimum possible BASIC line number");
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is above the maximum possible");
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
+                       "is above the maximum possible BASIC line number");
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is above LINE_NUMBER_TYPE_MAX");
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
 }
 
 static void
 check_typable_default_starting_basic_line_number_macro(void)
 {
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER is below the minimum possible");
+        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
+                       "is below the minimum possible BASIC line number");
 
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER is above the maximum possible");
+        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
+                       "is above the maximum possible BASIC line number");
 
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER is above LINE_NUMBER_TYPE_MAX");
+        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
 }
 
 static void
 check_maximum_starting_basic_line_number_macro(void)
 {
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is below the minimum possible");
+        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
+                       "is below the minimum possible BASIC line number");
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is above the maximum possible");
+    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MAX_BASIC_LINE_NUMBER)
+        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
+                       "is above the maximum possible BASIC line number");
 
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is above LINE_NUMBER_TYPE_MAX");
+        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
 }
 
 static void
@@ -214,7 +238,7 @@ check_default_basic_line_number_step_size_macro(void)
         internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least 1");
 
     if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
-        internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE is above LINE_NUMBER_STEP_TYPE_MAX");
+        internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
 }
 
 static void
@@ -224,36 +248,43 @@ check_typable_default_basic_line_number_step_size_macro(void)
         internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least 1");
 
     if (TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
-        internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE is above LINE_NUMBER_STEP_TYPE_MAX");
+        internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
+}
+
+static void
+check_maximum_basic_line_number_step_size_macro(void)
+{
+    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
+        internal_error("MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
 }
 
 static void
 check_basic_program_parameter_macros(void)
 {
-    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
-        internal_error("MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE is above LINE_NUMBER_STEP_TYPE_MAX");
-
     if (MAXIMUM_BASIC_LINE_COUNT > LINE_COUNTER_TYPE_MAX)
-        internal_error("MAXIMUM_BASIC_LINE_COUNT is greater than LINE_COUNTER_TYPE_MAX");
+        internal_error("MAXIMUM_BASIC_LINE_COUNT cannot be represented internally");
 
-    if (MAXIMUM_BASIC_PROGRAM_SIZE > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
-        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE is greater than TARGET_ARCHITECTURE_FILE_SIZE_MAX");
+    if (MAXIMUM_BASIC_PROGRAM_SIZE > LONG_MAX)
+        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE cannot be represented internally");
 
     if (CHECKSUMMED_DATA_PER_LINE < 1)
         internal_error("CHECKSUMMED_DATA_PER_LINE must be at least 1");
+
+    if (CHECKSUMMED_DATA_PER_LINE > USHRT_MAX)
+        internal_error("CHECKSUMMED_DATA_PER_LINE cannot be represented internally");
 }
 
 static void
 check_memory_location_macros(void)
 {
     if (COCO_DEFAULT_START_MEMORY_LOCATION > HIGHEST_64K_ADDRESS)
-        internal_error("COCO_DEFAULT_START_MEMORY_LOCATION is higher than the Color Computer allows");
+        internal_error("COCO_DEFAULT_START_MEMORY_LOCATION is higher than is possible on the Color Computer");
 
     if (DRAGON_DEFAULT_START_MEMORY_LOCATION > HIGHEST_64K_ADDRESS)
-        internal_error("DRAGON_DEFAULT_START_MEMORY_LOCATION is higher than the Dragon allows");
+        internal_error("DRAGON_DEFAULT_START_MEMORY_LOCATION is higher than is possible on the Dragon");
 
     if (C64_DEFAULT_START_MEMORY_LOCATION > HIGHEST_64K_ADDRESS)
-        internal_error("C64_DEFAULT_START_MEMORY_LOCATION is higher than the Commodore 64 allows");
+        internal_error("C64_DEFAULT_START_MEMORY_LOCATION is higher than is possible on the Commodore 64");
 }
 
 static void
@@ -270,37 +301,48 @@ static void
 check_max_input_file_size_macro(void)
 {
     if (MAX_INPUT_FILE_SIZE > LONG_MAX)
-        internal_error("MAX_INPUT_FILE_SIZE is above the standard library capability");
-
-    if (MAX_INPUT_FILE_SIZE > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
-        internal_error("MAX_INPUT_FILE_SIZE is above the maximum possible");
+        internal_error("MAX_INPUT_FILE_SIZE cannot be represented internally");
 }
 
 static void
 check_max_machine_language_binary_size_macro(void)
 {
     if (MAX_MACHINE_LANGUAGE_BINARY_SIZE > LONG_MAX)
-        internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE cannot be safely measured");
-
-    if (MAX_MACHINE_LANGUAGE_BINARY_SIZE > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
-        internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE is above the maximum possible");
+        internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE cannot be represented internally");
 }
 
 static void
-check_user_modifiable_macros(void)
+check_target_architecture_file_size_max_macro(void)
 {
-    check_type_limits();
-    check_user_defined_type_limits();
-    check_default_starting_basic_line_number_macro();
-    check_typable_default_starting_basic_line_number_macro();
-    check_maximum_starting_basic_line_number_macro();
-    check_default_basic_line_number_step_size_macro();
-    check_typable_default_basic_line_number_step_size_macro();
+    if (TARGET_ARCHITECTURE_FILE_SIZE_MAX > LONG_MAX)
+        internal_error("TARGET_ARCHITECTURE_FILE_SIZE_MAX is too high to be internally operated on");
+}
+
+static void
+check_types_and_user_modifiable_macros(void)
+{
     check_basic_program_parameter_macros();
     check_memory_location_macros();
     check_output_text_buffer_size_macro();
     check_max_input_file_size_macro();
     check_max_machine_language_binary_size_macro();
+    check_target_architecture_file_size_max_macro();
+}
+
+static const char *
+target_architecture_to_text(enum target_architecture_choice target_architecture)
+{
+    const char *text = NULL;
+
+    switch(target_architecture)
+    {
+        case COCO:    text = "coco";    break;
+        case DRAGON:  text = "dragon";  break;
+        case C64:     text = "c64";     break;
+        default:      internal_error("Unhandled target architecture in target_architecture_to_text()");
+    }
+
+    return text;
 }
 
 static void
@@ -346,15 +388,15 @@ warning(const char *fmt, ...)
 }
 
 static void
-check_input_file_size(long int input_file_size,
-                     const char *input_filename)
+check_input_file_size(long int   input_file_size,
+                      const char *input_filename)
 {
     if (input_file_size > MAX_INPUT_FILE_SIZE)
         fail("Input file \"%s\" is too large", input_filename);
 }
 
 static void
-check_blob_size(long int blob_size,
+check_blob_size(long int   blob_size,
                 const char *input_filename)
 {
     if (blob_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
@@ -380,8 +422,8 @@ get_character_from_input_file(FILE *input_file, const char *input_filename)
     int input_file_character = fgetc(input_file);
 
     if (input_file_character > EIGHT_BIT_UCHAR_MAX)
-        fail("Input file contains a value that's too high"
-             " for an 8-bit machine");
+        fail("Input file \"%s\" contains a value that's too high"
+             " for an 8-bit machine", input_filename);
 
     if (input_file_character == EOF)
         fail("Unexpected end of file while reading file \"%s\". Error code %d",
@@ -409,12 +451,14 @@ construct_16bit_value(unsigned char hi, unsigned char lo)
 static void
 check_line_number(line_number_type line_number)
 {
+    (void) line_number;
+
 #if (MIN_BASIC_LINE_NUMBER > 0)
     if (line_number < MIN_BASIC_LINE_NUMBER)
         internal_error("Line number is below minimum");
 #endif
 
-#if (MAX_BASIC_LINE_NUMBER != LINE_NUMBER_TYPE_MAX)
+#if (MAX_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MAX)
     if (line_number > MAX_BASIC_LINE_NUMBER)
         fail("The BASIC line numbers have become too large");
 #endif
@@ -458,39 +502,46 @@ inc_line_count(line_counter_type *line_count)
 
 #if (MAXIMUM_BASIC_LINE_COUNT != LINE_COUNTER_TYPE_MAX)
     if (*line_count > MAXIMUM_BASIC_LINE_COUNT)
-        fail("Line count has exceeded the set limit");
+        fail("Line count has exceeded the set maximum");
 #endif
 }
 
-static void
-check_line_position(enum target_architecture_choice target_architecture,
-                    line_position_type *line_position)
+static line_position_type
+get_architecture_maximum_basic_line_length(enum target_architecture_choice target_architecture)
 {
-    line_position_type max_basic_line_length = 0;
+    line_position_type architecture_max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
 
     switch(target_architecture)
     {
         case COCO:
-            max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
+            architecture_max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
             break;
 
         case DRAGON:
-            max_basic_line_length = DRAGON_MAX_BASIC_LINE_LENGTH;
+            architecture_max_basic_line_length = DRAGON_MAX_BASIC_LINE_LENGTH;
             break;
 
         case C64:
-            max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
+            architecture_max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
             break;
 
         default:
-            internal_error("Unhandled target architecture type in check_line_position()");
+            internal_error("Unhandled target architecture type in get_architecture_max_basic_line_length()");
     }
 
-    if (*line_position > max_basic_line_length)
-        internal_error("BASIC maximum line length for the target architecture was exceeded");
+    return architecture_max_basic_line_length;
+}
 
+static void
+check_line_position(enum target_architecture_choice target_architecture,
+                    line_position_type              *line_position)
+{
     if (*line_position > MAXIMUM_BASIC_LINE_LENGTH)
         internal_error("Maximum BASIC line length was not avoided");
+
+    if (*line_position > get_architecture_maximum_basic_line_length(target_architecture))
+        internal_error("The maximum BASIC line length for the \"%s\" target architecture was exceeded",
+                        target_architecture_to_text(target_architecture));
 }
 
 static void
@@ -629,7 +680,8 @@ vemit(FILE                             *output_file,
     if (output_file_size < 0)
         return FTELL_FAIL;
 
-    if (output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE)
+    if (output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE ||
+        output_file_size > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
         return TOO_LARGE;
 
     return VE_SUCCESS;
@@ -682,7 +734,8 @@ emit_datum(FILE                             *output_file,
     if (sprintf_return_value >= OUTPUT_TEXT_BUFFER_SIZE)
         internal_error("Output text buffer overrun");
 
-    if (*line_position + strlen(possible_output_buffer) > MAXIMUM_BASIC_LINE_LENGTH)
+    if ((*line_position + strlen(possible_output_buffer) > MAXIMUM_BASIC_LINE_LENGTH)
+      || *line_position + strlen(possible_output_buffer) > get_architecture_maximum_basic_line_length(target_architecture))
         emit(output_file,
              target_architecture,
              output_case,
@@ -841,9 +894,9 @@ match_memory_location_type_arg(char **pargv[], const char *shrt, const char *lng
         if (ok == 0)
             fail("Invalid argument to %s", (*pargv)[0]);
 
-#if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
         if (*ps > HIGHEST_RAM_ADDRESS)
-            fail("%s cannot be greater than %x", (*pargv)[0], HIGHEST_RAM_ADDRESS);
+            fail("%s cannot be greater than $%x", (*pargv)[0], HIGHEST_RAM_ADDRESS);
 #endif
 
         ++(*pargv);
@@ -873,7 +926,10 @@ match_line_type_arg(char **pargv[], const char *shrt, const char *lng,
             fail("Invalid argument to %s", (*pargv)[0]);
 
         if (*pl > MAXIMUM_STARTING_BASIC_LINE_NUMBER)
-            fail("%s cannot be higher than %d", (*pargv)[0], MAXIMUM_STARTING_BASIC_LINE_NUMBER);
+            fail("%s cannot be higher than %u", (*pargv)[0], MAXIMUM_STARTING_BASIC_LINE_NUMBER);
+
+        if (*pl > MAX_BASIC_LINE_NUMBER)
+            fail("%s cannot be higher than %u", (*pargv)[0], MAX_BASIC_LINE_NUMBER);
 
         ++(*pargv);
 
@@ -902,7 +958,7 @@ match_line_number_step_type_arg(char **pargv[], const char *shrt, const char *ln
             fail("Invalid argument to %s", (*pargv)[0]);
 
         if (*ps > MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
-            fail("%s cannot be higher than %d", (*pargv)[0], MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+            fail("%s cannot be higher than %u", (*pargv)[0], MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
         ++(*pargv);
 
@@ -959,7 +1015,7 @@ set_target_architecture(enum target_architecture_choice *target_architecture,
 
     if (extended_basic && *target_architecture != COCO)
         fail("Extended Color BASIC option should only be used"
-             " with the coco target");
+             " with the \"%s\" target", COCO_TEXT);
 }
 
 static boolean_type
@@ -989,16 +1045,19 @@ set_input_file_format(enum target_architecture_choice target_architecture,
                       enum input_file_format_choice   *input_file_format)
 {
     if (*input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
-        *input_file_format = DEFAULT_INPUT_FILE_FORMAT;
+        *input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
 
     if (*input_file_format == PRG        && target_architecture != C64)
-        fail("PRG file format should only be used with the c64 target");
+        fail("\"%s\" file format should only be used with the \"%s\" target",
+             PRG_TEXT, C64_TEXT);
 
     if (*input_file_format == DRAGON_DOS && target_architecture != DRAGON)
-        fail("Dragon file format should only be used with the dragon target");
+        fail("\"%s\" file format should only be used with the \"%s\" target",
+             DRAGON_TEXT, DRAGON_DOS_TEXT);
 
     if (*input_file_format == RS_DOS     && target_architecture != COCO)
-        fail("RS_DOS file format should only be used with the coco target");
+        fail("\"%s\" file format should only be used with the \"%s\" target",
+             RS_DOS_TEXT, COCO_TEXT);
 }
 
 static boolean_type
@@ -1030,10 +1089,10 @@ set_output_case(enum target_architecture_choice target_architecture,
         *output_case =  DEFAULT_OUTPUT_CASE;
 
     if (*output_case == LOWERCASE && target_architecture == COCO)
-        fail("Lowercase output is not useful for a Coco target");
+        fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
 
     if (*output_case == LOWERCASE && target_architecture == DRAGON)
-        fail("Lowercase output is not useful for a Dragon target");
+        fail("Lowercase output is not useful for a \"%s\" target", DRAGON_TEXT);
 
     if (*output_case == MIXED_CASE)
         fail("There is presently no target for mixed case output");
@@ -1061,6 +1120,30 @@ set_typable(boolean_type *typable, boolean_type checksum)
 }
 
 static void
+ram_requirement_warning(enum target_architecture_choice target_architecture,
+                        boolean_type nowarn,
+                        memory_location_type end)
+{
+    if (target_architecture == COCO && nowarn == 0)
+    {
+             if (end > HIGHEST_32K_ADDRESS)
+                 warning("Program requires 64K of RAM");
+        else if (end > HIGHEST_16K_ADDRESS)
+                 warning("Program requires at least 32K of RAM");
+        else if (end > HIGHEST_8K_ADDRESS)
+                 warning("Program requires at least 16K of RAM");
+        else if (end > HIGHEST_4K_ADDRESS)
+                 warning("Program requires at least 8K of RAM");
+    }
+
+    if (target_architecture == DRAGON && nowarn == 0)
+    {
+        if (end > HIGHEST_32K_ADDRESS)
+            warning("Program requires 64K of RAM");
+    }
+}
+
+static void
 set_line_number(boolean_type      line_number_set,
                 line_number_type  *line_number,
                 boolean_type      typable)
@@ -1069,6 +1152,8 @@ set_line_number(boolean_type      line_number_set,
         *line_number = typable ?
                        TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
                        DEFAULT_STARTING_BASIC_LINE_NUMBER;
+
+    check_line_number(*line_number);
 }
 
 static void
@@ -1080,6 +1165,52 @@ set_step(boolean_type           step_set,
         *step = typable ?
                 TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
                 DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+}
+
+static void
+set_start_address(enum target_architecture_choice  target_architecture,
+                  boolean_type                     start_set,
+                  memory_location_type             *start)
+{
+    if (start_set == 0)
+    {
+        switch(target_architecture)
+        {
+            case COCO:
+                *start = COCO_DEFAULT_START_MEMORY_LOCATION;
+                break;
+
+            case DRAGON:
+                *start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
+                break;
+
+            case C64:
+                *start = C64_DEFAULT_START_MEMORY_LOCATION;
+                break;
+
+            default:
+                internal_error("Unhandled target architecture in set_start_address()");
+        }
+    }
+
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
+    if (*start > HIGHEST_RAM_ADDRESS)
+        internal_error("Start location is higher than the highest possible RAM address");
+#endif
+}
+
+static void
+set_exec_address(boolean_type exec_set,
+                 memory_location_type start,
+                 memory_location_type *exec)
+{
+    if (exec_set == 0)
+        *exec     = start;
+
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
+    if (*exec > HIGHEST_RAM_ADDRESS)
+        internal_error("Exec location is higher than the highest possible RAM address");
+#endif
 }
 
 static void
@@ -1118,22 +1249,6 @@ display_help(void)
     puts("  -v  --version   Version of this program");
     puts("");
     exit(EXIT_SUCCESS);
-}
-
-static const char *
-target_architecture_to_text(enum target_architecture_choice target_architecture)
-{
-    const char *text = NULL;
-
-    switch(target_architecture)
-    {
-        case COCO:    text = "coco";    break;
-        case DRAGON:  text = "dragon";  break;
-        case C64:     text = "c64";     break;
-        default:      internal_error("Unhandled target architecture in target_architecture_to_text()");
-    }
-
-    return text;
 }
 
 static const char *
@@ -1290,7 +1405,16 @@ int main(int argc, char *argv[])
     boolean_type          exec_set   = 0;
     memory_location_type  exec       = 0;
 
-    check_user_modifiable_macros();
+    check_type_limits();
+    check_user_defined_type_limits();
+    check_default_starting_basic_line_number_macro();
+    check_typable_default_starting_basic_line_number_macro();
+    check_maximum_starting_basic_line_number_macro();
+    check_default_basic_line_number_step_size_macro();
+    check_typable_default_basic_line_number_step_size_macro();
+    check_maximum_basic_line_number_step_size_macro();
+
+    check_types_and_user_modifiable_macros();
 
   if (argc > 0)
     while (*++argv)
@@ -1560,34 +1684,8 @@ int main(int argc, char *argv[])
 
     check_blob_size(blob_size, input_filename);
 
-    if (start_set == 0)
-    {
-        switch(target_architecture)
-        {
-            case COCO:
-                start = COCO_DEFAULT_START_MEMORY_LOCATION;
-                break;
-
-            case DRAGON:
-                start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
-                break;
-
-            case C64:
-                start = C64_DEFAULT_START_MEMORY_LOCATION;
-                break;
-
-            default:
-                internal_error("Unhandled target architecture in start switch");
-        }
-
-        start_set = 1;
-    }
-
-    if (exec_set == 0)
-    {
-        exec     = start;
-        exec_set = 1;
-    }
+    set_start_address(target_architecture, start_set, &start);
+    set_exec_address(exec_set, start, &exec);
 
     if (start + blob_size - 1 > MEMORY_LOCATION_TYPE_MAX)
         fail("The machine language blob would overflow the 64K RAM limit");
@@ -1608,7 +1706,7 @@ int main(int argc, char *argv[])
         fail("Could not open file \"%s\". Error number %d", input_filename, errno);
 
     if (
-#if (HIGHEST_RAM_ADDRESS != USHRT_MAX)
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
         (end > HIGHEST_RAM_ADDRESS) ||
 #endif
         (start + blob_size - 1 > MEMORY_LOCATION_TYPE_MAX) ||
@@ -1617,23 +1715,7 @@ int main(int argc, char *argv[])
         fail("The machine language blob would overflow the 64K RAM limit");
     }
 
-    if (target_architecture == COCO && !nowarn)
-    {
-             if (end > HIGHEST_32K_ADDRESS)
-                 warning("Program requires 64K of RAM");
-        else if (end > HIGHEST_16K_ADDRESS)
-                 warning("Program requires at least 32K of RAM");
-        else if (end > HIGHEST_8K_ADDRESS)
-                 warning("Program requires at least 16K of RAM");
-        else if (end > HIGHEST_4K_ADDRESS)
-                 warning("Program requires at least 8K of RAM");
-    }
-
-    if (target_architecture == DRAGON && !nowarn)
-    {
-        if (end > HIGHEST_32K_ADDRESS)
-            warning("Program requires 64K of RAM");
-    }
+    ram_requirement_warning(target_architecture, nowarn, end);
 
     set_line_number(line_number_set, &line_number, typable);
     set_step(step_set, &step, typable);
@@ -1824,7 +1906,7 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
             unsigned short int j = 0;
             unsigned long int cs = 0;
 
-            for (cs = 0, i = 0; i < CHECKSUMMED_DATA_PER_LINE && b > 0; ++i, --b)
+            for (cs = 0, i = 0; i < sizeof d && b > 0; ++i, --b)
             {
                 d[i] = get_character_from_input_file(input_file, input_filename);
                 cs += d[i];
