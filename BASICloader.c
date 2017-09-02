@@ -56,6 +56,8 @@
 #define MAX_INPUT_FILE_SIZE 65000
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65000
 
+#define PRINT_WARNINGS_TO_STDERR 0
+
         /* End of user-modifiable values */
 
 #define HIGHEST_RAM_ADDRESS 0xffff
@@ -67,9 +69,9 @@
 
 #define EIGHT_BIT_UCHAR_MAX 255
 
-#define COCO_MAX_BASIC_LINE_LENGTH   249
+#define   COCO_MAX_BASIC_LINE_LENGTH 249
 #define DRAGON_MAX_BASIC_LINE_LENGTH 249
-#define C64_MAX_BASIC_LINE_LENGTH    79
+#define    C64_MAX_BASIC_LINE_LENGTH  79
 
 #define MIN_BASIC_LINE_NUMBER 0
 #define MAX_BASIC_LINE_NUMBER 63999
@@ -191,11 +193,11 @@ check_default_starting_basic_line_number_macro(void)
 {
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       "is below the minimum possible BASIC line number");
+                       " is below the minimum possible BASIC line number");
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       "is above the maximum possible BASIC line number");
+                       " is above the maximum possible BASIC line number");
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
@@ -206,11 +208,11 @@ check_typable_default_starting_basic_line_number_macro(void)
 {
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       "is below the minimum possible BASIC line number");
+                       " is below the minimum possible BASIC line number");
 
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       "is above the maximum possible BASIC line number");
+                       " is above the maximum possible BASIC line number");
 
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
@@ -221,11 +223,11 @@ check_maximum_starting_basic_line_number_macro(void)
 {
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
-                       "is below the minimum possible BASIC line number");
+                       " is below the minimum possible BASIC line number");
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MAX_BASIC_LINE_NUMBER)
+    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
-                       "is above the maximum possible BASIC line number");
+                       " is above the maximum possible BASIC line number");
 
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
@@ -262,10 +264,10 @@ static void
 check_basic_program_parameter_macros(void)
 {
     if (MAXIMUM_BASIC_LINE_COUNT > LINE_COUNTER_TYPE_MAX)
-        internal_error("MAXIMUM_BASIC_LINE_COUNT cannot be represented internally");
+        internal_error("MAXIMUM_BASIC_LINE_COUNT cannot be operated on internally");
 
     if (MAXIMUM_BASIC_PROGRAM_SIZE > LONG_MAX)
-        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE cannot be represented internally");
+        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE cannot be operated on internally");
 
     if (CHECKSUMMED_DATA_PER_LINE < 1)
         internal_error("CHECKSUMMED_DATA_PER_LINE must be at least 1");
@@ -294,14 +296,14 @@ check_output_text_buffer_size_macro(void)
         internal_error("OUTPUT_TEXT_BUFFER_SIZE is too low");
 
     if (OUTPUT_TEXT_BUFFER_SIZE > INT_MAX)
-        internal_error("OUTPUT_TEXT_BUFFER_SIZE is too high");
+        internal_error("OUTPUT_TEXT_BUFFER_SIZE cannot be operated on internally");
 }
 
 static void
 check_max_input_file_size_macro(void)
 {
     if (MAX_INPUT_FILE_SIZE > LONG_MAX)
-        internal_error("MAX_INPUT_FILE_SIZE cannot be represented internally");
+        internal_error("MAX_INPUT_FILE_SIZE cannot be operated on internally");
 }
 
 static void
@@ -316,33 +318,6 @@ check_target_architecture_file_size_max_macro(void)
 {
     if (TARGET_ARCHITECTURE_FILE_SIZE_MAX > LONG_MAX)
         internal_error("TARGET_ARCHITECTURE_FILE_SIZE_MAX is too high to be internally operated on");
-}
-
-static void
-check_types_and_user_modifiable_macros(void)
-{
-    check_basic_program_parameter_macros();
-    check_memory_location_macros();
-    check_output_text_buffer_size_macro();
-    check_max_input_file_size_macro();
-    check_max_machine_language_binary_size_macro();
-    check_target_architecture_file_size_max_macro();
-}
-
-static const char *
-target_architecture_to_text(enum target_architecture_choice target_architecture)
-{
-    const char *text = NULL;
-
-    switch(target_architecture)
-    {
-        case COCO:    text = "coco";    break;
-        case DRAGON:  text = "dragon";  break;
-        case C64:     text = "c64";     break;
-        default:      internal_error("Unhandled target architecture in target_architecture_to_text()");
-    }
-
-    return text;
 }
 
 static void
@@ -371,21 +346,144 @@ static void
 warning(const char *fmt, ...)
 {
     va_list ap;
-    int vprintf_return_value = 0;
+    FILE *stream = PRINT_WARNINGS_TO_STDERR ? stderr : stdout;
+    int vfprintf_return_value = 0;
 
-    if (printf("Warning: ") < 0)
+    if (fprintf(stream, "Warning: ") < 0)
         fail_while_printing_warning();
 
     va_start(ap, fmt);
-    vprintf_return_value = vprintf(fmt, ap);
+    vfprintf_return_value = vfprintf(stream, fmt, ap);
     va_end(ap);
 
-    if (vprintf_return_value < 0)
+    if (vfprintf_return_value < 0)
         fail_while_printing_warning();
 
-    if (printf("\n") < 0)
+    if (fprintf(stream, "\n") < 0)
         fail_while_printing_warning();
 }
+
+static void
+print_version_text(void)
+{
+    puts("BASICloader (under development)");
+    puts("(c) 2017 Richard Cavell");
+    puts("https://github.com/richardcavell/BASICloader");
+}
+
+static void
+display_version(void)
+{
+    print_version_text();
+    exit(EXIT_SUCCESS);
+}
+
+static void
+display_help(void)
+{
+    print_version_text();
+    puts("Usage: BASICloader [options] [filename]");
+    puts("");
+    puts("  -o  --output    Output filename");
+    puts("  -m  --machine   Target machine (coco/dragon/c64)");
+    puts("  -f  --format    Input file format (binary/rsdos/dragon/prg)");
+    puts("  -c  --case      Output case (upper/lower)");
+    puts("  -r  --remarks   Add remarks and date to output program");
+    puts("  -t  --typable   Unpack the program and use spaces");
+    puts("      --verify    Verify the success of each POKE");
+    puts("      --checksum  Calculate checksums");
+    puts("      --extbas    Assume Extended Color BASIC (coco only)");
+    puts("      --line      Starting line number");
+    puts("      --step      Gap between line numbers");
+    puts("  -s  --start     Start memory location");
+    puts("  -e  --exec      Exec memory location");
+    puts("  -p  --print     Print some diagnostic info");
+    puts("  -n  --nowarn    Don't warn about RAM requirements");
+    puts("  -d  --defaults  Print option defaults");
+    puts("  -l  --license   Your license to use this program");
+    puts("  -i  --info      What this program does");
+    puts("  -h  --help      This help information");
+    puts("  -v  --version   Version number");
+    puts("");
+
+    exit(EXIT_SUCCESS);
+}
+
+static void
+display_info(void)
+{
+    puts("BASICloader reads in a machine language binary, and then constructs");
+    puts("a BASIC program that will run on the selected target architecture.");
+    puts("");
+    puts("The BASIC program so produced contains DATA statements that represent");
+    puts("the machine language program given to BASICloader when the BASIC program");
+    puts("was generated.");
+    puts("");
+    puts("When run on the target architecture, the BASIC program will poke");
+    puts("that machine language into memory, and execute it.");
+    puts("");
+    puts("BASICloader therefore generates programs similar to the type-in programs");
+    puts("printed in 1980s computer magazines.");
+
+    exit(EXIT_SUCCESS);
+}
+
+static void
+display_license(void)
+{
+    puts("BASICloader License");
+    puts("");
+    puts("(modified MIT License)");
+    puts("");
+    puts("Copyright (c) 2017 Richard Cavell");
+    puts("");
+    puts("Permission is hereby granted, free of charge, to any person obtaining a copy");
+    puts("of this software and associated documentation files (the \"Software\"), to deal");
+    puts("in the Software without restriction, including without limitation the rights");
+    puts("to use, copy, modify, merge, publish, distribute, sublicense, and/or sell");
+    puts("copies of the Software, and to permit persons to whom the Software is");
+    puts("furnished to do so, subject to the following conditions:");
+    puts("");
+    puts("The above copyright notice and this permission notice shall be included in all");
+    puts("copies or substantial portions of the Software.");
+    puts("");
+    puts("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR");
+    puts("IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,");
+    puts("FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE");
+    puts("AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER");
+    puts("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,");
+    puts("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE");
+    puts("SOFTWARE.");
+    puts("");
+    puts("The output of this program is licensed to you under the following license:");
+    puts("");
+    puts("1.  You may use the output of this program, for free, for any worthwhile");
+    puts("    or moral purpose.");
+    puts("2.  You should try to attribute me and the BASICloader program, where");
+    puts("    that is not unreasonable.");
+    puts("");
+    puts("You should not allow people to assume that you wrote the BASIC code yourself.");
+
+    exit(EXIT_SUCCESS);
+}
+
+
+static const char *
+target_architecture_to_text(enum target_architecture_choice target_architecture)
+{
+    const char *text = NULL;
+
+    switch(target_architecture)
+    {
+        case COCO:    text = "coco";    break;
+        case DRAGON:  text = "dragon";  break;
+        case C64:     text = "c64";     break;
+        default:      internal_error("Unhandled target architecture in target_architecture_to_text()");
+    }
+
+    return text;
+}
+
 
 static void
 check_input_file_size(long int   input_file_size,
@@ -1213,44 +1311,6 @@ set_exec_address(boolean_type exec_set,
 #endif
 }
 
-static void
-print_version_text(void)
-{
-    puts("BASICloader (under development)");
-    puts("(c) 2017 Richard Cavell");
-    puts("https://github.com/richardcavell/BASICloader");
-}
-
-static void
-display_help(void)
-{
-    print_version_text();
-    puts("Usage: BASICloader [options] [filename]");
-    puts("");
-    puts("  -o  --output    Output filename");
-    puts("  -m  --machine   Target machine (coco/dragon/c64)");
-    puts("  -f  --format    Input file format (binary/RS_DOS/dragon/prg)");
-    puts("  -c  --case      Output case (upper/lower)");
-    puts("  -r  --remarks   Add remarks to output program");
-    puts("  -t  --typable   Unpack the program and use spaces");
-    puts("      --verify    Verify the success of each POKE");
-    puts("      --checksum  Calculate and verify checksums");
-    puts("      --extbas    Assume Extended Color BASIC (coco only)");
-    puts("      --line      Starting line number");
-    puts("      --step      The amount added to line numbers");
-    puts("  -s  --start     Start memory location");
-    puts("  -e  --exec      Exec memory location");
-    puts("  -p  --print     Print some diagnostic info");
-    puts("  -n  --nowarn    Don't warn about RAM requirements");
-    puts("  -d  --defaults  Print option defaults");
-    puts("  -l  --license   Your license to use these programs");
-    puts("  -i  --info      Info about what this program does");
-    puts("  -h  --help      This help information");
-    puts("  -v  --version   Version of this program");
-    puts("");
-    exit(EXIT_SUCCESS);
-}
-
 static const char *
 format_to_text(enum input_file_format_choice format)
 {
@@ -1294,73 +1354,6 @@ display_defaults(void)
     printf("Default output filename     : \"%s\" (with --machine c64 --case lower)\n",
                                                      C64_LC_DEFAULT_OUTPUT_FILENAME);
 
-    exit(EXIT_SUCCESS);
-}
-
-static void
-display_info(void)
-{
-    print_version_text();
-    puts("");
-    puts("BASICloader reads in a machine language binary, and then constructs");
-    puts("a BASIC program that will run on the selected target architecture.");
-    puts("");
-    puts("The BASIC program so produced contains DATA statements that represent");
-    puts("the machine language given to BASICloader when the BASIC program");
-    puts("was generated.");
-    puts("");
-    puts("When run on the target architecture, the BASIC program will poke");
-    puts("that machine language into memory, and execute it.");
-    puts("");
-    puts("BASICloader therefore generates programs similar to the type-in programs");
-    puts("printed in 1980s computer magazines.");
-
-    exit(EXIT_SUCCESS);
-}
-
-static void
-display_license(void)
-{
-    puts("BASICloader License");
-    puts("");
-    puts("(modified MIT License)");
-    puts("");
-    puts("Copyright (c) 2017 Richard Cavell");
-    puts("");
-    puts("Permission is hereby granted, free of charge, to any person obtaining a copy");
-    puts("of this software and associated documentation files (the \"Software\"), to deal");
-    puts("in the Software without restriction, including without limitation the rights");
-    puts("to use, copy, modify, merge, publish, distribute, sublicense, and/or sell");
-    puts("copies of the Software, and to permit persons to whom the Software is");
-    puts("furnished to do so, subject to the following conditions:");
-    puts("");
-    puts("The above copyright notice and this permission notice shall be included in all");
-    puts("copies or substantial portions of the Software.");
-    puts("");
-    puts("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR");
-    puts("IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,");
-    puts("FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE");
-    puts("AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER");
-    puts("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,");
-    puts("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE");
-    puts("SOFTWARE.");
-    puts("");
-    puts("The output of this program is licensed to you under the following license:");
-    puts("");
-    puts("1.  You may use the output of this program, for free, for any worthwhile");
-    puts("    or moral purpose.");
-    puts("2.  You should try to attribute me and the BASICloader program, where");
-    puts("    that is not unreasonable.");
-    puts("");
-    puts("You should not allow people to assume that you wrote the BASIC code yourself.");
-
-    exit(EXIT_SUCCESS);
-}
-
-static void
-display_version(void)
-{
-    print_version_text();
     exit(EXIT_SUCCESS);
 }
 
@@ -1413,8 +1406,12 @@ int main(int argc, char *argv[])
     check_default_basic_line_number_step_size_macro();
     check_typable_default_basic_line_number_step_size_macro();
     check_maximum_basic_line_number_step_size_macro();
-
-    check_types_and_user_modifiable_macros();
+    check_basic_program_parameter_macros();
+    check_memory_location_macros();
+    check_output_text_buffer_size_macro();
+    check_max_input_file_size_macro();
+    check_max_machine_language_binary_size_macro();
+    check_target_architecture_file_size_max_macro();
 
   if (argc > 0)
     while (*++argv)
