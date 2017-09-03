@@ -476,15 +476,60 @@ target_architecture_to_text(enum target_architecture_choice target_architecture)
 
     switch(target_architecture)
     {
-        case COCO:    text = "coco";    break;
-        case DRAGON:  text = "dragon";  break;
-        case C64:     text = "c64";     break;
+        case COCO:    text = COCO_TEXT;    break;
+        case DRAGON:  text = DRAGON_TEXT;  break;
+        case C64:     text = C64_TEXT;     break;
         default:      internal_error("Unhandled target architecture in target_architecture_to_text()");
     }
 
     return text;
 }
 
+static const char *
+format_to_text(enum input_file_format_choice format)
+{
+    const char *text = NULL;
+
+    switch(format)
+    {
+        case BINARY:      text = BINARY_TEXT;      break;
+        case RS_DOS:      text = RS_DOS_TEXT;      break;
+        case DRAGON_DOS:  text = DRAGON_DOS_TEXT;  break;
+        case PRG:         text = PRG_TEXT;         break;
+        default:          internal_error("Unhandled format in format_to_text()");
+    }
+
+    return text;
+}
+
+static const char *
+case_to_text(enum output_case_choice output_case)
+{
+    const char *text = NULL;
+
+    switch(output_case)
+    {
+        case UPPERCASE:   text = UPPERCASE_TEXT;   break;
+        case LOWERCASE:   text = LOWERCASE_TEXT;   break;
+        case MIXED_CASE:  text = MIXED_CASE_TEXT;  break;
+        default:          internal_error("Unhandled case in case_to_text()");
+    }
+
+    return text;
+}
+
+static void
+display_defaults(void)
+{
+    printf("Default target architecture : %s\n"    , target_architecture_to_text(DEFAULT_TARGET_ARCHITECTURE));
+    printf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
+    printf("Default output case is      : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
+    printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
+    printf("Default output filename     : \"%s\" (with --machine c64 --case lower)\n",
+                                                     C64_LC_DEFAULT_OUTPUT_FILENAME);
+
+    exit(EXIT_SUCCESS);
+}
 
 static void
 check_input_file_size(long int   input_file_size,
@@ -1310,52 +1355,6 @@ set_exec_address(boolean_type exec_set,
     if (*exec > HIGHEST_RAM_ADDRESS)
         internal_error("Exec location is higher than the highest possible RAM address");
 #endif
-}
-
-static const char *
-format_to_text(enum input_file_format_choice format)
-{
-    const char *text = NULL;
-
-    switch(format)
-    {
-        case BINARY:      text = "binary";  break;
-        case RS_DOS:      text = "rsdos";  break;
-        case DRAGON_DOS:  text = "dragon";  break;
-        case PRG:         text = "prg";     break;
-        default:          internal_error("Unhandled format in format_to_text()");
-    }
-
-    return text;
-}
-
-static const char *
-case_to_text(enum output_case_choice output_case)
-{
-    const char *text = NULL;
-
-    switch(output_case)
-    {
-        case UPPERCASE:   text = "uppercase";   break;
-        case LOWERCASE:   text = "lowercase";   break;
-        case MIXED_CASE:  text = "mixed case";  break;
-        default:          internal_error("Unhandled case in case_to_text()");
-    }
-
-    return text;
-}
-
-static void
-display_defaults(void)
-{
-    printf("Default target architecture : %s\n"    , target_architecture_to_text(DEFAULT_TARGET_ARCHITECTURE));
-    printf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
-    printf("Default output is           : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
-    printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
-    printf("Default output filename     : \"%s\" (with --machine c64 --case lower)\n",
-                                                     C64_LC_DEFAULT_OUTPUT_FILENAME);
-
-    exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
