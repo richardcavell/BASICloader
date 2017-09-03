@@ -368,13 +368,13 @@ print_version_text(void)
 {
     puts("BASICloader (under development)");
     puts("(c) 2017 Richard Cavell");
-    puts("https://github.com/richardcavell/BASICloader");
 }
 
 static void
 display_version(void)
 {
     print_version_text();
+
     exit(EXIT_SUCCESS);
 }
 
@@ -382,22 +382,24 @@ static void
 display_help(void)
 {
     print_version_text();
+    puts("https://github.com/richardcavell/BASICloader");
+    puts("");
     puts("Usage: BASICloader [options] [filename]");
     puts("");
     puts("  -o  --output    Output filename");
     puts("  -m  --machine   Target machine (coco/dragon/c64)");
     puts("  -f  --format    Input file format (binary/rsdos/dragon/prg)");
     puts("  -c  --case      Output case (upper/lower)");
-    puts("  -r  --remarks   Add remarks and date to output program");
-    puts("  -t  --typable   Unpack the program and use spaces");
+    puts("  -t  --typable   Unpack the BASIC program and use spaces");
+    puts("  -r  --remarks   Add remarks and date");
+    puts("      --extbas    Assume Extended Color BASIC (coco only)");
     puts("      --verify    Verify the success of each POKE");
     puts("      --checksum  Calculate checksums");
-    puts("      --extbas    Assume Extended Color BASIC (coco only)");
     puts("      --line      Starting line number");
     puts("      --step      Gap between line numbers");
     puts("  -s  --start     Start memory location");
     puts("  -e  --exec      Exec memory location");
-    puts("  -p  --print     Print some diagnostic info");
+    puts("      --diag      Print diagnostic information");
     puts("  -n  --nowarn    Don't warn about RAM requirements");
     puts("  -d  --defaults  Print option defaults");
     puts("  -l  --license   Your license to use this program");
@@ -466,7 +468,6 @@ display_license(void)
 
     exit(EXIT_SUCCESS);
 }
-
 
 static const char *
 target_architecture_to_text(enum target_architecture_choice target_architecture)
@@ -1439,7 +1440,7 @@ int main(int argc, char *argv[])
           ||  match_switch_arg(argv[0], NULL, "--checksum", &checksum)
           ||  match_switch_arg(argv[0], NULL, "--extbas",   &extended_basic)
           ||  match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
-          ||  match_switch_arg(argv[0], "-p", "--print",    &print_diag)
+          ||  match_switch_arg(argv[0], NULL, "--diag",     &print_diag)
           ||  match_target_architecture_arg (&argv, "-m", "--machine",  &target_architecture)
           ||  match_format_arg  (&argv, "-f", "--format",   &input_file_format)
           ||  match_case_arg    (&argv, "-c", "--case",     &output_case)
