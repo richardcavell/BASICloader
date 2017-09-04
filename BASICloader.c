@@ -531,6 +531,34 @@ display_defaults(void)
     exit(EXIT_SUCCESS);
 }
 
+static boolean_type
+arg_match(const char *arg_text,
+          const char *option_name)
+{
+    return option_name != NULL && strcmp(arg_text, option_name) == 0;
+}
+
+static boolean_type
+arg2_match(const char *arg_text,
+           const char *short_option_name,
+           const char *long_option_name)
+{
+    return arg_match(arg_text, short_option_name)
+        || arg_match(arg_text, long_option_name);
+}
+
+static void
+get_output_filename(const char *arg1, const char *arg2, const char **output_filename)
+{
+    if (*output_filename != NULL)
+        fail("You can only set option %s once", arg1);
+
+    if (arg2 == NULL)
+        fail("You must supply a filename after %s", arg1);
+
+    *output_filename = arg2;
+}
+
 static void
 check_input_file_size(long int   input_file_size,
                       const char *input_filename)
@@ -961,19 +989,10 @@ emit_line(FILE                             *output_file,
 }
 
 static boolean_type
-command_line_arg_matches(const char *arg_text,
-                         const char *short_option_name,
-                         const char *long_option_name)
-{
-    return ( short_option_name != NULL && (strcmp(arg_text, short_option_name) == 0) )
-                                       || (strcmp(arg_text,  long_option_name) == 0);
-}
-
-static boolean_type
 match_string_arg(char **pargv[], const char *shrt, const char *lng,
             const char **s)
 {
-    boolean_type matched = command_line_arg_matches((*pargv)[0], shrt, lng);
+    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
 
     if (matched == 1)
     {
@@ -1024,7 +1043,7 @@ static boolean_type
 match_memory_location_type_arg(char **pargv[], const char *shrt, const char *lng,
                    memory_location_type *ps, boolean_type *set)
 {
-    boolean_type matched = command_line_arg_matches((*pargv)[0], shrt, lng);
+    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
 
     if (matched == 1)
     {
@@ -1055,7 +1074,7 @@ static boolean_type
 match_line_type_arg(char **pargv[], const char *shrt, const char *lng,
                     line_number_type *pl, boolean_type *set)
 {
-    boolean_type matched = command_line_arg_matches((*pargv)[0], shrt, lng);
+    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
 
     if (matched == 1)
     {
@@ -1087,7 +1106,7 @@ static boolean_type
 match_line_number_step_type_arg(char **pargv[], const char *shrt, const char *lng,
                     line_number_step_type *ps, boolean_type *set)
 {
-    boolean_type matched = command_line_arg_matches((*pargv)[0], shrt, lng);
+    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
 
     if (matched == 1)
     {
@@ -1116,7 +1135,7 @@ static boolean_type
 match_switch_arg(const char *arg, const char *shrt, const char *lng,
                  boolean_type *sw)
 {
-    boolean_type matched = command_line_arg_matches(arg, shrt, lng);
+    boolean_type matched = arg2_match(arg, shrt, lng);
 
     if (matched == 1)
     {
@@ -1374,13 +1393,13 @@ int main(int argc, char *argv[])
     enum input_file_format_choice    input_file_format    = NO_INPUT_FILE_FORMAT_CHOSEN;
     enum output_case_choice          output_case          = NO_OUTPUT_CASE_CHOSEN;
 
-    boolean_type extended_basic = 0;
     boolean_type typable        = 0;
+    boolean_type remarks        = 0;
+    boolean_type extended_basic = 0;
     boolean_type verify         = 0;
     boolean_type checksum       = 0;
-    boolean_type remarks        = 0;
-    boolean_type nowarn         = 0;
     boolean_type print_diag     = 0;
+    boolean_type nowarn         = 0;
 
     boolean_type       line_incrementing_has_started  = 0;
     line_counter_type  line_count                     = 0;
@@ -1394,9 +1413,9 @@ int main(int argc, char *argv[])
 
     boolean_type          start_set  = 0;
     memory_location_type  start      = 0;
-    memory_location_type  end        = 0;
     boolean_type          exec_set   = 0;
     memory_location_type  exec       = 0;
+    memory_location_type  end        = 0;
 
     check_type_limits();
     check_user_defined_type_limits();
@@ -1413,22 +1432,28 @@ int main(int argc, char *argv[])
     check_max_machine_language_binary_size_macro();
     check_target_architecture_file_size_max_macro();
 
-  if (argc > 0)
-    while (*++argv)
-    {
-           if (     command_line_arg_matches (argv[0], "-h", "--help"))
-             display_help();
-      else if (     command_line_arg_matches (argv[0], "-d", "--defaults"))
-             display_defaults();
-      else if (     command_line_arg_matches (argv[0], "-i", "--info"))
-             display_info();
-      else if (     command_line_arg_matches (argv[0], "-l", "--license"))
-             display_license();
-      else if (     command_line_arg_matches (argv[0], "-v", "--version"))
-             display_version();
-      else if (
-                match_string_arg(&argv, "-o", "--output",   &output_filename)
-          ||  match_memory_location_type_arg(&argv, "-s", "--start",    &start, &start_set)
+    if (argc > 0)
+        while (*++argv)
+        {
+                 if (arg2_match(argv[0], "-h", "--help"))
+                display_help();
+            else if (arg2_match(argv[0], "-d", "--defaults"))
+                display_defaults();
+            else if (arg2_match(argv[0], "-i", "--info"))
+                display_info();
+            else if (arg2_match(argv[0], "-l", "--license"))
+                display_license();
+            else if (arg2_match(argv[0], "-v", "--version"))
+                display_version();
+            else if (arg2_match(argv[0], "-o", "--output"))
+            {
+                get_output_filename(argv[0], argv[1], &output_filename);
+                ++argv;
+            }
+
+
+            else if (
+              match_memory_location_type_arg(&argv, "-s", "--start",    &start, &start_set)
           ||  match_memory_location_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
           || match_line_type_arg(&argv, NULL, "--line",     &line_number,
                                                               &line_number_set)
