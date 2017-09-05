@@ -535,7 +535,9 @@ static boolean_type
 arg_match(const char *arg_text,
           const char *option_name)
 {
-    return option_name != NULL && strcmp(arg_text, option_name) == 0;
+    return arg_text    != NULL &&
+           option_name != NULL &&
+           strcmp(arg_text, option_name) == 0;
 }
 
 static boolean_type
@@ -548,7 +550,9 @@ arg2_match(const char *arg_text,
 }
 
 static void
-get_output_filename(const char *arg1, const char *arg2, const char **output_filename)
+get_output_filename(const char *arg1,
+                    const char *arg2,
+                    const char **output_filename)
 {
     if (*output_filename != NULL)
         fail("You can only set option %s once", arg1);
@@ -558,6 +562,60 @@ get_output_filename(const char *arg1, const char *arg2, const char **output_file
 
     *output_filename = arg2;
 }
+
+static void
+get_target_architecture(const char                       *arg1,
+                        const char                       *arg2,
+                        enum target_architecture_choice  *target_architecture)
+{
+    if (*target_architecture != NO_TARGET_ARCHITECTURE_CHOSEN)
+        fail("You can only set %s once", arg1);
+
+         if (strcmp(arg2, COCO_TEXT) == 0)    *target_architecture = COCO;
+    else if (strcmp(arg2, DRAGON_TEXT) == 0)  *target_architecture = DRAGON;
+    else if (strcmp(arg2, C64_TEXT) == 0)     *target_architecture = C64;
+    else fail("Unknown target architecture \"%s\"", arg2);
+}
+
+static void
+get_format(const char                     *arg1,
+           const char                     *arg2,
+           enum input_file_format_choice  *format)
+{
+    if (*format != NO_INPUT_FILE_FORMAT_CHOSEN)
+        fail("You can only set %s once", arg1);
+
+         if (strcmp(arg2, BINARY_TEXT) == 0)      *format = BINARY;
+    else if (strcmp(arg2, RS_DOS_TEXT) == 0)      *format = RS_DOS;
+    else if (strcmp(arg2, DRAGON_DOS_TEXT) == 0)  *format = DRAGON_DOS;
+    else if (strcmp(arg2, PRG_TEXT) == 0)         *format = PRG;
+    else fail("Unknown file format \"%s\"", arg2);
+}
+
+static void
+get_case(const char               *arg1,
+         const char               *arg2,
+         enum output_case_choice  *output_case)
+{
+    if (*output_case != NO_OUTPUT_CASE_CHOSEN)
+        fail("You can only set %s once", arg1);
+
+         if (strcmp(arg2, UPPERCASE_TEXT) == 0)   *output_case = UPPERCASE;
+    else if (strcmp(arg2, LOWERCASE_TEXT) == 0)   *output_case = LOWERCASE;
+    else if (strcmp(arg2, MIXED_CASE_TEXT) == 0)  *output_case = MIXED_CASE;
+    else fail("Unknown case \"%s\"", arg2);
+}
+
+static void
+set_switch(const char    *arg,
+           boolean_type  *sw)
+{
+    if (*sw == 1)
+        fail("Option %s has already been set", arg);
+
+    *sw = 1;
+}
+
 
 static void
 check_input_file_size(long int   input_file_size,
@@ -574,7 +632,6 @@ check_blob_size(long int   blob_size,
     if (blob_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
         fail("The machine language content of input file \"%s\" is too large", input_filename);
 }
-
 
 static long int
 get_file_position(FILE *file, const char *filename)
@@ -988,28 +1045,6 @@ emit_line(FILE                             *output_file,
          "\n");
 }
 
-static boolean_type
-match_string_arg(char **pargv[], const char *shrt, const char *lng,
-            const char **s)
-{
-    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
-
-    if (matched == 1)
-    {
-        if (*s != NULL)
-            fail("You can only set option %s once", (*pargv)[0]);
-
-        if ((*pargv)[1] == NULL)
-            fail("You must supply a string argument to %s", (*pargv)[0]);
-
-        *s = (*pargv)[1];
-
-        ++(*pargv);
-    }
-
-    return matched;
-}
-
 static unsigned short int
 get_ushort(const char *text, boolean_type *ok)
 {
@@ -1131,44 +1166,6 @@ match_line_number_step_type_arg(char **pargv[], const char *shrt, const char *ln
     return matched;
 }
 
-static boolean_type
-match_switch_arg(const char *arg, const char *shrt, const char *lng,
-                 boolean_type *sw)
-{
-    boolean_type matched = arg2_match(arg, shrt, lng);
-
-    if (matched == 1)
-    {
-        if (*sw == 1)
-            fail("Option %s has already been set", arg);
-
-        *sw = 1;
-    }
-
-    return matched;
-}
-
-static boolean_type
-match_target_architecture_arg(char **pargv[], const char *shrt, const char *lng,
-                              enum target_architecture_choice *target_architecture)
-{
-    const char *name = NULL;
-    boolean_type matched = match_string_arg(pargv, shrt, lng, &name);
-
-    if (matched == 1)
-    {
-        if (*target_architecture != NO_TARGET_ARCHITECTURE_CHOSEN)
-            fail("You can only set the target architecture once");
-
-             if (strcmp(name, "coco") == 0)   *target_architecture = COCO;
-        else if (strcmp(name, "dragon") == 0) *target_architecture = DRAGON;
-        else if (strcmp(name, "c64") == 0)    *target_architecture = C64;
-        else fail("Unknown target architecture \"%s\"", (*pargv)[0]);
-    }
-
-    return matched;
-}
-
 static void
 set_target_architecture(enum target_architecture_choice *target_architecture,
                         boolean_type extended_basic)
@@ -1179,28 +1176,6 @@ set_target_architecture(enum target_architecture_choice *target_architecture,
     if (extended_basic && *target_architecture != COCO)
         fail("Extended Color BASIC option should only be used"
              " with the \"%s\" target", COCO_TEXT);
-}
-
-static boolean_type
-match_format_arg(char **pargv[], const char *shrt, const char *lng,
-                 enum input_file_format_choice *fmt)
-{
-    const char *opt = NULL;
-    boolean_type matched =match_string_arg(pargv, shrt, lng, &opt);
-
-    if (matched == 1)
-    {
-        if (*fmt != NO_INPUT_FILE_FORMAT_CHOSEN)
-            fail("You can only set the file format once");
-
-             if (strcmp(opt, "binary") == 0)  *fmt = BINARY;
-        else if (strcmp(opt, "rsdos") == 0)   *fmt = RS_DOS;
-        else if (strcmp(opt, "dragon") == 0)  *fmt = DRAGON_DOS;
-        else if (strcmp(opt, "prg") == 0)     *fmt = PRG;
-        else fail("Unknown file format \"%s\"", (*pargv)[0]);
-    }
-
-    return matched;
 }
 
 static void
@@ -1221,27 +1196,6 @@ set_input_file_format(enum target_architecture_choice target_architecture,
     if (*input_file_format == RS_DOS     && target_architecture != COCO)
         fail("\"%s\" file format should only be used with the \"%s\" target",
              RS_DOS_TEXT, COCO_TEXT);
-}
-
-static boolean_type
-match_case_arg(char **pargv[], const char *shrt, const char *lng,
-               enum output_case_choice *output_case)
-{
-    const char *opt = NULL;
-    boolean_type matched = match_string_arg(pargv, shrt, lng, &opt);
-
-    if (matched == 1)
-    {
-        if (*output_case != NO_OUTPUT_CASE_CHOSEN)
-            fail("You can only set the output case once");
-
-             if (strcmp(opt, "upper") == 0)  *output_case = UPPERCASE;
-        else if (strcmp(opt, "lower") == 0)  *output_case = LOWERCASE;
-        else if (strcmp(opt, "mixed") == 0)  *output_case = MIXED_CASE;
-        else fail("Unknown case \"%s\"", (*pargv)[0]);
-    }
-
-    return matched;
 }
 
 static void
@@ -1450,7 +1404,35 @@ int main(int argc, char *argv[])
                 get_output_filename(argv[0], argv[1], &output_filename);
                 ++argv;
             }
-
+            else if (arg2_match(argv[0], "-m", "--machine"))
+            {
+                get_target_architecture(argv[0], argv[1], &target_architecture);
+                ++argv;
+            }
+            else if (arg2_match(argv[0], "-f", "--format"))
+            {
+                get_format(argv[0], argv[1], &input_file_format);
+                ++argv;
+            }
+            else if (arg2_match(argv[0], "-c", "--case"))
+            {
+                get_case(argv[0], argv[1], &output_case);
+                ++argv;
+            }
+            else if (arg2_match(argv[0], "-n", "--nowarn"))
+                set_switch(argv[0], &nowarn);
+            else if (arg2_match(argv[0], "-t", "--typable"))
+                set_switch(argv[0], &typable);
+            else if (arg2_match(argv[0], NULL, "--verify"))
+                set_switch(argv[0], &verify);
+            else if (arg2_match(argv[0], NULL, "--checksum"))
+                set_switch(argv[0], &checksum);
+            else if (arg2_match(argv[0], NULL, "--extbas"))
+                set_switch(argv[0], &extended_basic);
+            else if (arg2_match(argv[0], "-r", "--remarks"))
+                set_switch(argv[0], &remarks);
+            else if (arg2_match(argv[0], NULL, "--diag"))
+                set_switch(argv[0], &print_diag);
 
             else if (
               match_memory_location_type_arg(&argv, "-s", "--start",    &start, &start_set)
@@ -1458,16 +1440,6 @@ int main(int argc, char *argv[])
           || match_line_type_arg(&argv, NULL, "--line",     &line_number,
                                                               &line_number_set)
           || match_line_number_step_type_arg(&argv, NULL, "--step",     &step,  &step_set)
-          ||  match_switch_arg(argv[0], "-n", "--nowarn",   &nowarn)
-          ||  match_switch_arg(argv[0], "-t", "--typable",  &typable)
-          ||  match_switch_arg(argv[0], NULL, "--verify",   &verify)
-          ||  match_switch_arg(argv[0], NULL, "--checksum", &checksum)
-          ||  match_switch_arg(argv[0], NULL, "--extbas",   &extended_basic)
-          ||  match_switch_arg(argv[0], "-r", "--remarks",  &remarks)
-          ||  match_switch_arg(argv[0], NULL, "--diag",     &print_diag)
-          ||  match_target_architecture_arg (&argv, "-m", "--machine",  &target_architecture)
-          ||  match_format_arg  (&argv, "-f", "--format",   &input_file_format)
-          ||  match_case_arg    (&argv, "-c", "--case",     &output_case)
               )
            ;
       else if (argv[0][0]=='-')
