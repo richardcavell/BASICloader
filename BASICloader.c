@@ -76,6 +76,8 @@
 #define MIN_BASIC_LINE_NUMBER 0
 #define MAX_BASIC_LINE_NUMBER 63999
 
+#define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
+
 #define LINE_COUNT_BENCHMARK 100
 
 #define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
@@ -236,8 +238,9 @@ check_maximum_starting_basic_line_number_macro(void)
 static void
 check_default_basic_line_number_step_size_macro(void)
 {
-    if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < 1)
-        internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least 1");
+    if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+        internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least %u",
+                       MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
     if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
         internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
@@ -246,8 +249,9 @@ check_default_basic_line_number_step_size_macro(void)
 static void
 check_typable_default_basic_line_number_step_size_macro(void)
 {
-    if (TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < 1)
-        internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least 1");
+    if (TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+        internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least %u",
+                       MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
     if (TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
         internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
@@ -616,6 +620,103 @@ set_switch(const char    *arg,
     *sw = 1;
 }
 
+static unsigned long int
+string_to_unsigned_long(const char         *pstring,
+                        boolean_type       *ok,
+                        unsigned long int  max)
+{
+    unsigned long int l = 0;
+    char *endptr = NULL;
+    int base = 0;
+
+    errno = 0;
+
+    if (pstring != NULL && pstring[0] == '$')
+    {
+        base = 16;
+        ++pstring;
+    }
+    else
+        base = 0;
+
+    if (pstring != NULL)
+        l = strtoul(pstring, &endptr, base);
+
+    *ok = (     pstring != NULL
+            && *pstring != '\0'
+            && endptr   != NULL
+            && (*endptr == '\0')
+            && (errno   == 0)
+            && strtol(pstring, NULL, base) >= 0
+            && l <= max );
+
+  return l;
+}
+
+static void
+get_line_number(const char        *arg1,
+                const char        *arg2,
+                line_number_type  *line_number,
+                boolean_type      *line_set)
+{
+    boolean_type ok = 0;
+
+    if (*line_set != 0)
+        fail("Option %s can only be set once", arg1);
+
+    *line_number = (line_number_type) string_to_unsigned_long(arg2, &ok,
+                                      MAXIMUM_STARTING_BASIC_LINE_NUMBER);
+
+    if (ok == 0)
+        fail("%s takes a number from %u to %u", arg1,
+             MIN_BASIC_LINE_NUMBER,
+             MAXIMUM_STARTING_BASIC_LINE_NUMBER);
+
+    *line_set = 1;
+}
+
+static void
+get_line_number_step(const char             *arg1,
+                     const char             *arg2,
+                     line_number_step_type  *step,
+                     boolean_type           *step_set)
+{
+    boolean_type ok = 0;
+
+    if (*step_set != 0)
+        fail("Option %s can only be set once", arg1);
+
+    *step = (line_number_step_type) string_to_unsigned_long(arg2, &ok,
+                                    MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+
+    if (ok == 0)
+        fail("%s takes a number from %u to %u", arg1,
+             MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE,
+             MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+
+    *step_set = 1;
+}
+
+static void
+get_memory_location_type_arg(const char            *arg1,
+                             const char            *arg2,
+                             memory_location_type  *pmem,
+                             boolean_type          *set)
+{
+    boolean_type ok = 0;
+
+    if (*set != 0)
+        fail("Option %s can only be set once", arg1);
+
+    *pmem = (memory_location_type) string_to_unsigned_long(arg2, &ok,
+                                   MEMORY_LOCATION_TYPE_MAX);
+
+    if (ok == 0)
+        fail("%s takes a number up to 0x%x",
+             arg1, MEMORY_LOCATION_TYPE_MAX);
+
+    *set = 1;
+}
 
 static void
 check_input_file_size(long int   input_file_size,
@@ -1045,127 +1146,6 @@ emit_line(FILE                             *output_file,
          "\n");
 }
 
-static unsigned short int
-get_ushort(const char *text, boolean_type *ok)
-{
-    unsigned long int l = 0;
-    char *endptr = NULL;
-    int base = 0;
-
-    errno = 0;
-
-    if (text != NULL && text[0] == '$')
-    {
-      base = 16;
-      ++text;
-    }
-
-    if (text != NULL)
-        l = strtoul(text, &endptr, base);
-
-    *ok = ( text != NULL
-            && *text != '\0'
-            && endptr != NULL
-            && (*endptr=='\0')
-            && (errno == 0)
-            && strtol(text,NULL,base) >= 0
-            && (l <= USHRT_MAX) );
-
-  return (unsigned short int) l;
-}
-
-static boolean_type
-match_memory_location_type_arg(char **pargv[], const char *shrt, const char *lng,
-                   memory_location_type *ps, boolean_type *set)
-{
-    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
-
-    if (matched == 1)
-    {
-        boolean_type ok = 0;
-
-        if (*set != 0)
-            fail("Option %s can only be set once", (*pargv)[0]);
-
-        *ps = get_ushort((*pargv)[1], &ok);
-
-        if (ok == 0)
-            fail("Invalid argument to %s", (*pargv)[0]);
-
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-        if (*ps > HIGHEST_RAM_ADDRESS)
-            fail("%s cannot be greater than $%x", (*pargv)[0], HIGHEST_RAM_ADDRESS);
-#endif
-
-        ++(*pargv);
-
-        *set = 1;
-    }
-
-    return matched;
-}
-
-static boolean_type
-match_line_type_arg(char **pargv[], const char *shrt, const char *lng,
-                    line_number_type *pl, boolean_type *set)
-{
-    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
-
-    if (matched == 1)
-    {
-        boolean_type ok = 0;
-
-        if (*set != 0)
-            fail("Option %s can only be set once", (*pargv)[0]);
-
-        *pl = get_ushort((*pargv)[1], &ok);
-
-        if (ok == 0)
-            fail("Invalid argument to %s", (*pargv)[0]);
-
-        if (*pl > MAXIMUM_STARTING_BASIC_LINE_NUMBER)
-            fail("%s cannot be higher than %u", (*pargv)[0], MAXIMUM_STARTING_BASIC_LINE_NUMBER);
-
-        if (*pl > MAX_BASIC_LINE_NUMBER)
-            fail("%s cannot be higher than %u", (*pargv)[0], MAX_BASIC_LINE_NUMBER);
-
-        ++(*pargv);
-
-        *set = 1;
-    }
-
-    return matched;
-}
-
-static boolean_type
-match_line_number_step_type_arg(char **pargv[], const char *shrt, const char *lng,
-                    line_number_step_type *ps, boolean_type *set)
-{
-    boolean_type matched = arg2_match((*pargv)[0], shrt, lng);
-
-    if (matched == 1)
-    {
-        boolean_type ok = 0;
-
-        if (*set != 0)
-            fail("Option %s can only be set once", (*pargv)[0]);
-
-        *ps = get_ushort((*pargv)[1], &ok);
-
-        if (ok == 0)
-            fail("Invalid argument to %s", (*pargv)[0]);
-
-        if (*ps > MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
-            fail("%s cannot be higher than %u", (*pargv)[0], MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
-
-        ++(*pargv);
-
-        *set = 1;
-    }
-
-    return matched;
-}
-
 static void
 set_target_architecture(enum target_architecture_choice *target_architecture,
                         boolean_type extended_basic)
@@ -1419,6 +1399,26 @@ int main(int argc, char *argv[])
                 get_case(argv[0], argv[1], &output_case);
                 ++argv;
             }
+            else if (arg2_match(argv[0], NULL, "--line"))
+            {
+                get_line_number(argv[0], argv[1], &line_number, &line_number_set);
+                ++argv;
+            }
+            else if (arg2_match(argv[0], NULL, "--step"))
+            {
+                get_line_number_step(argv[0], argv[1], &step, &step_set);
+                ++argv;
+            }
+            else if (arg2_match(argv[0], "-s", "--start"))
+            {
+                get_memory_location_type_arg(argv[0], argv[1], &start, &start_set);
+                ++argv;
+            }
+            else if (arg2_match(argv[0], "-e", "--exec"))
+            {
+                get_memory_location_type_arg(argv[0], argv[1], &exec, &exec_set);
+                ++argv;
+            }
             else if (arg2_match(argv[0], "-n", "--nowarn"))
                 set_switch(argv[0], &nowarn);
             else if (arg2_match(argv[0], "-t", "--typable"))
@@ -1433,25 +1433,16 @@ int main(int argc, char *argv[])
                 set_switch(argv[0], &remarks);
             else if (arg2_match(argv[0], NULL, "--diag"))
                 set_switch(argv[0], &print_diag);
+            else if (argv[0][0]=='-')
+                fail("Unknown command line option %s", argv[0]);
+            else
+            {
+                if (input_filename != NULL)
+                    fail("Only one input filename may be specified");
 
-            else if (
-              match_memory_location_type_arg(&argv, "-s", "--start",    &start, &start_set)
-          ||  match_memory_location_type_arg(&argv, "-e", "--exec",     &exec,  &exec_set)
-          || match_line_type_arg(&argv, NULL, "--line",     &line_number,
-                                                              &line_number_set)
-          || match_line_number_step_type_arg(&argv, NULL, "--step",     &step,  &step_set)
-              )
-           ;
-      else if (argv[0][0]=='-')
-             fail("Unknown command line option %s", argv[0]);
-      else
-           {
-             if (input_filename != NULL)
-               fail("Only one input filename may be specified");
-
-             input_filename = argv[0];
-           }
-    }
+                input_filename = argv[0];
+            }
+        }
 
     set_target_architecture(&target_architecture, extended_basic);
     set_input_file_format(target_architecture, &input_file_format);
