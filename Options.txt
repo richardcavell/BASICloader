@@ -123,6 +123,11 @@ on/off switches are off by default.
       location. The Coco default is suitable for 16K, 32K and 64K machines.
       The Dragon default is suitable for machines with 32K as well as 64K.
 
+      BASICloader will accept addresses in the usual forms (a leading 0x
+      or 0X for hexadecimal, a leading 0 for octal, no leading 0 for decimal).
+      As an extension, it will also accept hexadecimal addresses with a
+      leading $ sign. (So $1234 is an alternative to 0x1234).
+
   -e  --exec      Exec location
 
       This is where the execution of the binary blob begins.  If you do not

@@ -553,6 +553,13 @@ arg2_match(const char *arg_text,
         || arg_match(arg_text, long_option_name);
 }
 
+static int
+unknown_arg(const char *arg)
+{
+  const int dash = '-';
+  return arg[0] == dash;
+}
+
 static void
 get_output_filename(const char *arg1,
                     const char *arg2,
@@ -642,12 +649,12 @@ string_to_unsigned_long(const char         *pstring,
     if (pstring != NULL)
         l = strtoul(pstring, &endptr, base);
 
-    *ok = (     pstring != NULL
-            && *pstring != '\0'
-            && endptr   != NULL
-            && (*endptr == '\0')
-            && (errno   == 0)
-            && strtol(pstring, NULL, base) >= 0
+    *ok = (     pstring   != NULL
+            && *pstring   != '\0'
+            && endptr     != NULL
+            && *endptr    == '\0'
+            && errno      == 0
+            && pstring[0] != '-'
             && l <= max );
 
   return l;
@@ -1433,7 +1440,7 @@ int main(int argc, char *argv[])
                 set_switch(argv[0], &remarks);
             else if (arg2_match(argv[0], NULL, "--diag"))
                 set_switch(argv[0], &print_diag);
-            else if (argv[0][0]=='-')
+            else if (unknown_arg(argv[0]))
                 fail("Unknown command line option %s", argv[0]);
             else
             {
