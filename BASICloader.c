@@ -1334,23 +1334,23 @@ int main(int argc, char *argv[])
     enum input_file_format_choice    input_file_format    = NO_INPUT_FILE_FORMAT_CHOSEN;
     enum output_case_choice          output_case          = NO_OUTPUT_CASE_CHOSEN;
 
-    boolean_type typable        = 0;
-    boolean_type remarks        = 0;
-    boolean_type extended_basic = 0;
-    boolean_type verify         = 0;
-    boolean_type checksum       = 0;
-    boolean_type print_diag     = 0;
-    boolean_type nowarn         = 0;
+    boolean_type  typable         = 0;
+    boolean_type  remarks         = 0;
+    boolean_type  extended_basic  = 0;
+    boolean_type  verify          = 0;
+    boolean_type  checksum        = 0;
+    boolean_type  print_diag      = 0;
+    boolean_type  nowarn          = 0;
 
     boolean_type       line_incrementing_has_started  = 0;
     line_counter_type  line_count                     = 0;
     boolean_type       line_number_set                = 0;
     line_number_type   line_number                    = 0;
 
-    boolean_type step_set      = 0;
-    line_number_step_type step = 0;
+    boolean_type           step_set  = 0;
+    line_number_step_type  step      = 0;
 
-    line_position_type pos = 0;
+    line_position_type    pos = 0;
 
     boolean_type          start_set  = 0;
     memory_location_type  start      = 0;
