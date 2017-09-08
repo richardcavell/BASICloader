@@ -726,6 +726,48 @@ get_memory_location_type_arg(const char            *arg1,
 }
 
 static void
+set_target_architecture(enum target_architecture_choice *target_architecture)
+{
+    if (*target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
+        *target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
+}
+
+static void
+set_input_file_format(enum input_file_format_choice *input_file_format)
+{
+    if (*input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
+        *input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
+}
+
+static void
+set_output_case(enum output_case_choice *output_case)
+{
+    if (*output_case == NO_OUTPUT_CASE_CHOSEN)
+        *output_case =  DEFAULT_OUTPUT_CASE;
+}
+
+static void
+set_output_filename(enum target_architecture_choice target_architecture,
+                    enum output_case_choice         output_case,
+                    const char                      **output_filename)
+{
+    if (*output_filename == NULL)
+    {
+        if (target_architecture == C64 && output_case == LOWERCASE)
+          *output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
+        else
+          *output_filename = DEFAULT_OUTPUT_FILENAME;
+    }
+}
+
+static void
+set_typable(boolean_type *typable, boolean_type checksum)
+{
+    if (checksum == 1)
+        *typable = 1;
+}
+
+static void
 check_input_file_size(long int   input_file_size,
                       const char *input_filename)
 {
@@ -1154,24 +1196,18 @@ emit_line(FILE                             *output_file,
 }
 
 static void
-set_target_architecture(enum target_architecture_choice *target_architecture,
+check_extended_basic(enum target_architecture_choice *target_architecture,
                         boolean_type extended_basic)
 {
-    if (*target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
-        *target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
-
     if (extended_basic && *target_architecture != COCO)
         fail("Extended Color BASIC option should only be used"
              " with the \"%s\" target", COCO_TEXT);
 }
 
 static void
-set_input_file_format(enum target_architecture_choice target_architecture,
-                      enum input_file_format_choice   *input_file_format)
+check_input_file_format(enum target_architecture_choice target_architecture,
+                        enum input_file_format_choice   *input_file_format)
 {
-    if (*input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
-        *input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
-
     if (*input_file_format == PRG        && target_architecture != C64)
         fail("\"%s\" file format should only be used with the \"%s\" target",
              PRG_TEXT, C64_TEXT);
@@ -1186,12 +1222,9 @@ set_input_file_format(enum target_architecture_choice target_architecture,
 }
 
 static void
-set_output_case(enum target_architecture_choice target_architecture,
-                enum output_case_choice         *output_case)
+check_output_case(enum target_architecture_choice target_architecture,
+                  enum output_case_choice         *output_case)
 {
-    if (*output_case == NO_OUTPUT_CASE_CHOSEN)
-        *output_case =  DEFAULT_OUTPUT_CASE;
-
     if (*output_case == LOWERCASE && target_architecture == COCO)
         fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
 
@@ -1200,27 +1233,6 @@ set_output_case(enum target_architecture_choice target_architecture,
 
     if (*output_case == MIXED_CASE)
         fail("There is presently no target for mixed case output");
-}
-
-static void
-set_output_filename(enum target_architecture_choice target_architecture,
-                    enum output_case_choice         output_case,
-                    const char                      **output_filename)
-{
-    if (*output_filename == NULL)
-    {
-        if (target_architecture == C64 && output_case == LOWERCASE)
-          *output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
-        else
-          *output_filename = DEFAULT_OUTPUT_FILENAME;
-    }
-}
-
-static void
-set_typable(boolean_type *typable, boolean_type checksum)
-{
-    if (checksum == 1)
-        *typable = 1;
 }
 
 static void
@@ -1451,11 +1463,17 @@ int main(int argc, char *argv[])
             }
         }
 
-    set_target_architecture(&target_architecture, extended_basic);
-    set_input_file_format(target_architecture, &input_file_format);
-    set_output_case(target_architecture, &output_case);
+    set_target_architecture(&target_architecture);
+    set_input_file_format(&input_file_format);
+    set_output_case(&output_case);
+
     set_output_filename(target_architecture, output_case, &output_filename);
+
     set_typable(&typable, checksum);
+
+    check_input_file_format(target_architecture, &input_file_format);
+    check_output_case(target_architecture, &output_case);
+    check_extended_basic(&target_architecture, extended_basic);
 
     if (input_filename == NULL)
         fail("You must specify an input file");
