@@ -649,13 +649,13 @@ string_to_unsigned_long(const char         *pstring,
     if (pstring != NULL)
         l = strtoul(pstring, &endptr, base);
 
-    *ok = (     pstring   != NULL
-            && *pstring   != '\0'
-            && endptr     != NULL
-            && *endptr    == '\0'
-            && errno      == 0
-            && pstring[0] != '-'
-            && l <= max );
+    *ok = (     pstring    != NULL
+            && *pstring    != '\0'
+            &&  endptr     != NULL
+            && *endptr     == '\0'
+            &&  errno      == 0
+            &&  pstring[0] != '-'
+            &&  l <= max );
 
   return l;
 }
@@ -716,7 +716,7 @@ get_memory_location_type_arg(const char            *arg1,
         fail("Option %s can only be set once", arg1);
 
     *pmem = (memory_location_type) string_to_unsigned_long(arg2, &ok,
-                                   MEMORY_LOCATION_TYPE_MAX);
+                                   HIGHEST_RAM_ADDRESS);
 
     if (ok == 0)
         fail("%s takes a number up to 0x%x",
@@ -740,10 +740,50 @@ set_input_file_format(enum input_file_format_choice *input_file_format)
 }
 
 static void
+check_input_file_format(enum target_architecture_choice target_architecture,
+                        enum input_file_format_choice   *input_file_format)
+{
+    if (*input_file_format == PRG        && target_architecture != C64)
+        fail("\"%s\" file format should only be used with the \"%s\" target",
+             PRG_TEXT, C64_TEXT);
+
+    if (*input_file_format == DRAGON_DOS && target_architecture != DRAGON)
+        fail("\"%s\" file format should only be used with the \"%s\" target",
+             DRAGON_DOS_TEXT, DRAGON_TEXT);
+
+    if (*input_file_format == RS_DOS     && target_architecture != COCO)
+        fail("\"%s\" file format should only be used with the \"%s\" target",
+             RS_DOS_TEXT, COCO_TEXT);
+}
+
+static void
 set_output_case(enum output_case_choice *output_case)
 {
     if (*output_case == NO_OUTPUT_CASE_CHOSEN)
         *output_case =  DEFAULT_OUTPUT_CASE;
+}
+
+static void
+check_output_case(enum target_architecture_choice target_architecture,
+                  enum output_case_choice         *output_case)
+{
+    if (*output_case == LOWERCASE && target_architecture == COCO)
+        fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
+
+    if (*output_case == LOWERCASE && target_architecture == DRAGON)
+        fail("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
+
+    if (*output_case == MIXED_CASE)
+        fail("There is presently no target for mixed case output");
+}
+
+static void
+check_extended_basic(enum target_architecture_choice *target_architecture,
+                     boolean_type extended_basic)
+{
+    if (extended_basic && *target_architecture != COCO)
+        fail("Extended Color BASIC option should only be used"
+             " with the \"%s\" target", COCO_TEXT);
 }
 
 static void
@@ -1196,46 +1236,6 @@ emit_line(FILE                             *output_file,
 }
 
 static void
-check_target_architecture(enum target_architecture_choice *target_architecture,
-                          boolean_type extended_basic)
-{
-    if (extended_basic && *target_architecture != COCO)
-        fail("Extended Color BASIC option should only be used"
-             " with the \"%s\" target", COCO_TEXT);
-}
-
-static void
-check_input_file_format(enum target_architecture_choice target_architecture,
-                        enum input_file_format_choice   *input_file_format)
-{
-    if (*input_file_format == PRG        && target_architecture != C64)
-        fail("\"%s\" file format should only be used with the \"%s\" target",
-             PRG_TEXT, C64_TEXT);
-
-    if (*input_file_format == DRAGON_DOS && target_architecture != DRAGON)
-        fail("\"%s\" file format should only be used with the \"%s\" target",
-             DRAGON_DOS_TEXT, DRAGON_TEXT);
-
-    if (*input_file_format == RS_DOS     && target_architecture != COCO)
-        fail("\"%s\" file format should only be used with the \"%s\" target",
-             RS_DOS_TEXT, COCO_TEXT);
-}
-
-static void
-check_output_case(enum target_architecture_choice target_architecture,
-                  enum output_case_choice         *output_case)
-{
-    if (*output_case == LOWERCASE && target_architecture == COCO)
-        fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
-
-    if (*output_case == LOWERCASE && target_architecture == DRAGON)
-        fail("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
-
-    if (*output_case == MIXED_CASE)
-        fail("There is presently no target for mixed case output");
-}
-
-static void
 ram_requirement_warning(enum target_architecture_choice target_architecture,
                         boolean_type nowarn,
                         memory_location_type end)
@@ -1464,16 +1464,18 @@ int main(int argc, char *argv[])
         }
 
     set_target_architecture(&target_architecture);
+
     set_input_file_format(&input_file_format);
+    check_input_file_format(target_architecture, &input_file_format);
+
     set_output_case(&output_case);
+    check_output_case(target_architecture, &output_case);
 
     set_output_filename(target_architecture, output_case, &output_filename);
 
     set_typable(&typable, checksum);
+    check_extended_basic(&target_architecture, extended_basic);
 
-    check_target_architecture(&target_architecture, extended_basic);
-    check_input_file_format(target_architecture, &input_file_format);
-    check_output_case(target_architecture, &output_case);
 
     if (input_filename == NULL)
         fail("You must specify an input file");
