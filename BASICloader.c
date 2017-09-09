@@ -1196,8 +1196,8 @@ emit_line(FILE                             *output_file,
 }
 
 static void
-check_extended_basic(enum target_architecture_choice *target_architecture,
-                        boolean_type extended_basic)
+check_target_architecture(enum target_architecture_choice *target_architecture,
+                          boolean_type extended_basic)
 {
     if (extended_basic && *target_architecture != COCO)
         fail("Extended Color BASIC option should only be used"
@@ -1214,7 +1214,7 @@ check_input_file_format(enum target_architecture_choice target_architecture,
 
     if (*input_file_format == DRAGON_DOS && target_architecture != DRAGON)
         fail("\"%s\" file format should only be used with the \"%s\" target",
-             DRAGON_TEXT, DRAGON_DOS_TEXT);
+             DRAGON_DOS_TEXT, DRAGON_TEXT);
 
     if (*input_file_format == RS_DOS     && target_architecture != COCO)
         fail("\"%s\" file format should only be used with the \"%s\" target",
@@ -1229,7 +1229,7 @@ check_output_case(enum target_architecture_choice target_architecture,
         fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
 
     if (*output_case == LOWERCASE && target_architecture == DRAGON)
-        fail("Lowercase output is not useful for a \"%s\" target", DRAGON_TEXT);
+        fail("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
 
     if (*output_case == MIXED_CASE)
         fail("There is presently no target for mixed case output");
@@ -1471,9 +1471,9 @@ int main(int argc, char *argv[])
 
     set_typable(&typable, checksum);
 
+    check_target_architecture(&target_architecture, extended_basic);
     check_input_file_format(target_architecture, &input_file_format);
     check_output_case(target_architecture, &output_case);
-    check_extended_basic(&target_architecture, extended_basic);
 
     if (input_filename == NULL)
         fail("You must specify an input file");
