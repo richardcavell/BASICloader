@@ -741,17 +741,17 @@ set_input_file_format(enum input_file_format_choice *input_file_format)
 
 static void
 check_input_file_format(enum target_architecture_choice target_architecture,
-                        enum input_file_format_choice   *input_file_format)
+                        enum input_file_format_choice   input_file_format)
 {
-    if (*input_file_format == PRG        && target_architecture != C64)
+    if (input_file_format == PRG         && target_architecture != C64)
         fail("\"%s\" file format should only be used with the \"%s\" target",
              PRG_TEXT, C64_TEXT);
 
-    if (*input_file_format == DRAGON_DOS && target_architecture != DRAGON)
+    if (input_file_format == DRAGON_DOS  && target_architecture != DRAGON)
         fail("\"%s\" file format should only be used with the \"%s\" target",
              DRAGON_DOS_TEXT, DRAGON_TEXT);
 
-    if (*input_file_format == RS_DOS     && target_architecture != COCO)
+    if (input_file_format == RS_DOS      && target_architecture != COCO)
         fail("\"%s\" file format should only be used with the \"%s\" target",
              RS_DOS_TEXT, COCO_TEXT);
 }
@@ -765,25 +765,32 @@ set_output_case(enum output_case_choice *output_case)
 
 static void
 check_output_case(enum target_architecture_choice target_architecture,
-                  enum output_case_choice         *output_case)
+                  enum output_case_choice         output_case)
 {
-    if (*output_case == LOWERCASE && target_architecture == COCO)
+    if (output_case == LOWERCASE && target_architecture == COCO)
         fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
 
-    if (*output_case == LOWERCASE && target_architecture == DRAGON)
+    if (output_case == LOWERCASE && target_architecture == DRAGON)
         fail("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
 
-    if (*output_case == MIXED_CASE)
+    if (output_case == MIXED_CASE)
         fail("There is presently no target for mixed case output");
 }
 
 static void
-check_extended_basic(enum target_architecture_choice *target_architecture,
+check_extended_basic(enum target_architecture_choice target_architecture,
                      boolean_type extended_basic)
 {
-    if (extended_basic && *target_architecture != COCO)
+    if (extended_basic && target_architecture != COCO)
         fail("Extended Color BASIC option should only be used"
              " with the \"%s\" target", COCO_TEXT);
+}
+
+static void
+check_input_filename(const char *input_filename)
+{
+    if (input_filename == NULL)
+        fail("You must specify an input file");
 }
 
 static void
@@ -1466,19 +1473,16 @@ int main(int argc, char *argv[])
     set_target_architecture(&target_architecture);
 
     set_input_file_format(&input_file_format);
-    check_input_file_format(target_architecture, &input_file_format);
+    check_input_file_format(target_architecture, input_file_format);
 
     set_output_case(&output_case);
-    check_output_case(target_architecture, &output_case);
-
-    set_output_filename(target_architecture, output_case, &output_filename);
+    check_output_case(target_architecture, output_case);
 
     set_typable(&typable, checksum);
-    check_extended_basic(&target_architecture, extended_basic);
+    check_extended_basic(target_architecture, extended_basic);
 
-
-    if (input_filename == NULL)
-        fail("You must specify an input file");
+    check_input_filename(input_filename);
+    set_output_filename(target_architecture, output_case, &output_filename);
 
     errno = 0;
 
