@@ -744,15 +744,15 @@ check_input_file_format(enum target_architecture_choice target_architecture,
                         enum input_file_format_choice   input_file_format)
 {
     if (input_file_format == PRG         && target_architecture != C64)
-        fail("\"%s\" file format should only be used with the \"%s\" target",
+        fail("File format \"%s\" should only be used with the \"%s\" target",
              PRG_TEXT, C64_TEXT);
 
     if (input_file_format == DRAGON_DOS  && target_architecture != DRAGON)
-        fail("\"%s\" file format should only be used with the \"%s\" target",
+        fail("File format \"%s\" should only be used with the \"%s\" target",
              DRAGON_DOS_TEXT, DRAGON_TEXT);
 
     if (input_file_format == RS_DOS      && target_architecture != COCO)
-        fail("\"%s\" file format should only be used with the \"%s\" target",
+        fail("File format \"%s\" should only be used with the \"%s\" target",
              RS_DOS_TEXT, COCO_TEXT);
 }
 
@@ -775,6 +775,13 @@ check_output_case(enum target_architecture_choice target_architecture,
 
     if (output_case == MIXED_CASE)
         fail("There is presently no target for mixed case output");
+}
+
+static void
+set_typable(boolean_type *typable, boolean_type checksum)
+{
+    if (checksum == 1)
+        *typable = 1;
 }
 
 static void
@@ -805,13 +812,6 @@ set_output_filename(enum target_architecture_choice target_architecture,
         else
           *output_filename = DEFAULT_OUTPUT_FILENAME;
     }
-}
-
-static void
-set_typable(boolean_type *typable, boolean_type checksum)
-{
-    if (checksum == 1)
-        *typable = 1;
 }
 
 static void
