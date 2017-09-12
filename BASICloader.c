@@ -2000,7 +2000,7 @@ int main(int argc, char *argv[])
 
     if (typable == 1 && checksum == 0 && verify == 0)
     {
-        EMITLINEC("FOR P=%d TO %d", start, end)
+        EMITLINEC("FOR P = %d TO %d", start, end)
         EMITLINEA("READ A")
         EMITLINEA("POKE P,A")
         EMITLINEA("NEXT P")
@@ -2011,7 +2011,7 @@ int main(int argc, char *argv[])
 
     if (typable == 1 && checksum == 0 && verify == 1)
     {
-        EMITLINEC("FOR P=%d TO %d", start, end)
+        EMITLINEC("FOR P = %d TO %d", start, end)
         EMITLINEA("READ A")
         EMITLINEA("POKE P,A")
         EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
