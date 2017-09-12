@@ -576,9 +576,9 @@ get_output_filename(const char *arg1,
 }
 
 static void
-get_target_architecture(const char                       *arg1,
-                        const char                       *arg2,
-                        enum target_architecture_choice  *target_architecture)
+get_target_architecture_arg(const char                       *arg1,
+                            const char                       *arg2,
+                            enum target_architecture_choice  *target_architecture)
 {
     if (*target_architecture != NO_TARGET_ARCHITECTURE_CHOSEN)
         fail("You can only set %s once", arg1);
@@ -726,11 +726,13 @@ get_memory_location_type_arg(const char            *arg1,
     *set = 1;
 }
 
-static void
-set_target_architecture(enum target_architecture_choice *target_architecture)
+static enum target_architecture_choice
+set_target_architecture(enum target_architecture_choice target_architecture)
 {
-    if (*target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
-        *target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
+    if (target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
+        target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
+
+    return target_architecture;
 }
 
 static void
@@ -750,14 +752,16 @@ check_input_file_format(enum target_architecture_choice target_architecture,
              RS_DOS_TEXT, COCO_TEXT);
 }
 
-static void
+static enum input_file_format_choice
 set_input_file_format(enum target_architecture_choice  target_architecture,
-                      enum input_file_format_choice    *input_file_format)
+                      enum input_file_format_choice    input_file_format)
 {
-    if (*input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
-        *input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
+    if (input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
+        input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
 
-    check_input_file_format(target_architecture, *input_file_format);
+    check_input_file_format(target_architecture, input_file_format);
+
+    return input_file_format;
 }
 
 static void
@@ -774,21 +778,22 @@ check_output_case(enum target_architecture_choice target_architecture,
         fail("There is presently no target for mixed case output");
 }
 
-static void
+static enum output_case_choice
 set_output_case(enum target_architecture_choice  target_architecture,
-                enum output_case_choice          *output_case)
+                enum output_case_choice          output_case)
 {
-    if (*output_case == NO_OUTPUT_CASE_CHOSEN)
-        *output_case =  DEFAULT_OUTPUT_CASE;
+    if (output_case == NO_OUTPUT_CASE_CHOSEN)
+        output_case =  DEFAULT_OUTPUT_CASE;
 
-    check_output_case(target_architecture, *output_case);
+    check_output_case(target_architecture, output_case);
+
+    return output_case;
 }
 
-static void
-set_typable(boolean_type *typable, boolean_type checksum)
+static boolean_type
+set_typable(boolean_type typable, boolean_type checksum)
 {
-    if (checksum == 1)
-        *typable = 1;
+    return (checksum) ? 1 : typable;
 }
 
 static void
@@ -807,18 +812,20 @@ check_input_filename(const char *input_filename)
         fail("You must specify an input file");
 }
 
-static void
+static const char *
 set_output_filename(enum target_architecture_choice  target_architecture,
                     enum output_case_choice          output_case,
-                    const char                       **output_filename)
+                    const char                       *output_filename)
 {
-    if (*output_filename == NULL)
+    if (output_filename == NULL)
     {
         if (target_architecture == C64 && output_case == LOWERCASE)
-          *output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
+          output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
         else
-          *output_filename = DEFAULT_OUTPUT_FILENAME;
+          output_filename = DEFAULT_OUTPUT_FILENAME;
     }
+
+    return output_filename;
 }
 
 static FILE *
@@ -1191,8 +1198,7 @@ process_prg_header(FILE                  *input_file,
     *start     = st;
     *start_set = 1;
 
-/* TODO:  check that blob fits within RAM */
-  (void) blob_size;
+    (void) blob_size;
 
     if (fseek(input_file, (long int) PRG_FILE_HEADER_SIZE, SEEK_SET) < 0)
         fail("Couldn't operate on file \"%s\". Error number %d", input_filename, errno);
@@ -1252,25 +1258,25 @@ process_header(enum input_file_format_choice  input_file_format,
     }
 }
 
-static void
+static memory_location_type
 set_start_address(enum target_architecture_choice  target_architecture,
                   boolean_type                     start_set,
-                  memory_location_type             *start)
+                  memory_location_type             start)
 {
     if (start_set == 0)
     {
         switch(target_architecture)
         {
             case COCO:
-                *start = COCO_DEFAULT_START_MEMORY_LOCATION;
+                start = COCO_DEFAULT_START_MEMORY_LOCATION;
                 break;
 
             case DRAGON:
-                *start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
+                start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
                 break;
 
             case C64:
-                *start = C64_DEFAULT_START_MEMORY_LOCATION;
+                start = C64_DEFAULT_START_MEMORY_LOCATION;
                 break;
 
             default:
@@ -1279,36 +1285,15 @@ set_start_address(enum target_architecture_choice  target_architecture,
     }
 
 #if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (*start > HIGHEST_RAM_ADDRESS)
+    if (start > HIGHEST_RAM_ADDRESS)
         internal_error("Start location is higher than the highest possible RAM address");
 #endif
-}
 
-static void
-set_exec_address(boolean_type          exec_set,
-                 memory_location_type  start,
-                 memory_location_type  *exec,
-                 memory_location_type  end)
-{
-    if (exec_set == 0)
-        *exec     = start;
-
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (*exec > HIGHEST_RAM_ADDRESS)
-        internal_error("Exec location is higher than the highest possible RAM address");
-#endif
-
-    if (*exec < start)
-        fail("The exec location given ($%x) is below\n"
-             "the start location of the binary blob ($%x)", *exec, start);
-
-    if (*exec > end)
-        fail("The exec location given ($%x) is beyond\n"
-             "the end location of the binary blob ($%x)", *exec, end);
+    return start;
 }
 
 static memory_location_type
-calculate_end_address(memory_location_type  start,
+set_end_address(memory_location_type  start,
                 long int              blob_size)
 {
     long int end = start + blob_size - 1;
@@ -1327,6 +1312,31 @@ calculate_end_address(memory_location_type  start,
         fail("The machine language blob would overflow the RAM limit");
 
     return (memory_location_type) end;
+}
+
+static memory_location_type
+set_exec_address(boolean_type          exec_set,
+                 memory_location_type  start,
+                 memory_location_type  exec,
+                 memory_location_type  end)
+{
+    if (exec_set == 0)
+        exec     = start;
+
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
+    if (exec > HIGHEST_RAM_ADDRESS)
+        internal_error("Exec location is higher than the highest possible RAM address");
+#endif
+
+    if (exec < start)
+        fail("The exec location given ($%x) is below\n"
+             "the start location of the binary blob ($%x)", exec, start);
+
+    if (exec > end)
+        fail("The exec location given ($%x) is beyond\n"
+             "the end location of the binary blob ($%x)", exec, end);
+
+    return exec;
 }
 
 static FILE *
@@ -1380,28 +1390,32 @@ check_line_number(line_number_type line_number)
 #endif
 }
 
-static void
+static line_number_type
 set_line_number(boolean_type      line_number_set,
-                line_number_type  *line_number,
+                line_number_type  line_number,
                 boolean_type      typable)
 {
     if (line_number_set == 0)
-        *line_number = typable ?
+        line_number = typable ?
                        TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
                        DEFAULT_STARTING_BASIC_LINE_NUMBER;
 
-    check_line_number(*line_number);
+    check_line_number(line_number);
+
+    return line_number;
 }
 
-static void
+static line_number_step_type
 set_step(boolean_type           step_set,
-         line_number_step_type  *step,
+         line_number_step_type  step,
          boolean_type           typable)
 {
     if (step_set == 0)
-        *step = typable ?
+        step = typable ?
                 TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
                 DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+
+    return step;
 }
 
 static void
@@ -1474,23 +1488,26 @@ get_architecture_maximum_basic_line_length(enum target_architecture_choice targe
 
 static void
 check_line_position(enum target_architecture_choice  target_architecture,
-                    line_position_type               *line_position)
+                    line_position_type               line_position)
 {
-    if (*line_position > MAXIMUM_BASIC_LINE_LENGTH)
+    if (line_position > MAXIMUM_BASIC_LINE_LENGTH)
         internal_error("Maximum BASIC line length was not avoided");
 
-    if (*line_position > get_architecture_maximum_basic_line_length(target_architecture))
+    if (line_position > get_architecture_maximum_basic_line_length(target_architecture))
         internal_error("The maximum BASIC line length for the \"%s\" target architecture was exceeded",
                         target_architecture_to_text(target_architecture));
 }
 
 static void
-safe_increment_line_position(line_position_type *line_position)
+increment_line_position(enum target_architecture_choice  target_architecture,
+                             line_position_type               *line_position)
 {
     if (*line_position == LINE_POSITION_TYPE_MAX)
         internal_error("Line position overflow detected");
 
     ++(*line_position);
+
+    check_line_position(target_architecture, *line_position);
 }
 
 static void
@@ -1539,10 +1556,7 @@ process_output_text(char                             *output_text_pointer,
             *line_position = 0;
         }
         else
-        {
-            safe_increment_line_position(line_position);
-            check_line_position(target_architecture, line_position);
-        }
+            increment_line_position(target_architecture, line_position);
 
         ++output_text_pointer;
     }
@@ -1757,6 +1771,17 @@ emit_datum(FILE                             *output_file,
 }
 
 static void
+final_newline(FILE                             *output_file,
+              enum target_architecture_choice  target_architecture,
+              enum output_case_choice          output_case,
+              line_counter_type                *line_count,
+              line_position_type               *line_position)
+{
+    if (*line_position > 0)
+        emit(output_file, target_architecture, output_case, line_count, line_position, "\n");
+}
+
+static void
 check_input_file_remainder(FILE                           *input_file,
                            long int                       input_file_size,
                            enum input_file_format_choice  input_file_format,
@@ -1906,7 +1931,7 @@ int main(int argc, char *argv[])
             }
             else if (arg2_match(argv[0], "-m", "--machine"))
             {
-                get_target_architecture(argv[0], argv[1], &target_architecture);
+                get_target_architecture_arg(argv[0], argv[1], &target_architecture);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-f", "--format"))
@@ -1964,14 +1989,14 @@ int main(int argc, char *argv[])
             }
         }
 
-    set_target_architecture(&target_architecture);
-    set_input_file_format(target_architecture, &input_file_format);
-    set_output_case(target_architecture, &output_case);
-    set_typable(&typable, checksum);
+    target_architecture = set_target_architecture(target_architecture);
+    input_file_format   = set_input_file_format(target_architecture, input_file_format);
+    output_case         = set_output_case(target_architecture, output_case);
+    typable             = set_typable(typable, checksum);
+
     check_extended_basic(target_architecture, extended_basic);
 
     check_input_filename(input_filename);
-    set_output_filename(target_architecture, output_case, &output_filename);
 
     input_file       = open_input_file(input_filename);
     input_file_size  = get_input_file_size(input_file, input_filename, input_file_format);
@@ -1987,16 +2012,17 @@ int main(int argc, char *argv[])
                    blob_size,
                    nowarn);
 
-    set_start_address(target_architecture, start_set, &start);
-    end = calculate_end_address(start, blob_size);
-    set_exec_address(exec_set, start, &exec, end);
+    start = set_start_address(target_architecture, start_set, start);
+    end   = set_end_address(start, blob_size);
+    exec  = set_exec_address(exec_set, start, exec, end);
 
-    output_file = open_output_file(output_filename);
+    output_filename = set_output_filename(target_architecture, output_case, output_filename);
+    output_file     = open_output_file(output_filename);
 
     ram_requirement_warning(target_architecture, nowarn, end);
 
-    set_line_number(line_number_set, &line_number, typable);
-    set_step(step_set, &step, typable);
+    line_number = set_line_number(line_number_set, line_number, typable);
+    step        = set_step(step_set, step, typable);
 
 #define EMITLINEA(A)\
     emit_line(output_file, target_architecture, output_case,\
@@ -2201,8 +2227,7 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
         }
     }
 
-    if (line_position > 0)
-        emit(output_file, target_architecture, output_case, &line_count, &line_position, "\n");
+    final_newline(output_file, target_architecture, output_case, &line_count, &line_position);
 
     check_input_file_remainder(input_file,
                                input_file_size,
