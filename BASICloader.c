@@ -56,6 +56,7 @@
 #define MAX_INPUT_FILE_SIZE 65000
 #define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65000
 
+#define STDOUT_FILENAME_SUBSTITUTE "-"
 #define PRINT_WARNINGS_TO_STDERR 0
 
         /* End of user-modifiable values */
@@ -400,18 +401,16 @@ display_help(void)
     puts("      --extbas    Assume Extended Color BASIC (coco only)");
     puts("      --verify    Verify the success of each POKE");
     puts("      --checksum  Calculate checksums");
-    puts("      --line      Starting line number");
-    puts("      --step      Gap between line numbers");
     puts("  -s  --start     Start memory location");
     puts("  -e  --exec      Exec memory location");
-    puts("      --diag      Print diagnostic information");
-    puts("  -n  --nowarn    Don't warn about RAM requirements");
-    puts("  -d  --defaults  Print option defaults");
+    puts("  -p  --print     Print the BASIC program to standard output");
+    puts("  -n  --nowarn    Turn warnings off");
     puts("  -l  --license   Your license to use this program");
     puts("  -i  --info      What this program does");
     puts("  -h  --help      This help information");
     puts("  -v  --version   Version number");
     puts("");
+    puts("For advanced options and more description, see the Options.txt file");
 
     exit(EXIT_SUCCESS);
 }
@@ -791,14 +790,28 @@ set_output_case(enum target_architecture_choice  target_architecture,
 }
 
 static boolean_type
+set_nowarn(boolean_type nowarn, boolean_type print_program)
+{
+    return (print_program) ? 1 : nowarn;
+}
+
+static boolean_type
 set_typable(boolean_type typable, boolean_type checksum)
 {
     return (checksum) ? 1 : typable;
 }
 
+static boolean_type
+set_print_program(const char    *output_filename,
+                  boolean_type  print_program)
+{
+    return (output_filename != NULL &&
+            strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) == 0) ? 1 : print_program;
+}
+
 static void
-check_extended_basic(enum target_architecture_choice target_architecture,
-                     boolean_type extended_basic)
+check_extended_basic(enum target_architecture_choice  target_architecture,
+                     boolean_type                     extended_basic)
 {
     if (extended_basic && target_architecture != COCO)
         fail("Extended Color BASIC option should only be used"
@@ -806,18 +819,34 @@ check_extended_basic(enum target_architecture_choice target_architecture,
 }
 
 static void
-check_input_filename(const char *input_filename)
+check_print_program(boolean_type  print_program,
+                    boolean_type  print_diag)
 {
-    if (input_filename == NULL)
+    if (print_program == 1 && print_diag == 1)
+        fail("--print and --diag options cannot be used together");
+}
+
+static void
+check_input_filename(const char    *input_filename,
+                     boolean_type  read_stdin)
+{
+    if (input_filename == NULL && read_stdin == 0)
         fail("You must specify an input file");
+
+    if (input_filename != NULL && read_stdin == 1)
+        fail("You cannot give an input filename while using --stdin");
 }
 
 static const char *
 set_output_filename(enum target_architecture_choice  target_architecture,
                     enum output_case_choice          output_case,
-                    const char                       *output_filename)
+                    const char                       *output_filename,
+                    boolean_type                     print_program)
 {
-    if (output_filename == NULL)
+    if (print_program == 1 && output_filename != NULL && strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) != 0)
+        fail("You cannot specify an output filename with option --print");
+
+    if (print_program == 0 && output_filename == NULL)
     {
         if (target_architecture == C64 && output_case == LOWERCASE)
           output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
@@ -829,22 +858,31 @@ set_output_filename(enum target_architecture_choice  target_architecture,
 }
 
 static FILE *
-open_input_file(const char *input_filename)
+open_input_file(const char    *input_filename,
+                boolean_type  read_stdin)
 {
     FILE *input_file = NULL;
 
-    errno = 0;
+    if (read_stdin == 1)
+    {
+        input_file = stdin;
+    }
+    else
+    {
+        errno = 0;
 
-    input_file = fopen(input_filename, "r");
+        input_file = fopen(input_filename, "r");
 
-    if (input_file == NULL)
-        fail("Could not open file \"%s\". Error number %d", input_filename, errno);
+        if (input_file == NULL)
+            fail("Could not open file \"%s\". Error number %d", input_filename, errno);
+    }
 
     return input_file;
 }
 
 static long int
-get_file_position(FILE *file, const char *filename)
+get_file_position(FILE        *file,
+                  const char  *filename)
 {
     long int file_size;
 
@@ -969,8 +1007,8 @@ get_blob_size(const char                     *input_filename,
 }
 
 static unsigned char
-get_character_from_input_file(FILE *input_file,
-                              const char *input_filename)
+get_character_from_input_file(FILE        *input_file,
+                              const char  *input_filename)
 {
     int input_file_character;
 
@@ -1051,17 +1089,20 @@ process_rs_dos_header(FILE                  *input_file,
       fail("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
 
-    get_header_or_preamble_or_postamble(postamble, sizeof postamble, input_file, input_filename);
+    get_header_or_preamble_or_postamble(postamble,
+                                        sizeof postamble,
+                                        input_file,
+                                        input_filename);
 
     if (postamble[0] == 0x0)
       fail("Input RS-DOS file \"%s\" is segmented, and cannot be used",
-                              input_filename);
+                                input_filename);
 
     if (postamble[0] != 0xff ||
         postamble[1] != 0x0  ||
         postamble[2] != 0x0)
       fail("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
-                       input_filename);
+                         input_filename);
 
     ex = construct_16bit_value(postamble[3], postamble[4]);
 
@@ -1103,7 +1144,10 @@ process_dragon_dos_header(FILE                  *input_file,
 
     (void) nowarn;
 
-    get_header_or_preamble_or_postamble(header, sizeof header, input_file, input_filename);
+    get_header_or_preamble_or_postamble(header,
+                                        sizeof header,
+                                        input_file,
+                                        input_filename);
 
     if (header[0] != 0x55 || header[8] != 0xAA)
         fail("Input file \"%s\" doesn't appear to be a Dragon DOS file",
@@ -1254,6 +1298,7 @@ process_header(enum input_file_format_choice  input_file_format,
                 break;
 
         default:
+                internal_error("Unhandled file format in process_header()");
                 break;
     }
 }
@@ -1340,20 +1385,28 @@ set_exec_address(boolean_type          exec_set,
 }
 
 static FILE *
-open_output_file(const char *output_filename)
+open_output_file(const char *output_filename,
+                 boolean_type print_program)
 {
-    FILE *output_file = fopen(output_filename, "w");
+    FILE *output_file = NULL;
 
-    if (output_file == NULL)
-        fail("Could not open file \"%s\". Error number %d", output_filename, errno);
+    if (print_program == 1)
+        output_file = stdout;
+    else
+    {
+        output_file = fopen(output_filename, "w");
+
+        if (output_file == NULL)
+            fail("Could not open file \"%s\". Error number %d", output_filename, errno);
+    }
 
     return output_file;
 }
 
 static void
-ram_requirement_warning(enum target_architecture_choice target_architecture,
-                        boolean_type nowarn,
-                        memory_location_type end)
+ram_requirement_warning(enum target_architecture_choice  target_architecture,
+                        boolean_type                     nowarn,
+                        memory_location_type             end)
 {
     if (target_architecture == COCO && nowarn == 0)
     {
@@ -1420,11 +1473,9 @@ set_step(boolean_type           step_set,
 
 static void
 safe_step_line_number(line_number_type       *line_number,
-                      line_number_step_type  *step)
+                      line_number_step_type  step)
 {
-    line_number_step_type i = *step;
-
-    while (i--)
+    while (step--)
     {
         if (*line_number == LINE_NUMBER_TYPE_MAX)
             internal_error("Line number overflow");
@@ -1439,7 +1490,7 @@ inc_line_number(boolean_type           *line_incrementing_has_started,
                 line_number_step_type  *step)
 {
     if (*line_incrementing_has_started == 1)
-        safe_step_line_number(line_number, step);
+        safe_step_line_number(line_number, *step);
 
     *line_incrementing_has_started = 1;
 
@@ -1605,14 +1656,15 @@ static enum vemit_status
 vemit(FILE                             *output_file,
       enum target_architecture_choice  target_architecture,
       enum output_case_choice          output_case,
+      long int                         *output_file_size,
       line_counter_type                *line_count,
       line_position_type               *line_position,
       const char                       *fmt,
       va_list                          ap)
 {
     char      output_text[OUTPUT_TEXT_BUFFER_SIZE] = "";
-    long int  output_file_size = 0;
     int       vsprintf_return_value = vsprintf(output_text, fmt, ap);
+    int       fprintf_return_value = 0;
 
     if (vsprintf_return_value < 0)
         return VSPRINTF_FAIL;
@@ -1626,16 +1678,26 @@ vemit(FILE                             *output_file,
                         line_count,
                         line_position);
 
-    if (fprintf(output_file, "%s", output_text) < 0)
+    fprintf_return_value = fprintf(output_file, "%s", output_text);
+
+    if (fprintf_return_value < 0 || fprintf_return_value != vsprintf_return_value)
         return EMIT_FAIL;
 
-    output_file_size = ftell(output_file);
+    *output_file_size += fprintf_return_value;
 
-    if (output_file_size < 0)
-        return FTELL_FAIL;
+    if (output_file != stdout)
+    {
+        long int  ftell_return_value = ftell(output_file);
 
-    if (output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE ||
-        output_file_size > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        if (ftell_return_value < 0)
+            return FTELL_FAIL;
+
+        if (*output_file_size != ftell_return_value)
+            return EMIT_FAIL;
+    }
+
+    if (*output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE ||
+        *output_file_size > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
         return TOO_LARGE;
 
     return VE_SUCCESS;
@@ -1645,6 +1707,7 @@ static void
 emit(FILE                             *output_file,
      enum target_architecture_choice  target_architecture,
      enum output_case_choice          output_case,
+     long int                         *output_file_size,
      line_counter_type                *line_count,
      line_position_type               *line_position,
      const char                       *fmt,
@@ -1657,6 +1720,7 @@ emit(FILE                             *output_file,
     status = vemit(output_file,
                    target_architecture,
                    output_case,
+                   output_file_size,
                    line_count,
                    line_position,
                    fmt,
@@ -1670,6 +1734,7 @@ static void
 emit_line(FILE                             *output_file,
           enum target_architecture_choice  target_architecture,
           enum output_case_choice          output_case,
+          long int                         *output_file_size,
           boolean_type                     *line_incrementing_has_started,
           line_counter_type                *line_count,
           line_number_type                 *line_number,
@@ -1684,11 +1749,14 @@ emit_line(FILE                             *output_file,
     if (*line_position != 0)
         internal_error("Line emission did not start at position zero");
 
-    inc_line_number(line_incrementing_has_started, line_number, step);
+    inc_line_number(line_incrementing_has_started,
+                    line_number,
+                    step);
 
     emit(output_file,
          target_architecture,
          output_case,
+         output_file_size,
          line_count,
          line_position,
          "%u ",
@@ -1698,6 +1766,7 @@ emit_line(FILE                             *output_file,
     status = vemit(output_file,
                    target_architecture,
                    output_case,
+                   output_file_size,
                    line_count,
                    line_position,
                    fmt,
@@ -1709,6 +1778,7 @@ emit_line(FILE                             *output_file,
     emit(output_file,
          target_architecture,
          output_case,
+         output_file_size,
          line_count,
          line_position,
          "\n");
@@ -1718,6 +1788,7 @@ static void
 emit_datum(FILE                             *output_file,
            enum target_architecture_choice  target_architecture,
            enum output_case_choice          output_case,
+           long int                         *output_file_size,
            boolean_type                     typable,
            boolean_type                     *line_incrementing_has_started,
            line_counter_type                *line_count,
@@ -1741,6 +1812,7 @@ emit_datum(FILE                             *output_file,
         emit(output_file,
              target_architecture,
              output_case,
+             output_file_size,
              line_count,
              line_position,
              "\n");
@@ -1751,6 +1823,7 @@ emit_datum(FILE                             *output_file,
         emit(output_file,
              target_architecture,
              output_case,
+             output_file_size,
              line_count,
              line_position,
              "%u DATA%s%lu",
@@ -1763,6 +1836,7 @@ emit_datum(FILE                             *output_file,
         emit(output_file,
              target_architecture,
              output_case,
+             output_file_size,
              line_count,
              line_position,
              "%s",
@@ -1774,11 +1848,18 @@ static void
 final_newline(FILE                             *output_file,
               enum target_architecture_choice  target_architecture,
               enum output_case_choice          output_case,
+              long int                         *output_file_size,
               line_counter_type                *line_count,
               line_position_type               *line_position)
 {
     if (*line_position > 0)
-        emit(output_file, target_architecture, output_case, line_count, line_position, "\n");
+        emit(output_file,
+             target_architecture,
+             output_case,
+             output_file_size,
+             line_count,
+             line_position,
+             "\n");
 }
 
 static void
@@ -1796,28 +1877,13 @@ check_input_file_remainder(FILE                           *input_file,
             fail("Unexpected remaining bytes in input file \"%s\"", input_filename);
 }
 
-static long int
-measure_output_file_size(FILE        *output_file,
-                         const char  *output_filename)
-{
-    long int output_file_size = 0;
-
-    if (fseek(output_file, 0L, SEEK_END))
-        fail("Could not find the end of file \"%s\". Error number %d", output_filename, errno);
-
-    output_file_size = get_file_position(output_file, output_filename);
-
-    if (output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE)
-        fail("Generated program is too large");
-
-    return output_file_size;
-}
-
 static void
 close_file(FILE *file, const char *filename)
 {
-    if (fclose(file) != 0)
-        fail("Couldn't close file \"%s\"", filename);
+    if (file         != stdin &&
+        file         != stdout &&
+        fclose(file) != 0)
+            fail("Couldn't close file \"%s\"", filename);
 }
 
 static void
@@ -1877,6 +1943,8 @@ int main(int argc, char *argv[])
     boolean_type  extended_basic  = 0;
     boolean_type  verify          = 0;
     boolean_type  checksum        = 0;
+    boolean_type  read_stdin      = 0;
+    boolean_type  print_program   = 0;
     boolean_type  print_diag      = 0;
     boolean_type  nowarn          = 0;
 
@@ -1976,8 +2044,12 @@ int main(int argc, char *argv[])
                 set_switch(argv[0], &extended_basic);
             else if (arg2_match(argv[0], "-r", "--remarks"))
                 set_switch(argv[0], &remarks);
+            else if (arg2_match(argv[0], "-p", "--print"))
+                set_switch(argv[0], &print_program);
             else if (arg2_match(argv[0], NULL, "--diag"))
                 set_switch(argv[0], &print_diag);
+            else if (arg2_match(argv[0], NULL, "--stdin"))
+                set_switch(argv[0], &read_stdin);
             else if (unknown_arg(argv[0]))
                 fail("Unknown command line option %s", argv[0]);
             else
@@ -1992,13 +2064,17 @@ int main(int argc, char *argv[])
     target_architecture = set_target_architecture(target_architecture);
     input_file_format   = set_input_file_format(target_architecture, input_file_format);
     output_case         = set_output_case(target_architecture, output_case);
+    print_program       = set_print_program(output_filename, print_program);
+    nowarn              = set_nowarn(nowarn, print_program);
     typable             = set_typable(typable, checksum);
 
     check_extended_basic(target_architecture, extended_basic);
+    check_print_program(print_program, print_diag);
 
-    check_input_filename(input_filename);
+    check_input_filename(input_filename, read_stdin);
+    output_filename  = set_output_filename(target_architecture, output_case, output_filename, print_program);
 
-    input_file       = open_input_file(input_filename);
+    input_file       = open_input_file(input_filename, read_stdin);
     input_file_size  = get_input_file_size(input_file, input_filename, input_file_format);
     blob_size        = get_blob_size(input_filename, input_file_format, input_file_size);
 
@@ -2012,35 +2088,34 @@ int main(int argc, char *argv[])
                    blob_size,
                    nowarn);
 
-    start = set_start_address(target_architecture, start_set, start);
-    end   = set_end_address(start, blob_size);
-    exec  = set_exec_address(exec_set, start, exec, end);
+    start           = set_start_address(target_architecture, start_set, start);
+    end             = set_end_address(start, blob_size);
+    exec            = set_exec_address(exec_set, start, exec, end);
 
-    output_filename = set_output_filename(target_architecture, output_case, output_filename);
-    output_file     = open_output_file(output_filename);
+    output_file     = open_output_file(output_filename, print_program);
 
     ram_requirement_warning(target_architecture, nowarn, end);
 
-    line_number = set_line_number(line_number_set, line_number, typable);
-    step        = set_step(step_set, step, typable);
+    line_number     = set_line_number(line_number_set, line_number, typable);
+    step            = set_step(step_set, step, typable);
 
 #define EMITLINEA(A)\
-    emit_line(output_file, target_architecture, output_case,\
+    emit_line(output_file, target_architecture, output_case, &output_file_size,\
     &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A);
 
 #define EMITLINEB(A,B)\
-    emit_line(output_file, target_architecture, output_case,\
+    emit_line(output_file, target_architecture, output_case, &output_file_size,\
     &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A, B);
 
 #define EMITLINEC(A,B,C)\
-    emit_line(output_file, target_architecture, output_case,\
+    emit_line(output_file, target_architecture, output_case, &output_file_size,\
     &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A, B, C);
 
 #define EMITLINEE(A,B,C,D,E)\
-    emit_line(output_file, target_architecture, output_case,\
+    emit_line(output_file, target_architecture, output_case, &output_file_size,\
     &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A, B, C, D, E);
 
@@ -2057,10 +2132,10 @@ int main(int argc, char *argv[])
 
     if (remarks == 1)
     {
-        char date_text[OUTPUT_TEXT_BUFFER_SIZE];
-        time_t t = 0;
-        struct tm *tm;
-        boolean_type use_date = 1;
+        char          date_text[OUTPUT_TEXT_BUFFER_SIZE];
+        time_t        t = 0;
+        struct tm     *tm;
+        boolean_type  use_date = 1;
 
         errno = 0;
 
@@ -2075,19 +2150,22 @@ int main(int argc, char *argv[])
                 if (strftime(date_text, sizeof date_text, "%d %B %Y", tm) == 0)
                 {
                     use_date = 0;
-                    warning("Couldn't format date");
+                    if (nowarn == 0)
+                        warning("Couldn't format date");
                 }
             }
             else
             {
                 use_date = 0;
-                warning("Couldn't convert the current time to local time");
+                if (nowarn == 0)
+                    warning("Couldn't convert the current time to local time");
             }
         }
         else
         {
             use_date = 0;
-            warning("Couldn't get the current time. Error number : %d\n", errno);
+            if (nowarn == 0)
+                warning("Couldn't get the current time. Error number : %d\n", errno);
         }
 
         EMITLINEA("REM   This program was")
@@ -2189,8 +2267,8 @@ int main(int argc, char *argv[])
     }
 
 #define EMITDATUM(A) emit_datum(output_file, target_architecture,\
-output_case, typable, &line_incrementing_has_started, &line_count,\
-&line_number, &step, &line_position, A);
+output_case, &output_file_size, typable, &line_incrementing_has_started,\
+&line_count, &line_number, &step, &line_position, A);
 
     if (checksum == 0)
     {
@@ -2223,23 +2301,27 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
                 EMITDATUM(d[j])
 
             if (line_position > 0)
-                emit(output_file, target_architecture, output_case, &line_count, &line_position, "\n");
+                emit(output_file, target_architecture, output_case, &output_file_size, &line_count, &line_position, "\n");
         }
     }
 
-    final_newline(output_file, target_architecture, output_case, &line_count, &line_position);
+    final_newline(output_file,
+                  target_architecture,
+                  output_case,
+                  &output_file_size,
+                  &line_count,
+                  &line_position);
 
     check_input_file_remainder(input_file,
                                input_file_size,
                                input_file_format,
                                input_filename);
 
-    output_file_size = measure_output_file_size(output_file, output_filename);
-
     close_file(input_file,  input_filename);
     close_file(output_file, output_filename);
 
-    printf("BASIC program has been generated -> \"%s\"\n", output_filename);
+    if (print_program == 0)
+        printf("BASIC program has been generated -> \"%s\"\n", output_filename);
 
     if (print_diag == 1)
         print_diagnostic_info(target_architecture,
@@ -2257,3 +2339,4 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
 
     return EXIT_SUCCESS;
 }
+

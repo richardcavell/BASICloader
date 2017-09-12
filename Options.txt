@@ -1,5 +1,5 @@
-BASICloader
-(in development, don't use it yet)
+Options.txt
+BASICloader (in development, don't use it yet) options summary
 (c) 2017 Richard Cavell
 
 Here is a brief rundown of all of the command line options.  You can bring
@@ -13,22 +13,19 @@ Usage: BASICloader [options] [filename]
   -m  --machine   Target machine (coco/dragon/c64)
   -f  --format    Input file format (binary/rsdos/dragon/prg)
   -c  --case      Output case (upper/lower)
-  -r  --remarks   Add remarks to output program
-  -t  --typable   Unpack the program and use spaces
-      --verify    Verify the success of each POKE
-      --checksum  Calculate and verify checksums
+  -t  --typable   Unpack the BASIC program and use spaces
+  -r  --remarks   Add remarks and date
       --extbas    Assume Extended Color BASIC (coco only)
-      --line      Starting line number
-      --step      The amount added to line numbers
+      --verify    Verify the success of each POKE
+      --checksum  Calculate checksums
   -s  --start     Start memory location
   -e  --exec      Exec memory location
-  -p  --print     Print some diagnostic info
-  -n  --nowarn    Don't warn about RAM requirements
-  -d  --defaults  Print option defaults
-  -l  --license   Your license to use these programs
-  -i  --info      Info about what this program does
+  -p  --print     Print the BASIC program to standard output
+  -n  --nowarn    Turn warnings off
+  -l  --license   Your license to use this program
+  -i  --info      What this program does
   -h  --help      This help information
-  -v  --version   Version of this program
+  -v  --version   Version number
 
 You can specify the options and filename in any order.  If an option takes
 another parameter, use a space.
@@ -39,6 +36,7 @@ on/off switches are off by default.
   -o  --output    Output file
 
       The generated BASIC program will be placed under this filename.
+      A filename of - is equivalent to --print
 
   -m  --machine   Target machine (coco/dragon/c64)
 
@@ -63,11 +61,6 @@ on/off switches are off by default.
       This is what you want if you intend to run the program using VICE, or
       if you want to run it through petcat.
 
-  -r  --remarks   Add remarks to the program
-
-      The BASIC program will have REM statements that include a mention of
-      BASICloader and the date that the program was generated.
-
   -t  --typable   Unpacked, one instruction per line
 
       By default, the program produced by BASICloader is tightly coded, with
@@ -75,6 +68,17 @@ on/off switches are off by default.
       in steps of 1.
 
       Turning this option on makes the output much more readable and typable.
+
+  -r  --remarks   Add remarks to the program
+
+      The BASIC program will have REM statements that include a mention of
+      BASICloader and the date that the program was generated.
+
+      --extbas    Assume Extended Color BASIC
+
+      Only to be used with --machine coco. Assume that the target machine
+      has Extended Color BASIC. The emitted program will include a CLEAR
+      command that is unknown to Color Computers without Extended Color BASIC.
 
       --verify    Verify the success of each POKE
 
@@ -100,20 +104,6 @@ on/off switches are off by default.
 
       Using this option will turn on --typable automatically.
 
-      --extbas    Assume Extended Color BASIC
-
-      Only to be used with --machine coco. Assume that the target machine
-      has Extended Color BASIC. The emitted program will include a CLEAR
-      command that is unknown to Color Computers without Extended Color BASIC.
-
-      --line      Starting line number
-
-      The BASIC program will start with this line number.
-
-      --step      The amount added to line numbers
-
-      The BASIC line numbers will increase by this amount.
-
   -s  --start     Start location
 
       This is where the binary blob will be poked into memory when the
@@ -133,10 +123,12 @@ on/off switches are off by default.
       This is where the execution of the binary blob begins.  If you do not
       specify a location, it will begin from the start location.
 
-  -p  --print     Print diagnostic info about the generated program
+  -p  --print     Print the BASIC program to standard output
 
-      Prints some helpful information to the standard output, after the
-      program has been generated.
+      The program will be printed to the standard output (which is probably
+      your terminal window). This automatically suppresses all other output
+      to the screen such as warnings and diagnostic info. However, fatal
+      errors will still print an error message.
 
   -n  --nowarn    Don't warn about RAM requirements
 
@@ -145,10 +137,6 @@ on/off switches are off by default.
       machine have.
 
       You can switch this warning off using this option.
-
-  -d  --defaults  Print option defaults
-
-      Lists the defaults for those command line options that have defaults.
 
   -l  --license   Your license to use this program
 
@@ -165,5 +153,32 @@ on/off switches are off by default.
   -v  --version   Version of this software
 
       Prints the version number.
+
+== Advanced options ==
+
+These advanced options do not appear in the output of --help:
+
+      --line      Starting line number
+      --step      Gap between line numbers
+  -d  --defaults  Print option defaults
+      --diag      Print diagnostic information
+
+
+      --line      Starting line number
+
+      The BASIC program will start with this line number.
+
+      --step      The amount added to line numbers
+
+      The BASIC line numbers will increase by this amount.
+
+  -d  --defaults  Print option defaults
+
+      Lists the defaults for those command line options that have defaults.
+
+      --diag      Print diagnostic info
+
+      Prints some helpful information to the standard output, after the
+      program has been generated.
 
 Richard Cavell
