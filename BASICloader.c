@@ -1285,9 +1285,10 @@ set_start_address(enum target_architecture_choice  target_architecture,
 }
 
 static void
-set_exec_address(boolean_type exec_set,
-                 memory_location_type start,
-                 memory_location_type *exec)
+set_exec_address(boolean_type          exec_set,
+                 memory_location_type  start,
+                 memory_location_type  *exec,
+                 memory_location_type  end)
 {
     if (exec_set == 0)
         *exec     = start;
@@ -1296,6 +1297,14 @@ set_exec_address(boolean_type exec_set,
     if (*exec > HIGHEST_RAM_ADDRESS)
         internal_error("Exec location is higher than the highest possible RAM address");
 #endif
+
+    if (*exec < start)
+        fail("The exec location given ($%x) is below\n"
+             "the start location of the binary blob ($%x)", *exec, start);
+
+    if (*exec > end)
+        fail("The exec location given ($%x) is beyond\n"
+             "the end location of the binary blob ($%x)", *exec, end);
 }
 
 static memory_location_type
@@ -1304,13 +1313,55 @@ calculate_end_address(memory_location_type  start,
 {
     long int end = start + blob_size - 1;
 
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
     if (end > HIGHEST_RAM_ADDRESS)
         fail("The machine language blob would overflow the RAM limit");
+#endif
 
+#if (LONG_MAX > MEMORY_LOCATION_TYPE_MAX)
     if (end > MEMORY_LOCATION_TYPE_MAX)
-        internal_error("Overflow in get_end_address()");
+        fail("The machine language blob would overflow the RAM limit");
+#endif
+
+    if (end < start)
+        fail("The machine language blob would overflow the RAM limit");
 
     return (memory_location_type) end;
+}
+
+static FILE *
+open_output_file(const char *output_filename)
+{
+    FILE *output_file = fopen(output_filename, "w");
+
+    if (output_file == NULL)
+        fail("Could not open file \"%s\". Error number %d", output_filename, errno);
+
+    return output_file;
+}
+
+static void
+ram_requirement_warning(enum target_architecture_choice target_architecture,
+                        boolean_type nowarn,
+                        memory_location_type end)
+{
+    if (target_architecture == COCO && nowarn == 0)
+    {
+             if (end > HIGHEST_32K_ADDRESS)
+                 warning("Program requires 64K of RAM");
+        else if (end > HIGHEST_16K_ADDRESS)
+                 warning("Program requires at least 32K of RAM");
+        else if (end > HIGHEST_8K_ADDRESS)
+                 warning("Program requires at least 16K of RAM");
+        else if (end > HIGHEST_4K_ADDRESS)
+                 warning("Program requires at least 8K of RAM");
+    }
+
+    if (target_architecture == DRAGON && nowarn == 0)
+    {
+        if (end > HIGHEST_32K_ADDRESS)
+            warning("Program requires 64K of RAM");
+    }
 }
 
 static void
@@ -1330,8 +1381,32 @@ check_line_number(line_number_type line_number)
 }
 
 static void
-safe_step_line_number(line_number_type *line_number,
-                      line_number_step_type *step)
+set_line_number(boolean_type      line_number_set,
+                line_number_type  *line_number,
+                boolean_type      typable)
+{
+    if (line_number_set == 0)
+        *line_number = typable ?
+                       TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
+                       DEFAULT_STARTING_BASIC_LINE_NUMBER;
+
+    check_line_number(*line_number);
+}
+
+static void
+set_step(boolean_type           step_set,
+         line_number_step_type  *step,
+         boolean_type           typable)
+{
+    if (step_set == 0)
+        *step = typable ?
+                TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
+                DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+}
+
+static void
+safe_step_line_number(line_number_type       *line_number,
+                      line_number_step_type  *step)
 {
     line_number_step_type i = *step;
 
@@ -1398,8 +1473,8 @@ get_architecture_maximum_basic_line_length(enum target_architecture_choice targe
 }
 
 static void
-check_line_position(enum target_architecture_choice target_architecture,
-                    line_position_type              *line_position)
+check_line_position(enum target_architecture_choice  target_architecture,
+                    line_position_type               *line_position)
 {
     if (*line_position > MAXIMUM_BASIC_LINE_LENGTH)
         internal_error("Maximum BASIC line length was not avoided");
@@ -1419,8 +1494,8 @@ safe_increment_line_position(line_position_type *line_position)
 }
 
 static void
-caseify_output_text(char *output_text_pointer,
-                    enum output_case_choice output_case)
+caseify_output_text(char                     *output_text_pointer,
+                    enum output_case_choice  output_case)
 {
     while (*output_text_pointer != '\0')
     {
@@ -1578,6 +1653,54 @@ emit(FILE                             *output_file,
 }
 
 static void
+emit_line(FILE                             *output_file,
+          enum target_architecture_choice  target_architecture,
+          enum output_case_choice          output_case,
+          boolean_type                     *line_incrementing_has_started,
+          line_counter_type                *line_count,
+          line_number_type                 *line_number,
+          line_number_step_type            *step,
+          line_position_type               *line_position,
+          const char                       *fmt,
+          ...)
+{
+    va_list ap;
+    enum vemit_status status;
+
+    if (*line_position != 0)
+        internal_error("Line emission did not start at position zero");
+
+    inc_line_number(line_incrementing_has_started, line_number, step);
+
+    emit(output_file,
+         target_architecture,
+         output_case,
+         line_count,
+         line_position,
+         "%u ",
+         *line_number);
+
+    va_start(ap, fmt);
+    status = vemit(output_file,
+                   target_architecture,
+                   output_case,
+                   line_count,
+                   line_position,
+                   fmt,
+                   ap);
+    va_end(ap);
+
+    check_vemit_status(status);
+
+    emit(output_file,
+         target_architecture,
+         output_case,
+         line_count,
+         line_position,
+         "\n");
+}
+
+static void
 emit_datum(FILE                             *output_file,
            enum target_architecture_choice  target_architecture,
            enum output_case_choice          output_case,
@@ -1634,99 +1757,39 @@ emit_datum(FILE                             *output_file,
 }
 
 static void
-emit_line(FILE                             *output_file,
-          enum target_architecture_choice  target_architecture,
-          enum output_case_choice          output_case,
-          boolean_type                     *line_incrementing_has_started,
-          line_counter_type                *line_count,
-          line_number_type                 *line_number,
-          line_number_step_type            *step,
-          line_position_type               *line_position,
-          const char                       *fmt,
-          ...)
+print_diagnostic_info(enum target_architecture_choice  target_architecture,
+                      enum output_case_choice          output_case,
+                      boolean_type                     typable,
+                      boolean_type                     remarks,
+                      boolean_type                     extended_basic,
+                      boolean_type                     checksum,
+                      memory_location_type             start,
+                      memory_location_type             exec,
+                      memory_location_type             end,
+                      long int                         blob_size,
+                      line_counter_type                line_count,
+                      long int                         output_file_size)
 {
-    va_list ap;
-    enum vemit_status status;
+    printf("Output is for the %s target architecture%s\n",
+                      target_architecture_to_text(target_architecture),
+                      extended_basic ? " (with Extended BASIC)" : "");
 
-    if (*line_position != 0)
-        internal_error("Line emission did not start at position zero");
+    printf("The program is %s, %s form%s"
+           " and with%s program comments\n",
+                               case_to_text(output_case),
+                               typable ? "typable" : "compact",
+                               checksum ? " with checksumming" : "",
+                               remarks ? "" : "out");
+    printf("  Start location : $%x (%u)\n", start, start);
+    printf("  Exec location  : $%x (%u)\n", exec, exec);
+    printf("  End location   : $%x (%u)\n", end, end);
 
-    inc_line_number(line_incrementing_has_started, line_number, step);
-
-    emit(output_file,
-         target_architecture,
-         output_case,
-         line_count,
-         line_position,
-         "%u ",
-         *line_number);
-
-    va_start(ap, fmt);
-    status = vemit(output_file,
-                   target_architecture,
-                   output_case,
-                   line_count,
-                   line_position,
-                   fmt,
-                   ap);
-    va_end(ap);
-
-    check_vemit_status(status);
-
-    emit(output_file,
-         target_architecture,
-         output_case,
-         line_count,
-         line_position,
-         "\n");
-}
-
-static void
-ram_requirement_warning(enum target_architecture_choice target_architecture,
-                        boolean_type nowarn,
-                        memory_location_type end)
-{
-    if (target_architecture == COCO && nowarn == 0)
-    {
-             if (end > HIGHEST_32K_ADDRESS)
-                 warning("Program requires 64K of RAM");
-        else if (end > HIGHEST_16K_ADDRESS)
-                 warning("Program requires at least 32K of RAM");
-        else if (end > HIGHEST_8K_ADDRESS)
-                 warning("Program requires at least 16K of RAM");
-        else if (end > HIGHEST_4K_ADDRESS)
-                 warning("Program requires at least 8K of RAM");
-    }
-
-    if (target_architecture == DRAGON && nowarn == 0)
-    {
-        if (end > HIGHEST_32K_ADDRESS)
-            warning("Program requires 64K of RAM");
-    }
-}
-
-static void
-set_line_number(boolean_type      line_number_set,
-                line_number_type  *line_number,
-                boolean_type      typable)
-{
-    if (line_number_set == 0)
-        *line_number = typable ?
-                       TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
-                       DEFAULT_STARTING_BASIC_LINE_NUMBER;
-
-    check_line_number(*line_number);
-}
-
-static void
-set_step(boolean_type           step_set,
-         line_number_step_type  *step,
-         boolean_type           typable)
-{
-    if (step_set == 0)
-        *step = typable ?
-                TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
-                DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+    if (blob_size > 15)
+    printf("  Blob size      : $%lx (%lu) bytes\n", blob_size, blob_size);
+    else
+    printf("  Blob size      : %lu bytes\n", blob_size);
+    printf("  BASIC program  : %u lines (%lu characters)\n",
+                               line_count, output_file_size);
 }
 
 int main(int argc, char *argv[])
@@ -1887,32 +1950,10 @@ int main(int argc, char *argv[])
                    nowarn);
 
     set_start_address(target_architecture, start_set, &start);
-    set_exec_address(exec_set, start, &exec);
-
     end = calculate_end_address(start, blob_size);
+    set_exec_address(exec_set, start, &exec, end);
 
-    if (exec < start)
-        fail("The exec location given ($%x) is below\n"
-             "the start location of the binary blob ($%x)", exec, start);
-
-    if (exec > end)
-        fail("The exec location given ($%x) is beyond\n"
-             "the end location of the binary blob ($%x)", exec, end);
-
-    output_file = fopen(output_filename, "w");
-
-    if (output_file == NULL)
-        fail("Could not open file \"%s\". Error number %d", input_filename, errno);
-
-    if (
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-        (end > HIGHEST_RAM_ADDRESS) ||
-#endif
-        (start + blob_size - 1 > MEMORY_LOCATION_TYPE_MAX) ||
-        (end < start) )
-    {
-        fail("The machine language blob would overflow the 64K RAM limit");
-    }
+    output_file = open_output_file(output_filename);
 
     ram_requirement_warning(target_architecture, nowarn, end);
 
@@ -1920,24 +1961,24 @@ int main(int argc, char *argv[])
     set_step(step_set, &step, typable);
 
 #define EMITLINEA(A)\
- emit_line(output_file, target_architecture, output_case,\
- &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
- A);
+    emit_line(output_file, target_architecture, output_case,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    A);
 
 #define EMITLINEB(A,B)\
- emit_line(output_file, target_architecture, output_case,\
- &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
- A, B);
+    emit_line(output_file, target_architecture, output_case,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    A, B);
 
 #define EMITLINEC(A,B,C)\
- emit_line(output_file, target_architecture, output_case,\
- &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
- A, B, C);
+    emit_line(output_file, target_architecture, output_case,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    A, B, C);
 
 #define EMITLINEE(A,B,C,D,E)\
- emit_line(output_file, target_architecture, output_case,\
- &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
- A, B, C, D, E);
+    emit_line(output_file, target_architecture, output_case,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    A, B, C, D, E);
 
     if (target_architecture == DRAGON
     || (target_architecture == COCO && extended_basic))
@@ -1950,48 +1991,48 @@ int main(int argc, char *argv[])
                             "POKE55,%d:POKE56,%d",
                   start%256, start/256)
 
-  if (remarks == 1)
-  {
-    char date_text[OUTPUT_TEXT_BUFFER_SIZE];
-    time_t t = 0;
-    struct tm *tm;
-    boolean_type use_date = 1;
-
-    errno = 0;
-
-    t = time(NULL);
-
-    if (t != (time_t) -1 && errno == 0)
+    if (remarks == 1)
     {
-      tm = localtime(&t);
+        char date_text[OUTPUT_TEXT_BUFFER_SIZE];
+        time_t t = 0;
+        struct tm *tm;
+        boolean_type use_date = 1;
 
-      if (tm != NULL)
-      {
-        if (strftime(date_text, sizeof date_text, "%d %B %Y", tm) == 0)
+        errno = 0;
+
+        t = time(NULL);
+
+        if (t != (time_t) -1 && errno == 0)
         {
-          use_date = 0;
-          warning("Couldn't format date");
-        }
-      }
-      else
-      {
-        use_date = 0;
-        warning("Couldn't convert the current time to local time");
-      }
-    }
-    else
-    {
-      use_date = 0;
-      warning("Couldn't get the current time. Error number : %d\n", errno);
-    }
+            tm = localtime(&t);
 
-    EMITLINEA("REM   This program was")
-    EMITLINEA("REM generated by BASICloader")
-    if (use_date == 1)
-    EMITLINEB("REM   on %-15s", date_text)
-    EMITLINEA("REM See github.com/")
-    EMITLINEA("REM      richardcavell")
-  }
+            if (tm != NULL)
+            {
+                if (strftime(date_text, sizeof date_text, "%d %B %Y", tm) == 0)
+                {
+                    use_date = 0;
+                    warning("Couldn't format date");
+                }
+            }
+            else
+            {
+                use_date = 0;
+                warning("Couldn't convert the current time to local time");
+            }
+        }
+        else
+        {
+            use_date = 0;
+            warning("Couldn't get the current time. Error number : %d\n", errno);
+        }
+
+        EMITLINEA("REM   This program was")
+        EMITLINEA("REM generated by BASICloader")
+        if (use_date == 1)
+        EMITLINEB("REM   on %-15s", date_text)
+        EMITLINEA("REM See github.com/")
+        EMITLINEA("REM      richardcavell")
+    }
 
     if (typable == 0 && verify == 0)
     {
@@ -2150,28 +2191,18 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
     printf("BASIC program has been generated -> \"%s\"\n", output_filename);
 
     if (print_diag == 1)
-    {
-        printf("Output is for the %s target architecture%s\n",
-                          target_architecture_to_text(target_architecture),
-                          extended_basic ? " (with Extended BASIC)" : "");
-
-        printf("The program is %s, %s form%s"
-               " and with%s program comments\n",
-                                   case_to_text(output_case),
-                                   typable ? "typable" : "compact",
-                                   checksum ? " with checksumming" : "",
-                                   remarks ? "" : "out");
-        printf("  Start location : $%x (%u)\n", start, start);
-        printf("  Exec location  : $%x (%u)\n", exec, exec);
-        printf("  End location   : $%x (%u)\n", end, end);
-
-        if (blob_size > 15)
-        printf("  Blob size      : $%lx (%lu) bytes\n", blob_size, blob_size);
-        else
-        printf("  Blob size      : %lu bytes\n", blob_size);
-        printf("  BASIC program  : %u lines (%lu characters)\n",
-                                   line_count, output_file_size);
-    }
+        print_diagnostic_info(target_architecture,
+                              output_case,
+                              typable,
+                              remarks,
+                              extended_basic,
+                              checksum,
+                              start,
+                              exec,
+                              end,
+                              blob_size,
+                              line_count,
+                              output_file_size);
 
     return EXIT_SUCCESS;
 }
