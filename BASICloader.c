@@ -819,7 +819,7 @@ check_extended_basic(enum target_architecture_choice  target_architecture,
 }
 
 static void
-check_print_program(boolean_type  print_program,
+check_print_options(boolean_type  print_program,
                     boolean_type  print_diag)
 {
     if (print_program == 1 && print_diag == 1)
@@ -1385,8 +1385,8 @@ set_exec_address(boolean_type          exec_set,
 }
 
 static FILE *
-open_output_file(const char *output_filename,
-                 boolean_type print_program)
+open_output_file(const char    *output_filename,
+                 boolean_type  print_program)
 {
     FILE *output_file = NULL;
 
@@ -1844,13 +1844,37 @@ emit_datum(FILE                             *output_file,
     }
 }
 
+static const char *
+exec_command(enum target_architecture_choice target_architecture)
+{
+    const char *text = NULL;
+
+    switch(target_architecture)
+    {
+        case COCO:
+        case DRAGON:
+            text = "EXEC";
+            break;
+
+        case C64:
+            text = "SYS";
+            break;
+
+        default:
+            internal_error("Unhandled target architecture in exec_command()");
+            break;
+    }
+
+    return text;
+}
+
 static void
-final_newline(FILE                             *output_file,
-              enum target_architecture_choice  target_architecture,
-              enum output_case_choice          output_case,
-              long int                         *output_file_size,
-              line_counter_type                *line_count,
-              line_position_type               *line_position)
+newline_if_needed(FILE                             *output_file,
+                  enum target_architecture_choice  target_architecture,
+                  enum output_case_choice          output_case,
+                  long int                         *output_file_size,
+                  line_counter_type                *line_count,
+                  line_position_type               *line_position)
 {
     if (*line_position > 0)
         emit(output_file,
@@ -1956,7 +1980,7 @@ int main(int argc, char *argv[])
     boolean_type           step_set  = 0;
     line_number_step_type  step      = 0;
 
-    line_position_type    line_position = 0;
+    line_position_type    line_position  = 0;
 
     boolean_type          start_set  = 0;
     memory_location_type  start      = 0;
@@ -2069,7 +2093,7 @@ int main(int argc, char *argv[])
     typable             = set_typable(typable, checksum);
 
     check_extended_basic(target_architecture, extended_basic);
-    check_print_program(print_program, print_diag);
+    check_print_options(print_program, print_diag);
 
     check_input_filename(input_filename, read_stdin);
     output_filename  = set_output_filename(target_architecture, output_case, output_filename, print_program);
@@ -2092,12 +2116,12 @@ int main(int argc, char *argv[])
     end             = set_end_address(start, blob_size);
     exec            = set_exec_address(exec_set, start, exec, end);
 
-    output_file     = open_output_file(output_filename, print_program);
+    line_number     = set_line_number(line_number_set, line_number, typable);
+    step            = set_step(step_set, step, typable);
 
     ram_requirement_warning(target_architecture, nowarn, end);
 
-    line_number     = set_line_number(line_number_set, line_number, typable);
-    step            = set_step(step_set, step, typable);
+    output_file     = open_output_file(output_filename, print_program);
 
 #define EMITLINEA(A)\
     emit_line(output_file, target_architecture, output_case, &output_file_size,\
@@ -2179,16 +2203,14 @@ int main(int argc, char *argv[])
     if (typable == 0 && verify == 0)
     {
         EMITLINEE("FORP=%dTO%d:READA:POKEP,A:NEXT:%s%d:END",
-                  start, end, (target_architecture == COCO || target_architecture == DRAGON) ?
-                               "EXEC" : "SYS", exec)
+                  start, end, exec_command(target_architecture), exec)
     }
 
     if (typable == 0 && verify == 1)
     {
         EMITLINEC("FORP=%dTO%d:READA:POKEP,A", start, end)
         EMITLINEB("IFA<>PEEK(P)THENGOTO%d",line_number+3*step)
-        EMITLINEC("NEXT:%s%d:END", (target_architecture == COCO || target_architecture == DRAGON) ?
-                                    "EXEC" : "SYS", exec)
+        EMITLINEC("NEXT:%s%d:END", exec_command(target_architecture), exec)
         EMITLINEA("PRINT\"Error!\":END")
     }
 
@@ -2198,8 +2220,7 @@ int main(int argc, char *argv[])
         EMITLINEA("READ A")
         EMITLINEA("POKE P,A")
         EMITLINEA("NEXT P")
-        EMITLINEC("%s %d", (target_architecture == COCO || target_architecture == DRAGON) ?
-                  "EXEC" : "SYS", exec)
+        EMITLINEC("%s %d", exec_command(target_architecture), exec)
         EMITLINEA("END")
     }
 
@@ -2210,8 +2231,7 @@ int main(int argc, char *argv[])
         EMITLINEA("POKE P,A")
         EMITLINEB("IF A<>PEEK(P) THEN GOTO %d",line_number+5*step)
         EMITLINEA("NEXT P")
-        EMITLINEC("%s %d", (target_architecture == COCO || target_architecture == DRAGON) ?
-                  "EXEC" : "SYS", exec)
+        EMITLINEC("%s %d", exec_command(target_architecture), exec)
         EMITLINEA("END")
         EMITLINEA("PRINT \"Error!\"")
         EMITLINEA("END")
@@ -2233,7 +2253,7 @@ int main(int argc, char *argv[])
         EMITLINEA("NEXT I")
         EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
         EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
-        EMITLINEC("%s %u", target_architecture == C64 ? "SYS" : "EXEC", exec)
+        EMITLINEC("%s %u", exec_command(target_architecture), exec)
         EMITLINEA("END")
         EMITLINEA("PRINT \"There is an error\"")
         EMITLINEA("PRINT \"on line\";L;\"!\"")
@@ -2257,7 +2277,7 @@ int main(int argc, char *argv[])
         EMITLINEA("NEXT I")
         EMITLINEB("IF C <> CS THEN GOTO %u", line_number + 5 * step)
         EMITLINEB("IF P < Q THEN GOTO %u", line_number - 11 * step)
-        EMITLINEC("%s %u", target_architecture == C64 ? "SYS" : "EXEC", exec)
+        EMITLINEC("%s %u", exec_command(target_architecture), exec)
         EMITLINEA("END")
         EMITLINEA("PRINT \"There is an error\"")
         EMITLINEA("PRINT \"on line\";L;\"!\"")
@@ -2300,25 +2320,29 @@ output_case, &output_file_size, typable, &line_incrementing_has_started,\
             for (j = 0; j < i; ++j)
                 EMITDATUM(d[j])
 
-            if (line_position > 0)
-                emit(output_file, target_architecture, output_case, &output_file_size, &line_count, &line_position, "\n");
+            newline_if_needed(output_file,
+                              target_architecture,
+                              output_case,
+                              &output_file_size,
+                              &line_count,
+                              &line_position);
         }
     }
 
-    final_newline(output_file,
-                  target_architecture,
-                  output_case,
-                  &output_file_size,
-                  &line_count,
-                  &line_position);
+    newline_if_needed(output_file,
+                      target_architecture,
+                      output_case,
+                      &output_file_size,
+                      &line_count,
+                      &line_position);
 
     check_input_file_remainder(input_file,
                                input_file_size,
                                input_file_format,
                                input_filename);
 
-    close_file(input_file,  input_filename);
     close_file(output_file, output_filename);
+    close_file(input_file,  input_filename);
 
     if (print_program == 0)
         printf("BASIC program has been generated -> \"%s\"\n", output_filename);
