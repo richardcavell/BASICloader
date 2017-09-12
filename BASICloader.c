@@ -1757,6 +1757,45 @@ emit_datum(FILE                             *output_file,
 }
 
 static void
+check_input_file_remainder(FILE                           *input_file,
+                           long int                       input_file_size,
+                           enum input_file_format_choice  input_file_format,
+                           const char                     *input_filename)
+{
+    long int remainder = input_file_size - get_file_position(input_file, input_filename);
+
+    if   ((input_file_format == BINARY      && remainder != 0)
+       || (input_file_format == RS_DOS      && remainder != RS_DOS_FILE_POSTAMBLE_SIZE)
+       || (input_file_format == DRAGON_DOS  && remainder != 0)
+       || (input_file_format == PRG         && remainder != 0))
+            fail("Unexpected remaining bytes in input file \"%s\"", input_filename);
+}
+
+static long int
+measure_output_file_size(FILE        *output_file,
+                         const char  *output_filename)
+{
+    long int output_file_size = 0;
+
+    if (fseek(output_file, 0L, SEEK_END))
+        fail("Could not find the end of file \"%s\". Error number %d", output_filename, errno);
+
+    output_file_size = get_file_position(output_file, output_filename);
+
+    if (output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE)
+        fail("Generated program is too large");
+
+    return output_file_size;
+}
+
+static void
+close_file(FILE *file, const char *filename)
+{
+    if (fclose(file) != 0)
+        fail("Couldn't close file \"%s\"", filename);
+}
+
+static void
 print_diagnostic_info(enum target_architecture_choice  target_architecture,
                       enum output_case_choice          output_case,
                       boolean_type                     typable,
@@ -1803,7 +1842,6 @@ int main(int argc, char *argv[])
     long int  input_file_size   = 0;
     long int  output_file_size  = 0;
     long int  blob_size         = 0;
-    long int  remainder         = 0;
 
     enum target_architecture_choice  target_architecture  = NO_TARGET_ARCHITECTURE_CHOSEN;
     enum input_file_format_choice    input_file_format    = NO_INPUT_FILE_FORMAT_CHOSEN;
@@ -1825,7 +1863,7 @@ int main(int argc, char *argv[])
     boolean_type           step_set  = 0;
     line_number_step_type  step      = 0;
 
-    line_position_type    pos = 0;
+    line_position_type    line_position = 0;
 
     boolean_type          start_set  = 0;
     memory_location_type  start      = 0;
@@ -1962,22 +2000,22 @@ int main(int argc, char *argv[])
 
 #define EMITLINEA(A)\
     emit_line(output_file, target_architecture, output_case,\
-    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A);
 
 #define EMITLINEB(A,B)\
     emit_line(output_file, target_architecture, output_case,\
-    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A, B);
 
 #define EMITLINEC(A,B,C)\
     emit_line(output_file, target_architecture, output_case,\
-    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A, B, C);
 
 #define EMITLINEE(A,B,C,D,E)\
     emit_line(output_file, target_architecture, output_case,\
-    &line_incrementing_has_started, &line_count, &line_number, &step, &pos,\
+    &line_incrementing_has_started, &line_count, &line_number, &step, &line_position,\
     A, B, C, D, E);
 
     if (target_architecture == DRAGON
@@ -2126,7 +2164,7 @@ int main(int argc, char *argv[])
 
 #define EMITDATUM(A) emit_datum(output_file, target_architecture,\
 output_case, typable, &line_incrementing_has_started, &line_count,\
-&line_number, &step, &pos, A);
+&line_number, &step, &line_position, A);
 
     if (checksum == 0)
     {
@@ -2158,35 +2196,23 @@ output_case, typable, &line_incrementing_has_started, &line_count,\
             for (j = 0; j < i; ++j)
                 EMITDATUM(d[j])
 
-            if (pos > 0)
-                emit(output_file, target_architecture, output_case, &line_count, &pos, "\n");
+            if (line_position > 0)
+                emit(output_file, target_architecture, output_case, &line_count, &line_position, "\n");
         }
     }
 
-    remainder = input_file_size - get_file_position(input_file, input_filename);
+    if (line_position > 0)
+        emit(output_file, target_architecture, output_case, &line_count, &line_position, "\n");
 
-    if   ((input_file_format == BINARY      && remainder != 0)
-       || (input_file_format == RS_DOS      && remainder != 5)
-       || (input_file_format == DRAGON_DOS  && remainder != 0)
-       || (input_file_format == PRG         && remainder != 0))
-            fail("Unexpected remaining bytes in input file \"%s\"", input_filename);
+    check_input_file_remainder(input_file,
+                               input_file_size,
+                               input_file_format,
+                               input_filename);
 
-    if (fclose(input_file) != 0)
-        fail("Couldn't close file \"%s\"", input_filename);
+    output_file_size = measure_output_file_size(output_file, output_filename);
 
-    if (pos > 0)
-        emit(output_file, target_architecture, output_case, &line_count, &pos, "\n");
-
-    output_file_size = get_file_position(output_file, output_filename);
-
-    if (output_file_size < 0)
-        fail("Couldn't measure output file size");
-
-    if (output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE)
-        fail("Generated program is too large");
-
-    if (fclose(output_file) != 0)
-        fail("Couldn't close file \"%s\"", output_filename);
+    close_file(input_file,  input_filename);
+    close_file(output_file, output_filename);
 
     printf("BASIC program has been generated -> \"%s\"\n", output_filename);
 
