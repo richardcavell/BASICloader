@@ -1253,6 +1253,67 @@ process_header(enum input_file_format_choice  input_file_format,
 }
 
 static void
+set_start_address(enum target_architecture_choice  target_architecture,
+                  boolean_type                     start_set,
+                  memory_location_type             *start)
+{
+    if (start_set == 0)
+    {
+        switch(target_architecture)
+        {
+            case COCO:
+                *start = COCO_DEFAULT_START_MEMORY_LOCATION;
+                break;
+
+            case DRAGON:
+                *start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
+                break;
+
+            case C64:
+                *start = C64_DEFAULT_START_MEMORY_LOCATION;
+                break;
+
+            default:
+                internal_error("Unhandled target architecture in set_start_address()");
+        }
+    }
+
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
+    if (*start > HIGHEST_RAM_ADDRESS)
+        internal_error("Start location is higher than the highest possible RAM address");
+#endif
+}
+
+static void
+set_exec_address(boolean_type exec_set,
+                 memory_location_type start,
+                 memory_location_type *exec)
+{
+    if (exec_set == 0)
+        *exec     = start;
+
+#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
+    if (*exec > HIGHEST_RAM_ADDRESS)
+        internal_error("Exec location is higher than the highest possible RAM address");
+#endif
+}
+
+static memory_location_type
+calculate_end_address(memory_location_type  start,
+                long int              blob_size)
+{
+    long int end = start + blob_size - 1;
+
+    if (end > HIGHEST_RAM_ADDRESS)
+        fail("The machine language blob would overflow the RAM limit");
+
+    if (end > MEMORY_LOCATION_TYPE_MAX)
+        internal_error("Overflow in get_end_address()");
+
+    return (memory_location_type) end;
+}
+
+static void
 check_line_number(line_number_type line_number)
 {
     (void) line_number;
@@ -1668,52 +1729,6 @@ set_step(boolean_type           step_set,
                 DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
 }
 
-static void
-set_start_address(enum target_architecture_choice  target_architecture,
-                  boolean_type                     start_set,
-                  memory_location_type             *start)
-{
-    if (start_set == 0)
-    {
-        switch(target_architecture)
-        {
-            case COCO:
-                *start = COCO_DEFAULT_START_MEMORY_LOCATION;
-                break;
-
-            case DRAGON:
-                *start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
-                break;
-
-            case C64:
-                *start = C64_DEFAULT_START_MEMORY_LOCATION;
-                break;
-
-            default:
-                internal_error("Unhandled target architecture in set_start_address()");
-        }
-    }
-
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (*start > HIGHEST_RAM_ADDRESS)
-        internal_error("Start location is higher than the highest possible RAM address");
-#endif
-}
-
-static void
-set_exec_address(boolean_type exec_set,
-                 memory_location_type start,
-                 memory_location_type *exec)
-{
-    if (exec_set == 0)
-        *exec     = start;
-
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (*exec > HIGHEST_RAM_ADDRESS)
-        internal_error("Exec location is higher than the highest possible RAM address");
-#endif
-}
-
 int main(int argc, char *argv[])
 {
     const char *input_filename  = NULL;
@@ -1871,14 +1886,10 @@ int main(int argc, char *argv[])
                    blob_size,
                    nowarn);
 
-
     set_start_address(target_architecture, start_set, &start);
     set_exec_address(exec_set, start, &exec);
 
-    if (start + blob_size - 1 > MEMORY_LOCATION_TYPE_MAX)
-        fail("The machine language blob would overflow the 64K RAM limit");
-
-    end = (memory_location_type) (start + blob_size - 1);
+    end = calculate_end_address(start, blob_size);
 
     if (exec < start)
         fail("The exec location given ($%x) is below\n"
