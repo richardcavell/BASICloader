@@ -19,10 +19,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 #include <limits.h>
 #include <errno.h>
-#include <ctype.h>
 
         /* User-modifiable values */
 
