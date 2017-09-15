@@ -529,8 +529,8 @@ display_defaults(void)
     printf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
     printf("Default output case is      : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
     printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
-    printf("Default output filename     : \"%s\" (with --machine c64 --case lower)\n",
-                                                     C64_LC_DEFAULT_OUTPUT_FILENAME);
+    printf("Default output filename     : \"%s\" (with --machine %s --case %s)\n",
+                                                     C64_LC_DEFAULT_OUTPUT_FILENAME, C64_TEXT, LOWERCASE_TEXT);
 
     exit(EXIT_SUCCESS);
 }
