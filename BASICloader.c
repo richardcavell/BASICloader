@@ -849,9 +849,9 @@ set_output_filename(enum target_architecture_choice  target_architecture,
     if (print_program == 0 && output_filename == NULL)
     {
         if (target_architecture == C64 && output_case == LOWERCASE)
-          output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
+            output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
         else
-          output_filename = DEFAULT_OUTPUT_FILENAME;
+            output_filename = DEFAULT_OUTPUT_FILENAME;
     }
 
     return output_filename;
