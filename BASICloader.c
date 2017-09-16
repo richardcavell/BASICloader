@@ -195,6 +195,9 @@ check_user_defined_type_limits(void)
 static void
 check_default_starting_basic_line_number_macro(void)
 {
+    if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
                        " is below the minimum possible BASIC line number");
@@ -202,14 +205,14 @@ check_default_starting_basic_line_number_macro(void)
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
                        " is above the maximum possible BASIC line number");
-
-    if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
 }
 
 static void
 check_typable_default_starting_basic_line_number_macro(void)
 {
+    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
                        " is below the minimum possible BASIC line number");
@@ -217,9 +220,6 @@ check_typable_default_starting_basic_line_number_macro(void)
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
                        " is above the maximum possible BASIC line number");
-
-    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
 }
 
 static void
@@ -234,7 +234,7 @@ check_maximum_starting_basic_line_number_macro(void)
                        " is above the maximum possible BASIC line number");
 
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER cannot be operated on internally");
+        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
 }
 
 static void
