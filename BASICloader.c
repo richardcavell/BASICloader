@@ -198,10 +198,10 @@ static void
 check_default_starting_basic_line_number_macro(void)
 {
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is too low to be represented internally");
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is too high to be represented internally");
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
@@ -216,10 +216,10 @@ static void
 check_typable_default_starting_basic_line_number_macro(void)
 {
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is too low to be represented internally");
 
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER is too high to be represented internally");
 
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
