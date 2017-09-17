@@ -108,6 +108,8 @@ typedef unsigned short int target_architecture_file_size_type;
 #define MEMORY_LOCATION_TYPE_MAX                (memory_location_type)                -1
 #define TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX  (target_architecture_file_size_type)  -1
 
+#define LINE_NUMBER_TYPE_MIN     0
+
 enum target_architecture_choice
 {
     NO_TARGET_ARCHITECTURE_CHOSEN = 0,
@@ -195,6 +197,9 @@ check_user_defined_type_limits(void)
 static void
 check_default_starting_basic_line_number_macro(void)
 {
+    if (DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
 
@@ -210,6 +215,9 @@ check_default_starting_basic_line_number_macro(void)
 static void
 check_typable_default_starting_basic_line_number_macro(void)
 {
+    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
+
     if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
 
