@@ -26,12 +26,12 @@
 
         /* User-modifiable values */
 
+#define        DEFAULT_OUTPUT_FILENAME "LOADER.BAS"
+#define C64_LC_DEFAULT_OUTPUT_FILENAME "loader"
+
 #define DEFAULT_TARGET_ARCHITECTURE COCO
 #define DEFAULT_INPUT_FILE_FORMAT   BINARY
 #define DEFAULT_OUTPUT_CASE         UPPERCASE
-
-#define        DEFAULT_OUTPUT_FILENAME "LOADER.BAS"
-#define C64_LC_DEFAULT_OUTPUT_FILENAME "loader"
 
 #define         DEFAULT_STARTING_BASIC_LINE_NUMBER 0
 #define TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER 10
@@ -42,7 +42,7 @@
 #define         MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE 60000
 
 #define MAXIMUM_BASIC_LINE_COUNT   1000
-#define MAXIMUM_BASIC_PROGRAM_SIZE 40000
+#define MAXIMUM_BASIC_PROGRAM_SIZE 60000
 
 #define MAXIMUM_BASIC_LINE_LENGTH 75
 #define CHECKSUMMED_DATA_PER_LINE 10
@@ -233,6 +233,12 @@ check_typable_default_starting_basic_line_number_macro(void)
 static void
 check_maximum_starting_basic_line_number_macro(void)
 {
+    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is too low to be represented internally");
+
+    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is too high to be represented internally");
+
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
                        " is below the minimum possible BASIC line number");
@@ -240,9 +246,6 @@ check_maximum_starting_basic_line_number_macro(void)
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
                        " is above the maximum possible BASIC line number");
-
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER cannot be represented internally");
 }
 
 static void
