@@ -27,8 +27,8 @@
 
         /* User-modifiable values */
 
-#define        DEFAULT_OUTPUT_FILENAME "LOADER.BAS"
-#define C64_LC_DEFAULT_OUTPUT_FILENAME "loader"
+#define DEFAULT_OUTPUT_FILENAME       "LOADER.BAS"
+#define DEFAULT_C64LC_OUTPUT_FILENAME "loader"
 
 #define DEFAULT_TARGET_ARCHITECTURE COCO
 #define DEFAULT_INPUT_FILE_FORMAT   BINARY
@@ -541,7 +541,7 @@ display_defaults(void)
     printf("Default output case is      : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
     printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
     printf("Default output filename     : \"%s\" (with --machine %s --case %s)\n",
-                                                     C64_LC_DEFAULT_OUTPUT_FILENAME, C64_TEXT, LOWERCASE_TEXT);
+                                                     DEFAULT_C64LC_OUTPUT_FILENAME, C64_TEXT, LOWERCASE_TEXT);
 
     exit(EXIT_SUCCESS);
 }
@@ -860,7 +860,7 @@ set_output_filename(enum target_architecture_choice  target_architecture,
     if (print_program == 0 && output_filename == NULL)
     {
         if (target_architecture == C64 && output_case == LOWERCASE)
-            output_filename = C64_LC_DEFAULT_OUTPUT_FILENAME;
+            output_filename = DEFAULT_C64LC_OUTPUT_FILENAME;
         else
             output_filename = DEFAULT_OUTPUT_FILENAME;
     }
