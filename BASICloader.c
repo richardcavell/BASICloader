@@ -34,13 +34,13 @@
 #define DEFAULT_INPUT_FILE_FORMAT   BINARY
 #define DEFAULT_OUTPUT_CASE         UPPERCASE
 
-#define         DEFAULT_STARTING_BASIC_LINE_NUMBER 0
-#define TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER 10
-#define         MAXIMUM_STARTING_BASIC_LINE_NUMBER 63000
+#define DEFAULT_STARTING_BASIC_LINE_NUMBER         0
+#define DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER 10
+#define MAXIMUM_STARTING_BASIC_LINE_NUMBER         63000
 
-#define         DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE 1
-#define TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE 10
-#define         MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE 60000
+#define DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE 1
+#define DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE 10
+#define MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE 60000
 
 #define MAXIMUM_BASIC_LINE_COUNT   1000
 #define MAXIMUM_BASIC_PROGRAM_SIZE 60000
@@ -198,84 +198,129 @@ check_user_defined_type_limits(void)
 static void
 check_default_starting_basic_line_number_macro(void)
 {
+    const char macro_name[] = "DEFAULT_STARTING_BASIC_LINE_NUMBER";
+
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is too low to be represented internally");
+        internal_error("%s\n"
+                       "is too low to be represented internally",
+                       macro_name);
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is too high to be represented internally");
+        internal_error("%s\n"
+                       "is too high to be represented internally",
+                       macro_name);
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       " is below the minimum possible BASIC line number");
+        internal_error("%s\n"
+                       "is below the minimum possible BASIC line number",
+                       macro_name);
 
     if (DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       " is above the maximum possible BASIC line number");
+        internal_error("%s\n"
+                       "is above the maximum possible BASIC line number",
+                       macro_name);
 }
 
 static void
-check_typable_default_starting_basic_line_number_macro(void)
+check_default_typable_starting_basic_line_number_macro(void)
 {
-    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
-        internal_error("DEFAULT_STARTING_BASIC_LINE_NUMBER is too low to be represented internally");
+    const char macro_name[] = "DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER";
 
-    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER is too high to be represented internally");
+    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+        internal_error("%s\n"
+                       "is too low to be represented internally",
+                       macro_name);
 
-    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       " is below the minimum possible BASIC line number");
+    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+        internal_error("%s\n"
+                       "is too high to be represented internally",
+                       macro_name);
 
-    if (TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
-        internal_error("TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER\n"
-                       " is above the maximum possible BASIC line number");
+    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
+        internal_error("%s\n"
+                       "is below the minimum possible BASIC line number",
+                       macro_name);
+
+    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
+        internal_error("%s\n"
+                       "is above the maximum possible BASIC line number",
+                       macro_name);
 }
 
 static void
 check_maximum_starting_basic_line_number_macro(void)
 {
+    const char macro_name[] = "MAXIMUM_STARTING_BASIC_LINE_NUMBER";
+
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is too low to be represented internally");
+        internal_error("%s\n"
+                       "is too low to be represented internally",
+                       macro_name);
 
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER is too high to be represented internally");
+        internal_error("%s\n"
+                       "is too high to be represented internally",
+                       macro_name);
+
+    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LONG_MAX)
+        internal_error("In get_line_number(), %s\n"
+                       "cannot be safely converted to unsigned long",
+                       macro_name);
+
+    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > INT_MAX)
+        internal_error("In get_line_number(), %s\n"
+                       "cannot be safely converted to int",
+                       macro_name);
 
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
-                       " is below the minimum possible BASIC line number");
+        internal_error("%s\n"
+                       "is below the minimum possible BASIC line number",
+                       macro_name);
 
     if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
-        internal_error("MAXIMUM_STARTING_BASIC_LINE_NUMBER\n"
-                       " is above the maximum possible BASIC line number");
+        internal_error("%s\n"
+                       "is above the maximum possible BASIC line number",
+                       macro_name);
 }
 
 static void
 check_default_basic_line_number_step_size_macro(void)
 {
+    const char macro_name[] = "DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE";
+
     if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
-        internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least %u",
+        internal_error("%s must be at least %u",
+                       macro_name,
                        MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
     if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
-        internal_error("DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
+        internal_error("%s cannot be operated on internally",
+                       macro_name);
 }
 
 static void
-check_typable_default_basic_line_number_step_size_macro(void)
+check_default_typable_basic_line_number_step_size_macro(void)
 {
-    if (TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
-        internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE must be at least %u",
+    const char macro_name[] = "DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE";
+
+    if (DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+        internal_error("%s must be at least %u",
+                       macro_name,
                        MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
-    if (TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
-        internal_error("TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
+    if (DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
+        internal_error("%s cannot be operated on internally",
+                       macro_name);
 }
 
 static void
 check_maximum_basic_line_number_step_size_macro(void)
 {
+    const char macro_name[] = "MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE";
+
     if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
-        internal_error("MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE cannot be operated on internally");
+        internal_error("%s cannot be operated on internally",
+                       macro_name);
 }
 
 static void
@@ -1460,8 +1505,8 @@ set_line_number(boolean_type      line_number_set,
                 boolean_type      typable)
 {
     if (line_number_set == 0)
-        line_number = typable ?
-                       TYPABLE_DEFAULT_STARTING_BASIC_LINE_NUMBER :
+        line_number = (typable) ?
+                       DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER :
                        DEFAULT_STARTING_BASIC_LINE_NUMBER;
 
     check_line_number(line_number);
@@ -1475,8 +1520,8 @@ set_step(boolean_type           step_set,
          boolean_type           typable)
 {
     if (step_set == 0)
-        step = typable ?
-                TYPABLE_DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE :
+        step = (typable) ?
+                DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE :
                 DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
 
     return step;
@@ -2002,10 +2047,10 @@ int main(int argc, char *argv[])
     check_type_limits();
     check_user_defined_type_limits();
     check_default_starting_basic_line_number_macro();
-    check_typable_default_starting_basic_line_number_macro();
+    check_default_typable_starting_basic_line_number_macro();
     check_maximum_starting_basic_line_number_macro();
     check_default_basic_line_number_step_size_macro();
-    check_typable_default_basic_line_number_step_size_macro();
+    check_default_typable_basic_line_number_step_size_macro();
     check_maximum_basic_line_number_step_size_macro();
     check_basic_program_parameter_macros();
     check_memory_location_macros();
