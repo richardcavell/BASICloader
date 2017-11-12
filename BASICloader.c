@@ -318,6 +318,14 @@ check_maximum_basic_line_number_step_size_macro(void)
 {
     const char macro_name[] = "MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE";
 
+    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+	internal_error("%s must be at least 1",
+		       macro_name);
+
+    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > UINT_MAX)
+        internal_error("%s cannot be operated on internally in get_line_number_step()",
+                       macro_name);
+
     if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
         internal_error("%s cannot be operated on internally",
                        macro_name);
