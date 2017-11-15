@@ -38,9 +38,9 @@
 #define DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER 10
 #define MAXIMUM_STARTING_BASIC_LINE_NUMBER         63000
 
-#define DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE 1
+#define DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE         1
 #define DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE 10
-#define MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE 60000
+#define MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE         60000
 
 #define MAXIMUM_BASIC_LINE_COUNT   1000
 #define MAXIMUM_BASIC_PROGRAM_SIZE 60000
@@ -79,6 +79,9 @@
 #define MAX_BASIC_LINE_NUMBER 63999
 
 #define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
+
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT 1
+#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE 50
 
 #define LINE_COUNT_BENCHMARK 100
 
@@ -333,19 +336,45 @@ check_maximum_basic_line_number_step_size_macro(void)
 }
 
 static void
-check_basic_program_parameter_macros(void)
+check_maximum_basic_line_count_macro(void)
 {
+    const char macro_name[] = "MAXIMUM_BASIC_LINE_COUNT";
+
+    if (MAXIMUM_BASIC_LINE_COUNT < MINIMUM_MAXIMUM_BASIC_LINE_COUNT)
+        internal_error("%s is too low",
+			macro_name);
+
     if (MAXIMUM_BASIC_LINE_COUNT > LINE_COUNTER_TYPE_MAX)
-        internal_error("MAXIMUM_BASIC_LINE_COUNT cannot be operated on internally");
+        internal_error("%s cannot be operated on internally",
+			macro_name);
+}
+
+static void
+check_maximum_basic_program_size_macro(void)
+{
+    const char macro_name[] = "MAXIMUM_BASIC_PROGRAM_SIZE";
+
+    if (MAXIMUM_BASIC_PROGRAM_SIZE < MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE)
+        internal_error("%s is too low",
+			macro_name);
 
     if (MAXIMUM_BASIC_PROGRAM_SIZE > LONG_MAX)
-        internal_error("MAXIMUM_BASIC_PROGRAM_SIZE cannot be operated on internally");
+        internal_error("%s cannot be operated on internally",
+			macro_name);
+}
+
+static void
+check_checksummed_data_per_line_macro()
+{
+    const char macro_name[] = "CHECKSUMMED_DATA_PER_LINE";
 
     if (CHECKSUMMED_DATA_PER_LINE < 1)
-        internal_error("CHECKSUMMED_DATA_PER_LINE must be at least 1");
+        internal_error("%s must be at least 1",
+			macro_name);
 
     if (CHECKSUMMED_DATA_PER_LINE > USHRT_MAX)
-        internal_error("CHECKSUMMED_DATA_PER_LINE cannot be represented internally");
+        internal_error("%s cannot be represented internally",
+			macro_name);
 }
 
 static void
@@ -1570,7 +1599,7 @@ inc_line_count(line_counter_type *line_count)
 
     ++*line_count;
 
-#if (MAXIMUM_BASIC_LINE_COUNT != LINE_COUNTER_TYPE_MAX)
+#if (MAXIMUM_BASIC_LINE_COUNT < LINE_COUNTER_TYPE_MAX)
     if (*line_count > MAXIMUM_BASIC_LINE_COUNT)
         fail("Line count has exceeded the set maximum");
 #endif
@@ -1760,6 +1789,8 @@ vemit(FILE                             *output_file,
         if (*output_file_size != ftell_return_value)
             return EMIT_FAIL;
     }
+
+    /* TODO: separate these two */
 
     if (*output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE ||
         *output_file_size > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
@@ -2061,7 +2092,9 @@ int main(int argc, char *argv[])
     check_default_basic_line_number_step_size_macro();
     check_default_typable_basic_line_number_step_size_macro();
     check_maximum_basic_line_number_step_size_macro();
-    check_basic_program_parameter_macros();
+    check_maximum_basic_line_count_macro();
+    check_maximum_basic_program_size_macro();
+    check_checksummed_data_per_line_macro();
     check_memory_location_macros();
     check_output_text_buffer_size_macro();
     check_max_input_file_size_macro();
