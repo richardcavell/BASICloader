@@ -46,7 +46,7 @@
 #define MAXIMUM_BASIC_PROGRAM_SIZE 60000
 
 #define MAXIMUM_BASIC_LINE_LENGTH 75
-#define CHECKSUMMED_DATA_PER_LINE 10
+#define MAXIMUM_CHECKSUMMED_DATA_PER_LINE 10
 
 #define   COCO_DEFAULT_START_MEMORY_LOCATION 0x3e00
 #define DRAGON_DEFAULT_START_MEMORY_LOCATION 0x3e00
@@ -79,6 +79,9 @@
 #define MAX_BASIC_LINE_NUMBER 63999
 
 #define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
+#define MINIMUM_CHECKSUMMED_DATA_PER_LINE 1
+
+#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE 100
 
 #define MINIMUM_MAXIMUM_BASIC_LINE_COUNT 1
 #define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE 50
@@ -366,13 +369,14 @@ check_maximum_basic_program_size_macro(void)
 static void
 check_checksummed_data_per_line_macro()
 {
-    const char macro_name[] = "CHECKSUMMED_DATA_PER_LINE";
+    const char macro_name[] = "MAXIMUM_CHECKSUMMED_DATA_PER_LINE";
 
-    if (CHECKSUMMED_DATA_PER_LINE < 1)
-        internal_error("%s must be at least 1",
-			macro_name);
+    if (MAXIMUM_CHECKSUMMED_DATA_PER_LINE < MINIMUM_CHECKSUMMED_DATA_PER_LINE)
+        internal_error("%s must be at least %d",
+			macro_name,
+			MINIMUM_CHECKSUMMED_DATA_PER_LINE);
 
-    if (CHECKSUMMED_DATA_PER_LINE > USHRT_MAX)
+    if (MAXIMUM_CHECKSUMMED_DATA_PER_LINE > USHRT_MAX)
         internal_error("%s cannot be represented internally",
 			macro_name);
 }
@@ -393,7 +397,7 @@ check_memory_location_macros(void)
 static void
 check_output_text_buffer_size_macro(void)
 {
-    if (OUTPUT_TEXT_BUFFER_SIZE < 100)
+    if (OUTPUT_TEXT_BUFFER_SIZE < MINIMUM_OUTPUT_TEXT_BUFFER_SIZE)
         internal_error("OUTPUT_TEXT_BUFFER_SIZE is too low");
 
     if (OUTPUT_TEXT_BUFFER_SIZE > INT_MAX)
@@ -2342,7 +2346,8 @@ int main(int argc, char *argv[])
         EMITLINEA("READ L, CS")
         EMITLINEA("C = 0")
         EMITLINEA("J = Q - P")
-        EMITLINEC("IF J > %d THEN J = %d", CHECKSUMMED_DATA_PER_LINE, CHECKSUMMED_DATA_PER_LINE)
+        EMITLINEC("IF J > %d THEN J = %d", MAXIMUM_CHECKSUMMED_DATA_PER_LINE,
+		                           MAXIMUM_CHECKSUMMED_DATA_PER_LINE)
         EMITLINEA("FOR I = 0 TO J")
         EMITLINEA("READ A")
         EMITLINEA("POKE P,A")
@@ -2365,7 +2370,8 @@ int main(int argc, char *argv[])
         EMITLINEA("READ L, CS")
         EMITLINEA("C = 0")
         EMITLINEA("J = Q - P")
-        EMITLINEC("IF J > %d THEN J = %d", CHECKSUMMED_DATA_PER_LINE, CHECKSUMMED_DATA_PER_LINE)
+        EMITLINEC("IF J > %d THEN J = %d", MAXIMUM_CHECKSUMMED_DATA_PER_LINE,
+		                           MAXIMUM_CHECKSUMMED_DATA_PER_LINE)
         EMITLINEA("FOR I = 0 TO J")
         EMITLINEA("READ A")
         EMITLINEA("POKE P,A")
@@ -2401,7 +2407,7 @@ output_case, &output_file_size, typable, &line_incrementing_has_started,\
 
         while (b != 0)
         {
-            unsigned char d[CHECKSUMMED_DATA_PER_LINE];
+            unsigned char d[MAXIMUM_CHECKSUMMED_DATA_PER_LINE];
             unsigned short int i = 0;
             unsigned short int j = 0;
             unsigned long int cs = 0;
