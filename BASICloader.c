@@ -47,17 +47,16 @@
 #define MAXIMUM_BASIC_LINE_LENGTH         75
 #define MAXIMUM_CHECKSUMMED_DATA_PER_LINE 10
 
+#define MAXIMUM_INPUT_FILE_SIZE              65000
+#define MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE 65000
+
+#define OUTPUT_TEXT_BUFFER_SIZE    300
+#define PRINT_WARNINGS_TO_STDERR     0
+#define STDOUT_FILENAME_SUBSTITUTE "-"
+
 #define   COCO_DEFAULT_START_MEMORY_LOCATION 0x3e00
 #define DRAGON_DEFAULT_START_MEMORY_LOCATION 0x3e00
 #define    C64_DEFAULT_START_MEMORY_LOCATION 0x8000
-
-#define OUTPUT_TEXT_BUFFER_SIZE 300
-
-#define MAX_INPUT_FILE_SIZE 65000
-#define MAX_MACHINE_LANGUAGE_BINARY_SIZE 65000
-
-#define STDOUT_FILENAME_SUBSTITUTE "-"
-#define PRINT_WARNINGS_TO_STDERR 0
 
         /* End of user-modifiable values */
 
@@ -80,10 +79,11 @@
 #define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
 #define MINIMUM_CHECKSUMMED_DATA_PER_LINE 1
 
-#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE 100
-
-#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT 1
-#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE 50
+#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE              100
+#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE                1
+#define MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE   1
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT               1
+#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE            50
 
 #define LINE_COUNT_BENCHMARK 100
 
@@ -396,25 +396,43 @@ check_memory_location_macros(void)
 static void
 check_output_text_buffer_size_macro(void)
 {
+    const char macro_name[] = "OUTPUT_TEXT_BUFFER_SIZE";
+
     if (OUTPUT_TEXT_BUFFER_SIZE < MINIMUM_OUTPUT_TEXT_BUFFER_SIZE)
-        internal_error("OUTPUT_TEXT_BUFFER_SIZE is too low");
+        internal_error("%s is too low",
+			macro_name);
 
     if (OUTPUT_TEXT_BUFFER_SIZE > INT_MAX)
-        internal_error("OUTPUT_TEXT_BUFFER_SIZE cannot be operated on internally");
+        internal_error("%s cannot be operated on internally",
+			macro_name);
 }
 
 static void
 check_max_input_file_size_macro(void)
 {
-    if (MAX_INPUT_FILE_SIZE > LONG_MAX)
-        internal_error("MAX_INPUT_FILE_SIZE cannot be operated on internally");
+    char macro_name[] = "MAXIMUM_INPUT_FILE_SIZE";
+
+    if (MAXIMUM_INPUT_FILE_SIZE < MINIMUM_MAXIMUM_INPUT_FILE_SIZE)
+        internal_error("%s is too low",
+                       macro_name);
+    
+    if (MAXIMUM_INPUT_FILE_SIZE > LONG_MAX)
+        internal_error("%s cannot be operated on internally",
+                        macro_name);
 }
 
 static void
 check_max_machine_language_binary_size_macro(void)
 {
-    if (MAX_MACHINE_LANGUAGE_BINARY_SIZE > LONG_MAX)
-        internal_error("MAX_MACHINE_LANGUAGE_BINARY_SIZE cannot be represented internally");
+    const char macro_name[] = "MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE";
+
+    if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE < MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE)
+        internal_error("%s is too low",
+			macro_name);
+
+    if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE > LONG_MAX)
+        internal_error("%s cannot be represented internally",
+			macro_name);
 }
 
 static void
@@ -1031,7 +1049,7 @@ check_input_file_size(long int                       input_file_size,
              format_to_text(input_file_format), input_file_size_min,
              input_filename, input_file_size);
 
-    if (input_file_size > MAX_INPUT_FILE_SIZE)
+    if (input_file_size > MAXIMUM_INPUT_FILE_SIZE)
         fail("Input file \"%s\" is too large", input_filename);
 }
 
@@ -1064,7 +1082,7 @@ check_blob_size(long int    blob_size,
     if (blob_size == 0)
         fail("Input file \"%s\" contains no machine language content", input_filename);
 
-    if (blob_size > MAX_MACHINE_LANGUAGE_BINARY_SIZE)
+    if (blob_size > MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE)
         fail("The machine language content of input file \"%s\" is too large", input_filename);
 }
 
@@ -1903,7 +1921,7 @@ emit_datum(FILE                             *output_file,
     if (sprintf_return_value < 0)
         fail("Couldn't write to output text area in emit_datum()");
 
-    if (sprintf_return_value >= OUTPUT_TEXT_BUFFER_SIZE)
+    if (sprintf_return_value >= (signed int) sizeof possible_output_buffer)
         internal_error("Output text buffer overrun");
 
     if ((*line_position + strlen(possible_output_buffer) > MAXIMUM_BASIC_LINE_LENGTH)
