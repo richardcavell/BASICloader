@@ -177,7 +177,7 @@ internal_error(const char *fmt, ...)
 }
 
 static void
-check_type_limits(void)
+check_uchar_type(void)
 {
     if (UCHAR_MAX < EIGHT_BIT_UCHAR_MAX)
         internal_error("This machine cannot process 8-bit bytes");
@@ -1171,8 +1171,10 @@ get_character_from_input_file(FILE        *input_file,
              " for an 8-bit machine", input_filename);
 
     if (input_file_character == EOF)
-        fail("Unexpected end of file while reading file \"%s\". Error code %d",
-              input_filename, errno);
+        fail("Unexpected end of file while reading file \"%s\"."
+             " Error code %d",
+              input_filename,
+              errno);
 
     return (unsigned char) input_file_character;
 }
@@ -2138,7 +2140,7 @@ int main(int argc, char *argv[])
     memory_location_type  exec       = 0;
     memory_location_type  end        = 0;
 
-    check_type_limits();
+    check_uchar_type();
     check_user_defined_type_limits();
     check_default_starting_basic_line_number_macro();
     check_default_typable_starting_basic_line_number_macro();
