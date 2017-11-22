@@ -42,16 +42,16 @@
 #define DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE 10
 #define MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE         60000
 
-#define MAXIMUM_BASIC_LINE_COUNT          1000
-#define MAXIMUM_BASIC_PROGRAM_SIZE        60000
 #define MAXIMUM_BASIC_LINE_LENGTH         75
 #define MAXIMUM_CHECKSUMMED_DATA_PER_LINE 10
+#define MAXIMUM_BASIC_LINE_COUNT          1000
+#define MAXIMUM_BASIC_PROGRAM_SIZE        60000
 
 #define MAXIMUM_INPUT_FILE_SIZE              65000
 #define MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE 65000
 
 #define OUTPUT_TEXT_BUFFER_SIZE    300
-#define PRINT_WARNINGS_TO_STDERR     0
+#define PRINT_WARNINGS_TO_STDERR   0
 #define STDOUT_FILENAME_SUBSTITUTE "-"
 
 #define   COCO_DEFAULT_START_MEMORY_LOCATION 0x3e00
@@ -60,12 +60,16 @@
 
         /* End of user-modifiable values */
 
-#define HIGHEST_RAM_ADDRESS 0xffff
 #define HIGHEST_64K_ADDRESS 0xffff
 #define HIGHEST_32K_ADDRESS 0x7fff
 #define HIGHEST_16K_ADDRESS 0x3fff
 #define HIGHEST_8K_ADDRESS  0x1fff
 #define HIGHEST_4K_ADDRESS  0x0fff
+
+#define HIGHEST_RAM_ADDRESS     HIGHEST_64K_ADDRESS
+#define HIGHEST_COCO_ADDRESS    HIGHEST_64K_ADDRESS
+#define HIGHEST_DRAGON_ADDRESS  HIGHEST_64K_ADDRESS
+#define HIGHEST_C64_ADDRESS     HIGHEST_64K_ADDRESS
 
 #define EIGHT_BIT_UCHAR_MAX 255
 
@@ -383,14 +387,17 @@ check_checksummed_data_per_line_macro()
 static void
 check_memory_location_macros(void)
 {
-    if (COCO_DEFAULT_START_MEMORY_LOCATION > HIGHEST_64K_ADDRESS)
-        internal_error("COCO_DEFAULT_START_MEMORY_LOCATION is higher than is possible on the Color Computer");
+    if (COCO_DEFAULT_START_MEMORY_LOCATION > HIGHEST_COCO_ADDRESS)
+        internal_error("COCO_DEFAULT_START_MEMORY_LOCATION is higher than\n"
+		       "is possible on the Color Computer");
 
-    if (DRAGON_DEFAULT_START_MEMORY_LOCATION > HIGHEST_64K_ADDRESS)
-        internal_error("DRAGON_DEFAULT_START_MEMORY_LOCATION is higher than is possible on the Dragon");
+    if (DRAGON_DEFAULT_START_MEMORY_LOCATION > HIGHEST_DRAGON_ADDRESS)
+        internal_error("DRAGON_DEFAULT_START_MEMORY_LOCATION is higher than\n"
+		       "is possible on the Dragon");
 
-    if (C64_DEFAULT_START_MEMORY_LOCATION > HIGHEST_64K_ADDRESS)
-        internal_error("C64_DEFAULT_START_MEMORY_LOCATION is higher than is possible on the Commodore 64");
+    if (C64_DEFAULT_START_MEMORY_LOCATION > HIGHEST_C64_ADDRESS)
+        internal_error("C64_DEFAULT_START_MEMORY_LOCATION is higher than\n"
+		       "is possible on the Commodore 64");
 }
 
 static void
@@ -819,6 +826,34 @@ get_line_number_step(const char             *arg1,
     *step_set = 1;
 }
 
+static memory_location_type
+get_highest_ram_address(enum target_architecture_choice target_architecture)
+{
+    memory_location_type highest_ram_address = HIGHEST_RAM_ADDRESS;
+
+    switch(target_architecture)
+    {
+        case COCO:
+            highest_ram_address = HIGHEST_COCO_ADDRESS;
+	    break;
+
+	case DRAGON:
+	    highest_ram_address = HIGHEST_DRAGON_ADDRESS;
+	    break;
+
+	case C64:
+	    highest_ram_address = HIGHEST_C64_ADDRESS;
+	    break;
+
+	default:
+            internal_error("Unhandled target architecture in"
+			   " get_highest_ram_address()");
+            break;
+    }
+
+    return highest_ram_address;
+}
+
 static void
 get_memory_location_type_arg(const char            *arg1,
                              const char            *arg2,
@@ -835,7 +870,7 @@ get_memory_location_type_arg(const char            *arg1,
 
     if (ok == 0)
         fail("%s takes a number up to 0x%x",
-             arg1, MEMORY_LOCATION_TYPE_MAX);
+             arg1, HIGHEST_RAM_ADDRESS);
 
     *set = 1;
 }
@@ -1444,49 +1479,47 @@ set_start_address(enum target_architecture_choice  target_architecture,
         }
     }
 
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (start > HIGHEST_RAM_ADDRESS)
-        internal_error("Start location is higher than the highest possible RAM address");
-#endif
+    if (start > get_highest_ram_address(target_architecture))
+        internal_error("Start location is higher than the highest possible"
+		       " RAM address\n"
+		       "on the %s",
+			target_architecture_to_text(target_architecture));
 
     return start;
 }
 
 static memory_location_type
-set_end_address(memory_location_type  start,
-                long int              blob_size)
+set_end_address(enum target_architecture_choice  target_architecture,
+		memory_location_type             start,
+                long int                         blob_size)
 {
     long int end = start + blob_size - 1;
 
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (end > HIGHEST_RAM_ADDRESS)
-        fail("The machine language blob would overflow the RAM limit");
-#endif
-
-#if (LONG_MAX > MEMORY_LOCATION_TYPE_MAX)
-    if (end > MEMORY_LOCATION_TYPE_MAX)
-        fail("The machine language blob would overflow the RAM limit");
-#endif
-
-    if (end < start)
-        fail("The machine language blob would overflow the RAM limit");
+    if (end < start
+		    || blob_size > get_highest_ram_address(target_architecture)
+		    || end > get_highest_ram_address(target_architecture))
+        fail("The machine language blob would overflow the amount of RAM\n"
+	     "on the %s",
+	     target_architecture_to_text(target_architecture));
 
     return (memory_location_type) end;
 }
 
 static memory_location_type
-set_exec_address(boolean_type          exec_set,
-                 memory_location_type  start,
-                 memory_location_type  exec,
-                 memory_location_type  end)
+set_exec_address(enum target_architecture_choice  target_architecture,
+		 boolean_type                     exec_set,
+                 memory_location_type             start,
+                 memory_location_type             exec,
+                 memory_location_type             end)
 {
     if (exec_set == 0)
         exec     = start;
 
-#if (HIGHEST_RAM_ADDRESS < MEMORY_LOCATION_TYPE_MAX)
-    if (exec > HIGHEST_RAM_ADDRESS)
-        internal_error("Exec location is higher than the highest possible RAM address");
-#endif
+    if (exec > get_highest_ram_address(target_architecture))
+        internal_error("Exec location is higher than the highest possible"
+		       " RAM address\n"
+		       "on the %s",
+		       target_architecture_to_text(target_architecture));
 
     if (exec < start)
         fail("The exec location given ($%x) is below\n"
@@ -2232,8 +2265,9 @@ int main(int argc, char *argv[])
                    nowarn);
 
     start           = set_start_address(target_architecture, start_set, start);
-    end             = set_end_address(start, blob_size);
-    exec            = set_exec_address(exec_set, start, exec, end);
+    end             = set_end_address(target_architecture, start, blob_size);
+    exec            = set_exec_address(target_architecture,
+		                       exec_set, start, exec, end);
 
     line_number     = set_line_number(line_number_set, line_number, typable);
     step            = set_step(step_set, step, typable);
