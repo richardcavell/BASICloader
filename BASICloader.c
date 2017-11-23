@@ -57,7 +57,24 @@
 
         /* End of user-modifiable values */
 
-        /* Start of architecture-specific values */
+        /* Values to help check that the
+	 * user-modifiable values are sensible */
+
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT     5
+#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE  50
+#define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE  1
+#define MINIMUM_CHECKSUMMED_DATA_PER_LINE    1
+
+#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE              100
+#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE                1
+#define MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE   1
+
+#define LINE_COUNT_BENCHMARK 100
+
+        /* End of values that help check the
+	 * user-modifiable values */
+
+        /* Architecture-specific values */
 
 #define   COCO_MIN_BASIC_LINE_NUMBER 0
 #define DRAGON_MIN_BASIC_LINE_NUMBER 0
@@ -85,26 +102,7 @@
 
         /* End of architecture-specific values */
 
-#define HIGHEST_64K_ADDRESS 0xffff
-#define HIGHEST_32K_ADDRESS 0x7fff
-#define HIGHEST_16K_ADDRESS 0x3fff
-#define HIGHEST_8K_ADDRESS  0x1fff
-#define HIGHEST_4K_ADDRESS  0x0fff
-
-#define EIGHT_BIT_UCHAR_MAX 255
-
-#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT     5
-#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE  50
-#define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE  1
-#define MINIMUM_CHECKSUMMED_DATA_PER_LINE    1
-
-#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE              100
-#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE                1
-#define MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE   1
-
-#define LINE_COUNT_BENCHMARK 100
-
-#define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
+        /* File format-specific values */
 
 #define   RS_DOS_FILE_PREAMBLE_SIZE 5
 #define  RS_DOS_FILE_POSTAMBLE_SIZE 5
@@ -117,6 +115,24 @@
                                     + 1)
 #define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
 #define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
+
+        /* End of file format-specific values */
+
+        /* 8-bit architecture-specific values */
+
+#define HIGHEST_64K_ADDRESS 0xffff
+#define HIGHEST_32K_ADDRESS 0x7fff
+#define HIGHEST_16K_ADDRESS 0x3fff
+#define HIGHEST_8K_ADDRESS  0x1fff
+#define HIGHEST_4K_ADDRESS  0x0fff
+
+#define EIGHT_BIT_UCHAR_MAX 255
+
+#define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
+
+        /* End of 8-bit architecture-specific values */
+
+        /* Typedefs and limits macros */
 
 typedef unsigned short int boolean_type;
 typedef unsigned short int line_number_type;
@@ -135,6 +151,8 @@ typedef unsigned short int target_architecture_file_size_type;
                           (target_architecture_file_size_type)  -1
 
 #define LINE_NUMBER_TYPE_MIN     0
+
+        /* End of typedefs and limits macros */
 
 enum target_architecture_choice
 {
