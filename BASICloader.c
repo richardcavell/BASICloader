@@ -34,22 +34,22 @@
 #define DEFAULT_INPUT_FILE_FORMAT   BINARY
 #define DEFAULT_OUTPUT_CASE         UPPERCASE
 
-#define DEFAULT_STARTING_BASIC_LINE_NUMBER         0
-#define DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER 10
-#define MAXIMUM_STARTING_BASIC_LINE_NUMBER         63000
+#define DEFAULT_STARTING_LINE_NUMBER         0
+#define DEFAULT_TYPABLE_STARTING_LINE_NUMBER 10
+#define MAXIMUM_STARTING_LINE_NUMBER         63000
 
-#define DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE         1
-#define DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE 10
-#define MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE         60000
+#define DEFAULT_LINE_STEP         1
+#define DEFAULT_TYPABLE_LINE_STEP 10
+#define MAXIMUM_LINE_STEP         60000
 
-#define MAXIMUM_BASIC_LINE_COUNT          1000
+#define MAXIMUM_BASIC_LINE_COUNT  1000
 
 #define MAXIMUM_BASIC_LINE_LENGTH         75
 #define MAXIMUM_CHECKSUMMED_DATA_PER_LINE 10
 
-#define MAXIMUM_BASIC_PROGRAM_SIZE           60000
-#define MAXIMUM_INPUT_FILE_SIZE              65000
-#define MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE 65000
+#define MAXIMUM_BASIC_PROGRAM_SIZE 60000
+#define MAXIMUM_INPUT_FILE_SIZE    65000
+#define MAXIMUM_BINARY_SIZE        65000
 
 #define OUTPUT_TEXT_BUFFER_SIZE    300
 #define PRINT_WARNINGS_TO_STDERR   0
@@ -60,14 +60,14 @@
         /* Values to help check that the
 	 * user-modifiable values are sensible */
 
-#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT     5
-#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE  50
-#define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE  1
-#define MINIMUM_CHECKSUMMED_DATA_PER_LINE    1
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT   5
+#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE 50
+#define MINIMUM_LINE_STEP                  1
+#define MINIMUM_CHECKSUMMED_DATA_PER_LINE  1
 
-#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE              100
-#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE                1
-#define MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE   1
+#define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE 100
+#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE 1
+#define MINIMUM_MAXIMUM_BINARY_SIZE     1
 
 #define LINE_COUNT_BENCHMARK 100
 
@@ -91,9 +91,9 @@
 #define    C64_MAX_BASIC_LINE_LENGTH  79
 #define        MAX_BASIC_LINE_LENGTH 249
 
-#define   COCO_DEFAULT_START_MEMORY_LOCATION 0x3e00
-#define DRAGON_DEFAULT_START_MEMORY_LOCATION 0x3e00
-#define    C64_DEFAULT_START_MEMORY_LOCATION 0x8000
+#define   COCO_DEFAULT_START_LOCATION 0x3e00
+#define DRAGON_DEFAULT_START_LOCATION 0x3e00
+#define    C64_DEFAULT_START_LOCATION 0x8000
 
 #define HIGHEST_COCO_ADDRESS   HIGHEST_64K_ADDRESS
 #define HIGHEST_DRAGON_ADDRESS HIGHEST_64K_ADDRESS
@@ -126,9 +126,9 @@
 #define HIGHEST_8K_ADDRESS  0x1fff
 #define HIGHEST_4K_ADDRESS  0x0fff
 
-#define EIGHT_BIT_UCHAR_MAX 255
+#define EIGHT_BIT_BYTE_MAX 255
 
-#define TARGET_ARCHITECTURE_FILE_SIZE_MAX 65535
+#define FILE_SIZE_MAX 65535
 
         /* End of 8-bit architecture-specific values */
 
@@ -140,17 +140,16 @@ typedef unsigned short int line_number_step_type;
 typedef unsigned short int line_position_type;
 typedef unsigned short int line_counter_type;
 typedef unsigned short int memory_location_type;
-typedef unsigned short int target_architecture_file_size_type;
+typedef unsigned short int file_size_type;
 
-#define LINE_NUMBER_TYPE_MAX         (line_number_type)         -1
-#define LINE_NUMBER_STEP_TYPE_MAX    (line_number_step_type)    -1
-#define LINE_POSITION_TYPE_MAX       (line_position_type)       -1
-#define LINE_COUNTER_TYPE_MAX        (line_counter_type)        -1
-#define MEMORY_LOCATION_TYPE_MAX     (memory_location_type)     -1
-#define TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX\
-                          (target_architecture_file_size_type)  -1
+#define LINE_NUMBER_TYPE_MAX       (line_number_type)         -1
+#define LINE_NUMBER_STEP_TYPE_MAX  (line_number_step_type)    -1
+#define LINE_POSITION_TYPE_MAX     (line_position_type)       -1
+#define LINE_COUNTER_TYPE_MAX      (line_counter_type)        -1
+#define MEMORY_LOCATION_TYPE_MAX   (memory_location_type)     -1
+#define FILE_SIZE_TYPE_MAX         (file_size_type)           -1
 
-#define LINE_NUMBER_TYPE_MIN     0
+#define LINE_NUMBER_TYPE_MIN 0
 
         /* End of typedefs and limits macros */
 
@@ -213,7 +212,7 @@ internal_error(const char *fmt, ...)
 static void
 check_uchar_type(void)
 {
-    if (UCHAR_MAX < EIGHT_BIT_UCHAR_MAX)
+    if (UCHAR_MAX < EIGHT_BIT_BYTE_MAX)
         internal_error("This machine cannot process 8-bit bytes");
 }
 
@@ -234,8 +233,8 @@ check_user_defined_type_limits(void)
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
         internal_error("Memory location type has insufficient range");
 
-    if (TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX
-          < TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+    if (FILE_SIZE_TYPE_MAX
+          < FILE_SIZE_MAX)
         internal_error("Target architecture file size type has\n"
                        "insufficient range");
 }
@@ -243,24 +242,24 @@ check_user_defined_type_limits(void)
 static void
 check_default_starting_basic_line_number_macro(void)
 {
-    const char macro_name[] = "DEFAULT_STARTING_BASIC_LINE_NUMBER";
+    const char macro_name[] = "DEFAULT_STARTING_LINE_NUMBER";
 
-    if (DEFAULT_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+    if (DEFAULT_STARTING_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
         internal_error("%s\n"
                        "is too low to be represented internally",
                        macro_name);
 
-    if (DEFAULT_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+    if (DEFAULT_STARTING_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("%s\n"
                        "is too high to be represented internally",
                        macro_name);
 
-    if (DEFAULT_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
+    if (DEFAULT_STARTING_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("%s\n"
                        "is below the minimum possible BASIC line number",
                        macro_name);
 
-    if (DEFAULT_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
+    if (DEFAULT_STARTING_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("%s\n"
                        "is above the maximum possible BASIC line number",
                        macro_name);
@@ -269,24 +268,24 @@ check_default_starting_basic_line_number_macro(void)
 static void
 check_default_typable_starting_basic_line_number_macro(void)
 {
-    const char macro_name[] = "DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER";
+    const char macro_name[] = "DEFAULT_TYPABLE_STARTING_LINE_NUMBER";
 
-    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+    if (DEFAULT_TYPABLE_STARTING_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
         internal_error("%s\n"
                        "is too low to be represented internally",
                        macro_name);
 
-    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+    if (DEFAULT_TYPABLE_STARTING_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("%s\n"
                        "is too high to be represented internally",
                        macro_name);
 
-    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
+    if (DEFAULT_TYPABLE_STARTING_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("%s\n"
                        "is below the minimum possible BASIC line number",
                        macro_name);
 
-    if (DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
+    if (DEFAULT_TYPABLE_STARTING_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("%s\n"
                        "is above the maximum possible BASIC line number",
                        macro_name);
@@ -295,34 +294,34 @@ check_default_typable_starting_basic_line_number_macro(void)
 static void
 check_maximum_starting_basic_line_number_macro(void)
 {
-    const char macro_name[] = "MAXIMUM_STARTING_BASIC_LINE_NUMBER";
+    const char macro_name[] = "MAXIMUM_STARTING_LINE_NUMBER";
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
+    if (MAXIMUM_STARTING_LINE_NUMBER < LINE_NUMBER_TYPE_MIN)
         internal_error("%s\n"
                        "is too low to be represented internally",
                        macro_name);
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
+    if (MAXIMUM_STARTING_LINE_NUMBER > LINE_NUMBER_TYPE_MAX)
         internal_error("%s\n"
                        "is too high to be represented internally",
                        macro_name);
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > LONG_MAX)
+    if (MAXIMUM_STARTING_LINE_NUMBER > LONG_MAX)
         internal_error("In get_line_number(), %s\n"
                        "cannot be safely converted to unsigned long",
                        macro_name);
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > INT_MAX)
+    if (MAXIMUM_STARTING_LINE_NUMBER > INT_MAX)
         internal_error("In get_line_number(), %s\n"
                        "cannot be safely converted to int",
                        macro_name);
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
+    if (MAXIMUM_STARTING_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
         internal_error("%s\n"
                        "is below the minimum possible BASIC line number",
                        macro_name);
 
-    if (MAXIMUM_STARTING_BASIC_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
+    if (MAXIMUM_STARTING_LINE_NUMBER > MAX_BASIC_LINE_NUMBER)
         internal_error("%s\n"
                        "is above the maximum possible BASIC line number",
                        macro_name);
@@ -331,15 +330,15 @@ check_maximum_starting_basic_line_number_macro(void)
 static void
 check_default_basic_line_number_step_size_macro(void)
 {
-    const char macro_name[] = "DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE";
+    const char macro_name[] = "DEFAULT_LINE_STEP";
 
-    if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE
-          < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+    if (DEFAULT_LINE_STEP
+          < MINIMUM_LINE_STEP)
         internal_error("%s must be at least %u",
                        macro_name,
-                       MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+                       MINIMUM_LINE_STEP);
 
-    if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
+    if (DEFAULT_LINE_STEP > LINE_NUMBER_STEP_TYPE_MAX)
         internal_error("%s cannot be operated on internally",
                        macro_name);
 }
@@ -347,15 +346,15 @@ check_default_basic_line_number_step_size_macro(void)
 static void
 check_default_typable_basic_line_number_step_size_macro(void)
 {
-    const char macro_name[] = "DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE";
+    const char macro_name[] = "DEFAULT_TYPABLE_LINE_STEP";
 
-    if (DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE
-          < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+    if (DEFAULT_TYPABLE_LINE_STEP
+          < MINIMUM_LINE_STEP)
         internal_error("%s must be at least %u",
                        macro_name,
-                       MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+                       MINIMUM_LINE_STEP);
 
-    if (DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
+    if (DEFAULT_TYPABLE_LINE_STEP > LINE_NUMBER_STEP_TYPE_MAX)
         internal_error("%s cannot be operated on internally",
                        macro_name);
 }
@@ -363,20 +362,20 @@ check_default_typable_basic_line_number_step_size_macro(void)
 static void
 check_maximum_basic_line_number_step_size_macro(void)
 {
-    const char macro_name[] = "MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE";
+    const char macro_name[] = "MAXIMUM_LINE_STEP";
 
-    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE
-          < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+    if (MAXIMUM_LINE_STEP
+          < MINIMUM_LINE_STEP)
 	internal_error("%s must be at least %u",
 		       macro_name,
-		       MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+		       MINIMUM_LINE_STEP);
 
-    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > UINT_MAX)
+    if (MAXIMUM_LINE_STEP > UINT_MAX)
         internal_error("%s cannot be operated on internally\n"
                        "in get_line_number_step()",
                        macro_name);
 
-    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
+    if (MAXIMUM_LINE_STEP > LINE_NUMBER_STEP_TYPE_MAX)
         internal_error("%s cannot be operated on internally",
                        macro_name);
 }
@@ -427,16 +426,16 @@ check_checksummed_data_per_line_macro()
 static void
 check_memory_location_macros(void)
 {
-    if (COCO_DEFAULT_START_MEMORY_LOCATION > HIGHEST_COCO_ADDRESS)
-        internal_error("COCO_DEFAULT_START_MEMORY_LOCATION is higher than\n"
+    if (COCO_DEFAULT_START_LOCATION > HIGHEST_COCO_ADDRESS)
+        internal_error("COCO_DEFAULT_START_LOCATION is higher than\n"
 		       "is possible on the Color Computer");
 
-    if (DRAGON_DEFAULT_START_MEMORY_LOCATION > HIGHEST_DRAGON_ADDRESS)
-        internal_error("DRAGON_DEFAULT_START_MEMORY_LOCATION is higher than\n"
+    if (DRAGON_DEFAULT_START_LOCATION > HIGHEST_DRAGON_ADDRESS)
+        internal_error("DRAGON_DEFAULT_START_LOCATION is higher than\n"
 		       "is possible on the Dragon");
 
-    if (C64_DEFAULT_START_MEMORY_LOCATION > HIGHEST_C64_ADDRESS)
-        internal_error("C64_DEFAULT_START_MEMORY_LOCATION is higher than\n"
+    if (C64_DEFAULT_START_LOCATION > HIGHEST_C64_ADDRESS)
+        internal_error("C64_DEFAULT_START_LOCATION is higher than\n"
 		       "is possible on the Commodore 64");
 }
 
@@ -473,15 +472,15 @@ check_max_input_file_size_macro(void)
 static void
 check_max_machine_language_binary_size_macro(void)
 {
-    const char macro_name[] = "MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE";
+    const char macro_name[] = "MAXIMUM_BINARY_SIZE";
 
-    if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE
-          < MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE)
+    if (MAXIMUM_BINARY_SIZE
+          < MINIMUM_MAXIMUM_BINARY_SIZE)
         internal_error("%s is too low. It should be at least %d",
 			macro_name,
-                        MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE);
+                        MINIMUM_MAXIMUM_BINARY_SIZE);
 
-    if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE > LONG_MAX)
+    if (MAXIMUM_BINARY_SIZE > LONG_MAX)
         internal_error("%s cannot be represented internally",
 			macro_name);
 }
@@ -489,8 +488,8 @@ check_max_machine_language_binary_size_macro(void)
 static void
 check_target_architecture_file_size_max_macro(void)
 {
-    if (TARGET_ARCHITECTURE_FILE_SIZE_MAX > LONG_MAX)
-        internal_error("TARGET_ARCHITECTURE_FILE_SIZE_MAX is too high"
+    if (FILE_SIZE_MAX > LONG_MAX)
+        internal_error("FILE_SIZE_MAX is too high"
                        " to be internally operated on");
 }
 
@@ -839,12 +838,12 @@ get_line_number(const char        *arg1,
         fail("Option %s can only be set once", arg1);
 
     *line_number = (line_number_type) string_to_unsigned_long(arg2, &ok,
-                                      MAXIMUM_STARTING_BASIC_LINE_NUMBER);
+                                      MAXIMUM_STARTING_LINE_NUMBER);
 
     if (ok == 0)
         fail("%s takes a number from %u to %u", arg1,
              MIN_BASIC_LINE_NUMBER,
-             MAXIMUM_STARTING_BASIC_LINE_NUMBER);
+             MAXIMUM_STARTING_LINE_NUMBER);
 
     *line_set = 1;
 }
@@ -861,12 +860,12 @@ get_line_number_step(const char             *arg1,
         fail("Option %s can only be set once", arg1);
 
     *step = (line_number_step_type) string_to_unsigned_long(arg2, &ok,
-                                    MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+                                    MAXIMUM_LINE_STEP);
 
     if (ok == 0)
         fail("%s takes a number from %u to %u", arg1,
-             MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE,
-             MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
+             MINIMUM_LINE_STEP,
+             MAXIMUM_LINE_STEP);
 
     *step_set = 1;
 }
@@ -1169,7 +1168,7 @@ check_blob_size(long int    blob_size,
     if (blob_size == 0)
         fail("Input file \"%s\" contains no machine language content", input_filename);
 
-    if (blob_size > MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE)
+    if (blob_size > MAXIMUM_BINARY_SIZE)
         fail("The machine language content of input file \"%s\" is too large", input_filename);
 }
 
@@ -1219,7 +1218,7 @@ get_character_from_input_file(FILE        *input_file,
 
     input_file_character = fgetc(input_file);
 
-    if (input_file_character > EIGHT_BIT_UCHAR_MAX)
+    if (input_file_character > EIGHT_BIT_BYTE_MAX)
         fail("Byte read from input file \"%s\" is too high"
              " for an 8-bit machine", input_filename);
 
@@ -1262,7 +1261,7 @@ process_rs_dos_header(FILE                  *input_file,
 {
     memory_location_type st = 0;
     memory_location_type ex = 0;
-    target_architecture_file_size_type ln = 0;
+    file_size_type ln = 0;
     unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE];
     unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE];
 
@@ -1522,15 +1521,15 @@ set_start_address(enum architecture  target_architecture,
         switch(target_architecture)
         {
             case COCO:
-                start = COCO_DEFAULT_START_MEMORY_LOCATION;
+                start = COCO_DEFAULT_START_LOCATION;
                 break;
 
             case DRAGON:
-                start = DRAGON_DEFAULT_START_MEMORY_LOCATION;
+                start = DRAGON_DEFAULT_START_LOCATION;
                 break;
 
             case C64:
-                start = C64_DEFAULT_START_MEMORY_LOCATION;
+                start = C64_DEFAULT_START_LOCATION;
                 break;
 
             default:
@@ -1709,8 +1708,8 @@ set_line_number(enum architecture target_architecture,
 {
     if (line_number_set == 0)
         line_number = (typable) ?
-                       DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER :
-                       DEFAULT_STARTING_BASIC_LINE_NUMBER;
+                       DEFAULT_TYPABLE_STARTING_LINE_NUMBER :
+                       DEFAULT_STARTING_LINE_NUMBER;
 
     check_line_number(target_architecture, line_number);
 
@@ -1724,8 +1723,8 @@ set_step(boolean_type           step_set,
 {
     if (step_set == 0)
         step = (typable) ?
-                DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE :
-                DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE;
+                DEFAULT_TYPABLE_LINE_STEP :
+                DEFAULT_LINE_STEP;
 
     return step;
 }
@@ -1961,7 +1960,7 @@ vemit(FILE                             *output_file,
     /* TODO: separate these two */
 
     if (*output_file_size > MAXIMUM_BASIC_PROGRAM_SIZE ||
-        *output_file_size > TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        *output_file_size > FILE_SIZE_MAX)
         return TOO_LARGE;
 
     return VE_SUCCESS;
