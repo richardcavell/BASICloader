@@ -42,11 +42,12 @@
 #define DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE 10
 #define MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE         60000
 
+#define MAXIMUM_BASIC_LINE_COUNT          1000
+
 #define MAXIMUM_BASIC_LINE_LENGTH         75
 #define MAXIMUM_CHECKSUMMED_DATA_PER_LINE 10
-#define MAXIMUM_BASIC_LINE_COUNT          1000
-#define MAXIMUM_BASIC_PROGRAM_SIZE        60000
 
+#define MAXIMUM_BASIC_PROGRAM_SIZE           60000
 #define MAXIMUM_INPUT_FILE_SIZE              65000
 #define MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE 65000
 
@@ -80,14 +81,15 @@
 #define MIN_BASIC_LINE_NUMBER 0
 #define MAX_BASIC_LINE_NUMBER 63999
 
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT               1
+#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE            50
 #define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
-#define MINIMUM_CHECKSUMMED_DATA_PER_LINE 1
+
+#define MINIMUM_CHECKSUMMED_DATA_PER_LINE   1
 
 #define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE              100
 #define MINIMUM_MAXIMUM_INPUT_FILE_SIZE                1
 #define MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE   1
-#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT               1
-#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE            50
 
 #define LINE_COUNT_BENCHMARK 100
 
@@ -99,7 +101,8 @@
 #define        PRG_FILE_HEADER_SIZE 2
 
 #define     BINARY_FILE_SIZE_MINIMUM 0
-#define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE)
+#define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE\
+	                            + RS_DOS_FILE_POSTAMBLE_SIZE)
 #define DRAGON_DOS_FILE_SIZE_MINIMUM DRAGON_DOS_FILE_HEADER_SIZE
 #define        PRG_FILE_SIZE_MINIMUM PRG_FILE_HEADER_SIZE
 
@@ -1664,7 +1667,7 @@ inc_line_count(line_counter_type *line_count)
 static line_position_type
 get_architecture_maximum_basic_line_length(enum target_architecture_choice target_architecture)
 {
-    line_position_type architecture_max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
+    line_position_type architecture_max_basic_line_length = 0;
 
     switch(target_architecture)
     {
@@ -1681,7 +1684,8 @@ get_architecture_maximum_basic_line_length(enum target_architecture_choice targe
             break;
 
         default:
-            internal_error("Unhandled target architecture type in get_architecture_max_basic_line_length()");
+            internal_error("Unhandled target architecture type\n"
+			   "in get_architecture_max_basic_line_length()");
     }
 
     return architecture_max_basic_line_length;
