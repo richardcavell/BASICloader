@@ -111,11 +111,12 @@
 #define DRAGON_DOS_FILE_HEADER_SIZE 9
 #define        PRG_FILE_HEADER_SIZE 2
 
-#define     BINARY_FILE_SIZE_MINIMUM 0
+#define     BINARY_FILE_SIZE_MINIMUM 1
 #define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE\
-	                            + RS_DOS_FILE_POSTAMBLE_SIZE)
-#define DRAGON_DOS_FILE_SIZE_MINIMUM DRAGON_DOS_FILE_HEADER_SIZE
-#define        PRG_FILE_SIZE_MINIMUM PRG_FILE_HEADER_SIZE
+	                            + RS_DOS_FILE_POSTAMBLE_SIZE\
+                                    + 1)
+#define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
+#define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
 
 typedef unsigned short int boolean_type;
 typedef unsigned short int line_number_type;
@@ -1169,7 +1170,8 @@ get_blob_size(const char                     *input_filename,
             break;
 
         case RS_DOS:
-            blob_size = input_file_size - (RS_DOS_FILE_PREAMBLE_SIZE + RS_DOS_FILE_POSTAMBLE_SIZE);
+            blob_size = input_file_size - (RS_DOS_FILE_PREAMBLE_SIZE
+                                             + RS_DOS_FILE_POSTAMBLE_SIZE);
             break;
 
         default:
@@ -1263,7 +1265,10 @@ process_rs_dos_header(FILE                  *input_file,
     *start = st;
     *start_set = 1;
 
-    if (fseek(input_file, (long int) (0 - RS_DOS_FILE_POSTAMBLE_SIZE), SEEK_END) < 0)
+    if (fseek(input_file,
+              (long int) (0 - RS_DOS_FILE_POSTAMBLE_SIZE),
+              SEEK_END)
+         < 0)
       fail("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
 
@@ -1423,7 +1428,8 @@ process_prg_header(FILE                  *input_file,
     (void) blob_size;
 
     if (fseek(input_file, (long int) PRG_FILE_HEADER_SIZE, SEEK_SET) < 0)
-        fail("Couldn't operate on file \"%s\". Error number %d", input_filename, errno);
+        fail("Couldn't operate on file \"%s\". Error number %d",
+                                        input_filename,     errno);
 }
 
 static void
@@ -2132,10 +2138,12 @@ check_input_file_remainder(FILE                           *input_file,
     long int remainder = input_file_size - get_file_position(input_file, input_filename);
 
     if   ((input_file_format == BINARY      && remainder != 0)
-       || (input_file_format == RS_DOS      && remainder != RS_DOS_FILE_POSTAMBLE_SIZE)
+       || (input_file_format == RS_DOS      && remainder
+                                               != RS_DOS_FILE_POSTAMBLE_SIZE)
        || (input_file_format == DRAGON_DOS  && remainder != 0)
        || (input_file_format == PRG         && remainder != 0))
-            fail("Unexpected remaining bytes in input file \"%s\"", input_filename);
+            fail("Unexpected remaining bytes in input file \"%s\"",
+                                                            input_filename);
 }
 
 static void
