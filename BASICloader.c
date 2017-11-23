@@ -1073,42 +1073,49 @@ get_file_position(FILE        *file,
     return file_size;
 }
 
+static long int
+get_input_file_size_min(enum input_file_format_choice input_file_format)
+{
+    long int input_file_size_min = 0;
+
+    switch(input_file_format)
+    {
+        case BINARY:
+            input_file_size_min = BINARY_FILE_SIZE_MINIMUM;
+            break;
+
+        case RS_DOS:
+            input_file_size_min = RS_DOS_FILE_SIZE_MINIMUM;
+            break;
+
+        case DRAGON_DOS:
+            input_file_size_min = DRAGON_DOS_FILE_SIZE_MINIMUM;
+            break;
+
+        case PRG:
+            input_file_size_min = PRG_FILE_SIZE_MINIMUM;
+            break;
+
+        default:
+            fail("Unhandled file format type in get_input_file_size_min()");
+    }
+
+    return input_file_size_min;
+}
+
 static void
 check_input_file_size(long int                       input_file_size,
                       const char                     *input_filename,
                       enum input_file_format_choice  input_file_format)
 {
-    long int input_file_size_min = 0;
-
     if (input_file_size == 0)
         fail("File \"%s\" is empty", input_filename);
 
-    switch(input_file_format)
-    {
-        case BINARY:
-                input_file_size_min = BINARY_FILE_SIZE_MINIMUM;
-                break;
-
-        case PRG:
-                input_file_size_min = PRG_FILE_SIZE_MINIMUM;
-                break;
-
-        case DRAGON_DOS:
-                input_file_size_min = DRAGON_DOS_FILE_SIZE_MINIMUM;
-                break;
-
-        case RS_DOS:
-                input_file_size_min = RS_DOS_FILE_SIZE_MINIMUM;
-                break;
-
-        default:
-                fail("Unhandled file format type in check_input_file_size()");
-    }
-
-    if (input_file_size < input_file_size_min)
+    if (input_file_size < get_input_file_size_min(input_file_format))
         fail("Minimum input file size for file format \"%s\" is %lu\n"
              "Input file \"%s\" is %lu bytes long",
-             format_to_text(input_file_format), input_file_size_min,
+             format_to_text(input_file_format),
+             get_input_file_size_min(input_file_format),
              input_filename, input_file_size);
 
     if (input_file_size > MAXIMUM_INPUT_FILE_SIZE)
