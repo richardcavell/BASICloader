@@ -55,11 +55,35 @@
 #define PRINT_WARNINGS_TO_STDERR   0
 #define STDOUT_FILENAME_SUBSTITUTE "-"
 
+        /* End of user-modifiable values */
+
+        /* Start of architecture-specific values */
+
+#define   COCO_MIN_BASIC_LINE_NUMBER 0
+#define DRAGON_MIN_BASIC_LINE_NUMBER 0
+#define    C64_MIN_BASIC_LINE_NUMBER 0
+#define        MIN_BASIC_LINE_NUMBER 0
+
+#define   COCO_MAX_BASIC_LINE_NUMBER 63999
+#define DRAGON_MAX_BASIC_LINE_NUMBER 63999
+#define    C64_MAX_BASIC_LINE_NUMBER 63999
+#define        MAX_BASIC_LINE_NUMBER 63999
+
+#define   COCO_MAX_BASIC_LINE_LENGTH 249
+#define DRAGON_MAX_BASIC_LINE_LENGTH 249
+#define    C64_MAX_BASIC_LINE_LENGTH  79
+#define        MAX_BASIC_LINE_LENGTH 249
+
 #define   COCO_DEFAULT_START_MEMORY_LOCATION 0x3e00
 #define DRAGON_DEFAULT_START_MEMORY_LOCATION 0x3e00
 #define    C64_DEFAULT_START_MEMORY_LOCATION 0x8000
 
-        /* End of user-modifiable values */
+#define HIGHEST_COCO_ADDRESS   HIGHEST_64K_ADDRESS
+#define HIGHEST_DRAGON_ADDRESS HIGHEST_64K_ADDRESS
+#define HIGHEST_C64_ADDRESS    HIGHEST_64K_ADDRESS
+#define HIGHEST_RAM_ADDRESS    HIGHEST_64K_ADDRESS
+
+        /* End of architecture-specific values */
 
 #define HIGHEST_64K_ADDRESS 0xffff
 #define HIGHEST_32K_ADDRESS 0x7fff
@@ -67,32 +91,12 @@
 #define HIGHEST_8K_ADDRESS  0x1fff
 #define HIGHEST_4K_ADDRESS  0x0fff
 
-#define HIGHEST_RAM_ADDRESS     HIGHEST_64K_ADDRESS
-#define HIGHEST_COCO_ADDRESS    HIGHEST_64K_ADDRESS
-#define HIGHEST_DRAGON_ADDRESS  HIGHEST_64K_ADDRESS
-#define HIGHEST_C64_ADDRESS     HIGHEST_64K_ADDRESS
-
 #define EIGHT_BIT_UCHAR_MAX 255
 
-#define   COCO_MAX_BASIC_LINE_LENGTH 249
-#define DRAGON_MAX_BASIC_LINE_LENGTH 249
-#define    C64_MAX_BASIC_LINE_LENGTH  79
-
-#define   COCO_MIN_BASIC_LINE_NUMBER 0
-#define DRAGON_MIN_BASIC_LINE_NUMBER 0
-#define    C64_MIN_BASIC_LINE_NUMBER 0
-#define        MIN_BASIC_LINE_NUMBER 0
-
-#define   COCO_MAX_BASIC_LINE_NUMBER  63999
-#define DRAGON_MAX_BASIC_LINE_NUMBER  63999
-#define    C64_MAX_BASIC_LINE_NUMBER  63999
-#define        MAX_BASIC_LINE_NUMBER  63999
-
-#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT    1
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT     5
 #define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE  50
-#define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
-
-#define MINIMUM_CHECKSUMMED_DATA_PER_LINE   1
+#define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE  1
+#define MINIMUM_CHECKSUMMED_DATA_PER_LINE    1
 
 #define MINIMUM_OUTPUT_TEXT_BUFFER_SIZE              100
 #define MINIMUM_MAXIMUM_INPUT_FILE_SIZE                1
@@ -121,12 +125,13 @@ typedef unsigned short int line_counter_type;
 typedef unsigned short int memory_location_type;
 typedef unsigned short int target_architecture_file_size_type;
 
-#define LINE_NUMBER_TYPE_MAX                    (line_number_type)                    -1
-#define LINE_NUMBER_STEP_TYPE_MAX               (line_number_step_type)               -1
-#define LINE_POSITION_TYPE_MAX                  (line_position_type)                  -1
-#define LINE_COUNTER_TYPE_MAX                   (line_counter_type)                   -1
-#define MEMORY_LOCATION_TYPE_MAX                (memory_location_type)                -1
-#define TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX  (target_architecture_file_size_type)  -1
+#define LINE_NUMBER_TYPE_MAX         (line_number_type)         -1
+#define LINE_NUMBER_STEP_TYPE_MAX    (line_number_step_type)    -1
+#define LINE_POSITION_TYPE_MAX       (line_position_type)       -1
+#define LINE_COUNTER_TYPE_MAX        (line_counter_type)        -1
+#define MEMORY_LOCATION_TYPE_MAX     (memory_location_type)     -1
+#define TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX\
+                          (target_architecture_file_size_type)  -1
 
 #define LINE_NUMBER_TYPE_MIN     0
 
@@ -210,8 +215,10 @@ check_user_defined_type_limits(void)
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
         internal_error("Memory location type has insufficient range");
 
-    if (TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX < TARGET_ARCHITECTURE_FILE_SIZE_MAX)
-        internal_error("Target architecture file size type has insufficient range");
+    if (TARGET_ARCHITECTURE_FILE_SIZE_TYPE_MAX
+          < TARGET_ARCHITECTURE_FILE_SIZE_MAX)
+        internal_error("Target architecture file size type has\n"
+                       "insufficient range");
 }
 
 static void
@@ -307,7 +314,8 @@ check_default_basic_line_number_step_size_macro(void)
 {
     const char macro_name[] = "DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE";
 
-    if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+    if (DEFAULT_BASIC_LINE_NUMBER_STEP_SIZE
+          < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
         internal_error("%s must be at least %u",
                        macro_name,
                        MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
@@ -322,7 +330,8 @@ check_default_typable_basic_line_number_step_size_macro(void)
 {
     const char macro_name[] = "DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE";
 
-    if (DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+    if (DEFAULT_TYPABLE_BASIC_LINE_NUMBER_STEP_SIZE
+          < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
         internal_error("%s must be at least %u",
                        macro_name,
                        MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
@@ -337,13 +346,15 @@ check_maximum_basic_line_number_step_size_macro(void)
 {
     const char macro_name[] = "MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE";
 
-    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
+    if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE
+          < MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE)
 	internal_error("%s must be at least %u",
 		       macro_name,
 		       MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE);
 
     if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > UINT_MAX)
-        internal_error("%s cannot be operated on internally in get_line_number_step()",
+        internal_error("%s cannot be operated on internally\n"
+                       "in get_line_number_step()",
                        macro_name);
 
     if (MAXIMUM_BASIC_LINE_NUMBER_STEP_SIZE > LINE_NUMBER_STEP_TYPE_MAX)
@@ -416,8 +427,9 @@ check_output_text_buffer_size_macro(void)
     const char macro_name[] = "OUTPUT_TEXT_BUFFER_SIZE";
 
     if (OUTPUT_TEXT_BUFFER_SIZE < MINIMUM_OUTPUT_TEXT_BUFFER_SIZE)
-        internal_error("%s is too low",
-			macro_name);
+        internal_error("%s is too low. It should be at least %d",
+			macro_name,
+                        MINIMUM_OUTPUT_TEXT_BUFFER_SIZE);
 
     if (OUTPUT_TEXT_BUFFER_SIZE > INT_MAX)
         internal_error("%s cannot be operated on internally",
@@ -430,8 +442,9 @@ check_max_input_file_size_macro(void)
     char macro_name[] = "MAXIMUM_INPUT_FILE_SIZE";
 
     if (MAXIMUM_INPUT_FILE_SIZE < MINIMUM_MAXIMUM_INPUT_FILE_SIZE)
-        internal_error("%s is too low",
-                       macro_name);
+        internal_error("%s is too low. It should be at least %d",
+                       macro_name,
+                       MINIMUM_MAXIMUM_INPUT_FILE_SIZE);
     
     if (MAXIMUM_INPUT_FILE_SIZE > LONG_MAX)
         internal_error("%s cannot be operated on internally",
@@ -443,9 +456,11 @@ check_max_machine_language_binary_size_macro(void)
 {
     const char macro_name[] = "MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE";
 
-    if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE < MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE)
-        internal_error("%s is too low",
-			macro_name);
+    if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE
+          < MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE)
+        internal_error("%s is too low. It should be at least %d",
+			macro_name,
+                        MINIMUM_MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE);
 
     if (MAXIMUM_MACHINE_LANGUAGE_BINARY_SIZE > LONG_MAX)
         internal_error("%s cannot be represented internally",
@@ -456,7 +471,8 @@ static void
 check_target_architecture_file_size_max_macro(void)
 {
     if (TARGET_ARCHITECTURE_FILE_SIZE_MAX > LONG_MAX)
-        internal_error("TARGET_ARCHITECTURE_FILE_SIZE_MAX is too high to be internally operated on");
+        internal_error("TARGET_ARCHITECTURE_FILE_SIZE_MAX is too high"
+                       " to be internally operated on");
 }
 
 static void
@@ -1727,7 +1743,8 @@ inc_line_count(line_counter_type *line_count)
 static line_position_type
 get_architecture_maximum_basic_line_length(enum target_architecture_choice target_architecture)
 {
-    line_position_type architecture_max_basic_line_length = 0;
+    line_position_type architecture_max_basic_line_length
+	    = MAX_BASIC_LINE_LENGTH;
 
     switch(target_architecture)
     {
