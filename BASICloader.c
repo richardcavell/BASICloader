@@ -86,10 +86,10 @@
 #define    C64_MAX_BASIC_LINE_NUMBER 63999
 #define        MAX_BASIC_LINE_NUMBER 63999
 
-#define   COCO_MAX_BASIC_LINE_LENGTH 249
-#define DRAGON_MAX_BASIC_LINE_LENGTH 249
-#define    C64_MAX_BASIC_LINE_LENGTH  79
-#define        MAX_BASIC_LINE_LENGTH 249
+#define   COCO_MAX_LINE_LENGTH 249
+#define DRAGON_MAX_LINE_LENGTH 249
+#define    C64_MAX_LINE_LENGTH  79
+#define  MAX_BASIC_LINE_LENGTH 249
 
 #define   COCO_DEFAULT_START_LOCATION 0x3e00
 #define DRAGON_DEFAULT_START_LOCATION 0x3e00
@@ -137,15 +137,15 @@
 typedef unsigned short int boolean_type;
 typedef unsigned short int line_number_type;
 typedef unsigned short int line_number_step_type;
-typedef unsigned short int line_position_type;
 typedef unsigned short int line_counter_type;
+typedef unsigned short int line_position_type;
 typedef unsigned short int memory_location_type;
 typedef unsigned short int file_size_type;
 
 #define LINE_NUMBER_TYPE_MAX       (line_number_type)         -1
 #define LINE_NUMBER_STEP_TYPE_MAX  (line_number_step_type)    -1
-#define LINE_POSITION_TYPE_MAX     (line_position_type)       -1
 #define LINE_COUNTER_TYPE_MAX      (line_counter_type)        -1
+#define LINE_POSITION_TYPE_MAX     (line_position_type)       -1
 #define MEMORY_LOCATION_TYPE_MAX   (memory_location_type)     -1
 #define FILE_SIZE_TYPE_MAX         (file_size_type)           -1
 
@@ -222,25 +222,23 @@ check_user_defined_type_limits(void)
     if (LINE_NUMBER_TYPE_MAX < MAX_BASIC_LINE_NUMBER)
         internal_error("Line number type has insufficient range");
 
-    if (LINE_POSITION_TYPE_MAX < COCO_MAX_BASIC_LINE_LENGTH   ||
-        LINE_POSITION_TYPE_MAX < DRAGON_MAX_BASIC_LINE_LENGTH ||
-        LINE_POSITION_TYPE_MAX < C64_MAX_BASIC_LINE_LENGTH)
-        internal_error("Line position type has insufficient range");
-
     if (LINE_COUNTER_TYPE_MAX < LINE_COUNT_BENCHMARK)
         internal_error("Line counter type has insufficient range");
+
+    if (LINE_POSITION_TYPE_MAX < COCO_MAX_LINE_LENGTH   ||
+        LINE_POSITION_TYPE_MAX < DRAGON_MAX_LINE_LENGTH ||
+        LINE_POSITION_TYPE_MAX < C64_MAX_LINE_LENGTH)
+        internal_error("Line position type has insufficient range");
 
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
         internal_error("Memory location type has insufficient range");
 
-    if (FILE_SIZE_TYPE_MAX
-          < FILE_SIZE_MAX)
-        internal_error("Target architecture file size type has\n"
-                       "insufficient range");
+    if (FILE_SIZE_TYPE_MAX < FILE_SIZE_MAX)
+        internal_error("File size type has insufficient range");
 }
 
 static void
-check_default_starting_basic_line_number_macro(void)
+check_default_starting_line_number_macro(void)
 {
     const char macro_name[] = "DEFAULT_STARTING_LINE_NUMBER";
 
@@ -266,7 +264,7 @@ check_default_starting_basic_line_number_macro(void)
 }
 
 static void
-check_default_typable_starting_basic_line_number_macro(void)
+check_default_typable_starting_line_number_macro(void)
 {
     const char macro_name[] = "DEFAULT_TYPABLE_STARTING_LINE_NUMBER";
 
@@ -306,14 +304,9 @@ check_maximum_starting_basic_line_number_macro(void)
                        "is too high to be represented internally",
                        macro_name);
 
-    if (MAXIMUM_STARTING_LINE_NUMBER > LONG_MAX)
+    if (MAXIMUM_STARTING_LINE_NUMBER > ULONG_MAX)
         internal_error("In get_line_number(), %s\n"
                        "cannot be safely converted to unsigned long",
-                       macro_name);
-
-    if (MAXIMUM_STARTING_LINE_NUMBER > INT_MAX)
-        internal_error("In get_line_number(), %s\n"
-                       "cannot be safely converted to int",
                        macro_name);
 
     if (MAXIMUM_STARTING_LINE_NUMBER < MIN_BASIC_LINE_NUMBER)
@@ -841,9 +834,9 @@ get_line_number(const char        *arg1,
                                       MAXIMUM_STARTING_LINE_NUMBER);
 
     if (ok == 0)
-        fail("%s takes a number from %u to %u", arg1,
+        fail("%s takes a number from %u to %lu", arg1,
              MIN_BASIC_LINE_NUMBER,
-             MAXIMUM_STARTING_LINE_NUMBER);
+             (long int) MAXIMUM_STARTING_LINE_NUMBER);
 
     *line_set = 1;
 }
@@ -1779,15 +1772,15 @@ get_architecture_maximum_basic_line_length(enum architecture target_architecture
     switch(target_architecture)
     {
         case COCO:
-            architecture_max_basic_line_length = COCO_MAX_BASIC_LINE_LENGTH;
+            architecture_max_basic_line_length = COCO_MAX_LINE_LENGTH;
             break;
 
         case DRAGON:
-            architecture_max_basic_line_length = DRAGON_MAX_BASIC_LINE_LENGTH;
+            architecture_max_basic_line_length = DRAGON_MAX_LINE_LENGTH;
             break;
 
         case C64:
-            architecture_max_basic_line_length = C64_MAX_BASIC_LINE_LENGTH;
+            architecture_max_basic_line_length = C64_MAX_LINE_LENGTH;
             break;
 
         default:
@@ -2259,8 +2252,8 @@ int main(int argc, char *argv[])
 
     check_uchar_type();
     check_user_defined_type_limits();
-    check_default_starting_basic_line_number_macro();
-    check_default_typable_starting_basic_line_number_macro();
+    check_default_starting_line_number_macro();
+    check_default_typable_starting_line_number_macro();
     check_maximum_starting_basic_line_number_macro();
     check_default_basic_line_number_step_size_macro();
     check_default_typable_basic_line_number_step_size_macro();
