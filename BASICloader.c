@@ -78,11 +78,18 @@
 #define DRAGON_MAX_BASIC_LINE_LENGTH 249
 #define    C64_MAX_BASIC_LINE_LENGTH  79
 
-#define MIN_BASIC_LINE_NUMBER 0
-#define MAX_BASIC_LINE_NUMBER 63999
+#define   COCO_MIN_BASIC_LINE_NUMBER 0
+#define DRAGON_MIN_BASIC_LINE_NUMBER 0
+#define    C64_MIN_BASIC_LINE_NUMBER 0
+#define        MIN_BASIC_LINE_NUMBER 0
 
-#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT               1
-#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE            50
+#define   COCO_MAX_BASIC_LINE_NUMBER  63999
+#define DRAGON_MAX_BASIC_LINE_NUMBER  63999
+#define    C64_MAX_BASIC_LINE_NUMBER  63999
+#define        MAX_BASIC_LINE_NUMBER  63999
+
+#define MINIMUM_MAXIMUM_BASIC_LINE_COUNT    1
+#define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE  50
 #define MINIMUM_BASIC_LINE_NUMBER_STEP_SIZE 1
 
 #define MINIMUM_CHECKSUMMED_DATA_PER_LINE   1
@@ -1580,24 +1587,76 @@ ram_requirement_warning(enum target_architecture_choice  target_architecture,
     }
 }
 
-static void
-check_line_number(line_number_type line_number)
+static line_number_type
+get_minimum_basic_line_number(enum target_architecture_choice
+	                           target_architecture)
 {
-    (void) line_number;
+    line_number_type minimum_basic_line_number = MIN_BASIC_LINE_NUMBER;
 
-#if (MIN_BASIC_LINE_NUMBER > 0)
-    if (line_number < MIN_BASIC_LINE_NUMBER)
-        internal_error("Line number is below minimum");
-#endif
+    switch(target_architecture)
+    {
+        case COCO:
+            minimum_basic_line_number = COCO_MIN_BASIC_LINE_NUMBER;
+            break;
 
-#if (MAX_BASIC_LINE_NUMBER < LINE_NUMBER_TYPE_MAX)
-    if (line_number > MAX_BASIC_LINE_NUMBER)
-        fail("The BASIC line numbers have become too large");
-#endif
+        case DRAGON:
+            minimum_basic_line_number = DRAGON_MIN_BASIC_LINE_NUMBER;
+            break;
+
+        case C64:
+            minimum_basic_line_number = C64_MIN_BASIC_LINE_NUMBER;
+            break;
+
+        default:
+            internal_error("Unhandled target architecture in\n"
+				   "get_minimum_basic_line_number()");
+    }
+
+    return minimum_basic_line_number;
 }
 
 static line_number_type
-set_line_number(boolean_type      line_number_set,
+get_maximum_basic_line_number(enum target_architecture_choice
+                              target_architecture)
+{
+    line_number_type maximum_basic_line_number = MAX_BASIC_LINE_NUMBER;
+
+    switch(target_architecture)
+    {
+        case COCO:
+            maximum_basic_line_number = COCO_MAX_BASIC_LINE_NUMBER;
+	    break;
+
+        case DRAGON:
+	    maximum_basic_line_number = DRAGON_MAX_BASIC_LINE_NUMBER;
+            break;
+
+	case C64:
+            maximum_basic_line_number = C64_MAX_BASIC_LINE_NUMBER;
+            break;
+
+	default:
+	    internal_error("Unhandled target architecture in\n"
+                           "get_maximum_basic_line_number()");
+    }
+
+    return maximum_basic_line_number;
+}
+
+static void
+check_line_number(enum target_architecture_choice target_architecture,
+		  line_number_type line_number)
+{
+    if (line_number < get_minimum_basic_line_number(target_architecture))
+        internal_error("Line number is below minimum");
+
+    if (line_number > get_maximum_basic_line_number(target_architecture))
+        fail("The BASIC line numbers have become too large");
+}
+
+static line_number_type
+set_line_number(enum target_architecture_choice target_architecture,
+                boolean_type      line_number_set,
                 line_number_type  line_number,
                 boolean_type      typable)
 {
@@ -1606,7 +1665,7 @@ set_line_number(boolean_type      line_number_set,
                        DEFAULT_TYPABLE_STARTING_BASIC_LINE_NUMBER :
                        DEFAULT_STARTING_BASIC_LINE_NUMBER;
 
-    check_line_number(line_number);
+    check_line_number(target_architecture, line_number);
 
     return line_number;
 }
@@ -1638,7 +1697,8 @@ safe_step_line_number(line_number_type       *line_number,
 }
 
 static void
-inc_line_number(boolean_type           *line_incrementing_has_started,
+inc_line_number(enum target_architecture_choice target_architecture,
+		boolean_type           *line_incrementing_has_started,
                 line_number_type       *line_number,
                 line_number_step_type  *step)
 {
@@ -1647,7 +1707,7 @@ inc_line_number(boolean_type           *line_incrementing_has_started,
 
     *line_incrementing_has_started = 1;
 
-    check_line_number(*line_number);
+    check_line_number(target_architecture, *line_number);
 }
 
 static void
@@ -1905,7 +1965,8 @@ emit_line(FILE                             *output_file,
     if (*line_position != 0)
         internal_error("Line emission did not start at position zero");
 
-    inc_line_number(line_incrementing_has_started,
+    inc_line_number(target_architecture,
+		    line_incrementing_has_started,
                     line_number,
                     step);
 
@@ -1975,7 +2036,10 @@ emit_datum(FILE                             *output_file,
 
     if (*line_position == 0)
     {
-        inc_line_number(line_incrementing_has_started, line_number, step);
+        inc_line_number(target_architecture,
+                        line_incrementing_has_started,
+                        line_number,
+                        step);
         emit(output_file,
              target_architecture,
              output_case,
@@ -2275,7 +2339,10 @@ int main(int argc, char *argv[])
     exec            = set_exec_address(target_architecture,
 		                       exec_set, start, exec, end);
 
-    line_number     = set_line_number(line_number_set, line_number, typable);
+    line_number     = set_line_number(target_architecture,
+                                      line_number_set,
+                                      line_number,
+                                      typable);
     step            = set_step(step_set, step, typable);
 
     ram_requirement_warning(target_architecture, nowarn, end);
