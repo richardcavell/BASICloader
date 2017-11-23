@@ -321,12 +321,11 @@ check_maximum_starting_basic_line_number_macro(void)
 }
 
 static void
-check_default_basic_line_number_step_size_macro(void)
+check_default_line_step_macro(void)
 {
     const char macro_name[] = "DEFAULT_LINE_STEP";
 
-    if (DEFAULT_LINE_STEP
-          < MINIMUM_LINE_STEP)
+    if (DEFAULT_LINE_STEP < MINIMUM_LINE_STEP)
         internal_error("%s must be at least %u",
                        macro_name,
                        MINIMUM_LINE_STEP);
@@ -2255,7 +2254,7 @@ int main(int argc, char *argv[])
     check_default_starting_line_number_macro();
     check_default_typable_starting_line_number_macro();
     check_maximum_starting_basic_line_number_macro();
-    check_default_basic_line_number_step_size_macro();
+    check_default_line_step_macro();
     check_default_typable_basic_line_number_step_size_macro();
     check_maximum_basic_line_number_step_size_macro();
     check_maximum_basic_line_count_macro();
