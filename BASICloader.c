@@ -154,9 +154,9 @@ typedef unsigned short int target_architecture_file_size_type;
 
         /* End of typedefs and limits macros */
 
-enum target_architecture_choice
+enum architecture
 {
-    NO_TARGET_ARCHITECTURE_CHOSEN = 0,
+    NO_ARCHITECTURE_CHOSEN = 0,
     COCO,
     DRAGON,
     C64
@@ -166,9 +166,9 @@ enum target_architecture_choice
 #define DRAGON_TEXT "dragon"
 #define    C64_TEXT "c64"
 
-enum input_file_format_choice
+enum file_format
 {
-    NO_INPUT_FILE_FORMAT_CHOSEN = 0,
+    NO_FILE_FORMAT_CHOSEN = 0,
     BINARY,
     RS_DOS,
     DRAGON_DOS,
@@ -180,9 +180,9 @@ enum input_file_format_choice
 #define DRAGON_DOS_TEXT "dragon"
 #define        PRG_TEXT "prg"
 
-enum output_case_choice
+enum case_choice
 {
-    NO_OUTPUT_CASE_CHOSEN = 0,
+    NO_CASE_CHOSEN = 0,
     UPPERCASE,
     LOWERCASE,
     MIXED_CASE
@@ -641,7 +641,7 @@ display_license(void)
 }
 
 static const char *
-target_architecture_to_text(enum target_architecture_choice target_architecture)
+target_architecture_to_text(enum architecture target_architecture)
 {
     const char *text = NULL;
 
@@ -657,7 +657,7 @@ target_architecture_to_text(enum target_architecture_choice target_architecture)
 }
 
 static const char *
-format_to_text(enum input_file_format_choice format)
+format_to_text(enum file_format format)
 {
     const char *text = NULL;
 
@@ -674,7 +674,7 @@ format_to_text(enum input_file_format_choice format)
 }
 
 static const char *
-case_to_text(enum output_case_choice output_case)
+case_to_text(enum case_choice output_case)
 {
     const char *text = NULL;
 
@@ -744,9 +744,9 @@ get_output_filename(const char *arg1,
 static void
 get_target_architecture_arg(const char                       *arg1,
                             const char                       *arg2,
-                            enum target_architecture_choice  *target_architecture)
+                            enum architecture  *target_architecture)
 {
-    if (*target_architecture != NO_TARGET_ARCHITECTURE_CHOSEN)
+    if (*target_architecture != NO_ARCHITECTURE_CHOSEN)
         fail("You can only set %s once", arg1);
 
          if (strcmp(arg2, COCO_TEXT) == 0)    *target_architecture = COCO;
@@ -758,9 +758,9 @@ get_target_architecture_arg(const char                       *arg1,
 static void
 get_format(const char                     *arg1,
            const char                     *arg2,
-           enum input_file_format_choice  *format)
+           enum file_format  *format)
 {
-    if (*format != NO_INPUT_FILE_FORMAT_CHOSEN)
+    if (*format != NO_FILE_FORMAT_CHOSEN)
         fail("You can only set %s once", arg1);
 
          if (strcmp(arg2, BINARY_TEXT) == 0)      *format = BINARY;
@@ -773,9 +773,9 @@ get_format(const char                     *arg1,
 static void
 get_case(const char               *arg1,
          const char               *arg2,
-         enum output_case_choice  *output_case)
+         enum case_choice  *output_case)
 {
-    if (*output_case != NO_OUTPUT_CASE_CHOSEN)
+    if (*output_case != NO_CASE_CHOSEN)
         fail("You can only set %s once", arg1);
 
          if (strcmp(arg2, UPPERCASE_TEXT) == 0)   *output_case = UPPERCASE;
@@ -872,7 +872,7 @@ get_line_number_step(const char             *arg1,
 }
 
 static memory_location_type
-get_highest_ram_address(enum target_architecture_choice target_architecture)
+get_highest_ram_address(enum architecture target_architecture)
 {
     memory_location_type highest_ram_address = HIGHEST_RAM_ADDRESS;
 
@@ -920,18 +920,18 @@ get_memory_location_type_arg(const char            *arg1,
     *set = 1;
 }
 
-static enum target_architecture_choice
-set_target_architecture(enum target_architecture_choice target_architecture)
+static enum architecture
+set_target_architecture(enum architecture target_architecture)
 {
-    if (target_architecture == NO_TARGET_ARCHITECTURE_CHOSEN)
+    if (target_architecture == NO_ARCHITECTURE_CHOSEN)
         target_architecture =  DEFAULT_TARGET_ARCHITECTURE;
 
     return target_architecture;
 }
 
 static void
-check_input_file_format(enum target_architecture_choice target_architecture,
-                        enum input_file_format_choice   input_file_format)
+check_input_file_format(enum architecture target_architecture,
+                        enum file_format   input_file_format)
 {
     if (input_file_format == PRG         && target_architecture != C64)
         fail("File format \"%s\" should only be used with the \"%s\" target",
@@ -946,11 +946,11 @@ check_input_file_format(enum target_architecture_choice target_architecture,
              RS_DOS_TEXT, COCO_TEXT);
 }
 
-static enum input_file_format_choice
-set_input_file_format(enum target_architecture_choice  target_architecture,
-                      enum input_file_format_choice    input_file_format)
+static enum file_format
+set_input_file_format(enum architecture  target_architecture,
+                      enum file_format    input_file_format)
 {
-    if (input_file_format == NO_INPUT_FILE_FORMAT_CHOSEN)
+    if (input_file_format == NO_FILE_FORMAT_CHOSEN)
         input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
 
     check_input_file_format(target_architecture, input_file_format);
@@ -959,8 +959,8 @@ set_input_file_format(enum target_architecture_choice  target_architecture,
 }
 
 static void
-check_output_case(enum target_architecture_choice target_architecture,
-                  enum output_case_choice         output_case)
+check_output_case(enum architecture target_architecture,
+                  enum case_choice         output_case)
 {
     if (output_case == LOWERCASE && target_architecture == COCO)
         fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
@@ -972,11 +972,11 @@ check_output_case(enum target_architecture_choice target_architecture,
         fail("There is presently no target for mixed case output");
 }
 
-static enum output_case_choice
-set_output_case(enum target_architecture_choice  target_architecture,
-                enum output_case_choice          output_case)
+static enum case_choice
+set_output_case(enum architecture  target_architecture,
+                enum case_choice          output_case)
 {
-    if (output_case == NO_OUTPUT_CASE_CHOSEN)
+    if (output_case == NO_CASE_CHOSEN)
         output_case =  DEFAULT_OUTPUT_CASE;
 
     check_output_case(target_architecture, output_case);
@@ -1005,7 +1005,7 @@ set_print_program(const char    *output_filename,
 }
 
 static void
-check_extended_basic(enum target_architecture_choice  target_architecture,
+check_extended_basic(enum architecture  target_architecture,
                      boolean_type                     extended_basic)
 {
     if (extended_basic && target_architecture != COCO)
@@ -1033,8 +1033,8 @@ check_input_filename(const char    *input_filename,
 }
 
 static const char *
-set_output_filename(enum target_architecture_choice  target_architecture,
-                    enum output_case_choice          output_case,
+set_output_filename(enum architecture  target_architecture,
+                    enum case_choice          output_case,
                     const char                       *output_filename,
                     boolean_type                     print_program)
 {
@@ -1092,7 +1092,7 @@ get_file_position(FILE        *file,
 }
 
 static long int
-get_input_file_size_min(enum input_file_format_choice input_file_format)
+get_input_file_size_min(enum file_format input_file_format)
 {
     long int input_file_size_min = 0;
 
@@ -1124,7 +1124,7 @@ get_input_file_size_min(enum input_file_format_choice input_file_format)
 static void
 check_input_file_size(long int                       input_file_size,
                       const char                     *input_filename,
-                      enum input_file_format_choice  input_file_format)
+                      enum file_format  input_file_format)
 {
     if (input_file_size == 0)
         fail("File \"%s\" is empty", input_filename);
@@ -1143,7 +1143,7 @@ check_input_file_size(long int                       input_file_size,
 static long int
 get_input_file_size(FILE                           *input_file,
                     const char                     *input_filename,
-                    enum input_file_format_choice  input_file_format)
+                    enum file_format  input_file_format)
 {
     long int input_file_size = 0;
 
@@ -1175,7 +1175,7 @@ check_blob_size(long int    blob_size,
 
 static long int
 get_blob_size(const char                     *input_filename,
-              enum input_file_format_choice  input_file_format,
+              enum file_format  input_file_format,
               long int                       input_file_size)
 {
     long int blob_size = 0;
@@ -1458,7 +1458,7 @@ process_prg_header(FILE                  *input_file,
 }
 
 static void
-process_header(enum input_file_format_choice  input_file_format,
+process_header(enum file_format  input_file_format,
                FILE                           *input_file,
                const char                     *input_filename,
                boolean_type                   *start_set,
@@ -1513,7 +1513,7 @@ process_header(enum input_file_format_choice  input_file_format,
 }
 
 static memory_location_type
-set_start_address(enum target_architecture_choice  target_architecture,
+set_start_address(enum architecture  target_architecture,
                   boolean_type                     start_set,
                   memory_location_type             start)
 {
@@ -1548,7 +1548,7 @@ set_start_address(enum target_architecture_choice  target_architecture,
 }
 
 static memory_location_type
-set_end_address(enum target_architecture_choice  target_architecture,
+set_end_address(enum architecture  target_architecture,
 		memory_location_type             start,
                 long int                         blob_size)
 {
@@ -1565,7 +1565,7 @@ set_end_address(enum target_architecture_choice  target_architecture,
 }
 
 static memory_location_type
-set_exec_address(enum target_architecture_choice  target_architecture,
+set_exec_address(enum architecture  target_architecture,
 		 boolean_type                     exec_set,
                  memory_location_type             start,
                  memory_location_type             exec,
@@ -1611,7 +1611,7 @@ open_output_file(const char    *output_filename,
 }
 
 static void
-ram_requirement_warning(enum target_architecture_choice  target_architecture,
+ram_requirement_warning(enum architecture  target_architecture,
                         boolean_type                     nowarn,
                         memory_location_type             end)
 {
@@ -1635,7 +1635,7 @@ ram_requirement_warning(enum target_architecture_choice  target_architecture,
 }
 
 static line_number_type
-get_minimum_basic_line_number(enum target_architecture_choice
+get_minimum_basic_line_number(enum architecture
 	                           target_architecture)
 {
     line_number_type minimum_basic_line_number = MIN_BASIC_LINE_NUMBER;
@@ -1663,7 +1663,7 @@ get_minimum_basic_line_number(enum target_architecture_choice
 }
 
 static line_number_type
-get_maximum_basic_line_number(enum target_architecture_choice
+get_maximum_basic_line_number(enum architecture
                               target_architecture)
 {
     line_number_type maximum_basic_line_number = MAX_BASIC_LINE_NUMBER;
@@ -1691,7 +1691,7 @@ get_maximum_basic_line_number(enum target_architecture_choice
 }
 
 static void
-check_line_number(enum target_architecture_choice target_architecture,
+check_line_number(enum architecture target_architecture,
 		  line_number_type line_number)
 {
     if (line_number < get_minimum_basic_line_number(target_architecture))
@@ -1702,7 +1702,7 @@ check_line_number(enum target_architecture_choice target_architecture,
 }
 
 static line_number_type
-set_line_number(enum target_architecture_choice target_architecture,
+set_line_number(enum architecture target_architecture,
                 boolean_type      line_number_set,
                 line_number_type  line_number,
                 boolean_type      typable)
@@ -1744,7 +1744,7 @@ safe_step_line_number(line_number_type       *line_number,
 }
 
 static void
-inc_line_number(enum target_architecture_choice target_architecture,
+inc_line_number(enum architecture target_architecture,
 		boolean_type           *line_incrementing_has_started,
                 line_number_type       *line_number,
                 line_number_step_type  *step)
@@ -1772,7 +1772,7 @@ inc_line_count(line_counter_type *line_count)
 }
 
 static line_position_type
-get_architecture_maximum_basic_line_length(enum target_architecture_choice target_architecture)
+get_architecture_maximum_basic_line_length(enum architecture target_architecture)
 {
     line_position_type architecture_max_basic_line_length
 	    = MAX_BASIC_LINE_LENGTH;
@@ -1800,7 +1800,7 @@ get_architecture_maximum_basic_line_length(enum target_architecture_choice targe
 }
 
 static void
-check_line_position(enum target_architecture_choice  target_architecture,
+check_line_position(enum architecture  target_architecture,
                     line_position_type               line_position)
 {
     if (line_position > MAXIMUM_BASIC_LINE_LENGTH)
@@ -1812,7 +1812,7 @@ check_line_position(enum target_architecture_choice  target_architecture,
 }
 
 static void
-increment_line_position(enum target_architecture_choice  target_architecture,
+increment_line_position(enum architecture  target_architecture,
                              line_position_type               *line_position)
 {
     if (*line_position == LINE_POSITION_TYPE_MAX)
@@ -1825,7 +1825,7 @@ increment_line_position(enum target_architecture_choice  target_architecture,
 
 static void
 caseify_output_text(char                     *output_text_pointer,
-                    enum output_case_choice  output_case)
+                    enum case_choice  output_case)
 {
     while (*output_text_pointer != '\0')
     {
@@ -1842,7 +1842,7 @@ caseify_output_text(char                     *output_text_pointer,
             case MIXED_CASE:
                 break;
 
-            case NO_OUTPUT_CASE_CHOSEN:
+            case NO_CASE_CHOSEN:
             default:
                 internal_error("Unhandled case in caseify_output_text()");
                 break;
@@ -1854,8 +1854,8 @@ caseify_output_text(char                     *output_text_pointer,
 
 static void
 process_output_text(char                             *output_text_pointer,
-                    enum target_architecture_choice  target_architecture,
-                    enum output_case_choice          output_case,
+                    enum architecture  target_architecture,
+                    enum case_choice          output_case,
                     line_counter_type                *line_count,
                     line_position_type               *line_position)
 {
@@ -1916,8 +1916,8 @@ check_vemit_status(enum vemit_status status)
 
 static enum vemit_status
 vemit(FILE                             *output_file,
-      enum target_architecture_choice  target_architecture,
-      enum output_case_choice          output_case,
+      enum architecture  target_architecture,
+      enum case_choice          output_case,
       long int                         *output_file_size,
       line_counter_type                *line_count,
       line_position_type               *line_position,
@@ -1969,8 +1969,8 @@ vemit(FILE                             *output_file,
 
 static void
 emit(FILE                             *output_file,
-     enum target_architecture_choice  target_architecture,
-     enum output_case_choice          output_case,
+     enum architecture  target_architecture,
+     enum case_choice          output_case,
      long int                         *output_file_size,
      line_counter_type                *line_count,
      line_position_type               *line_position,
@@ -1996,8 +1996,8 @@ emit(FILE                             *output_file,
 
 static void
 emit_line(FILE                             *output_file,
-          enum target_architecture_choice  target_architecture,
-          enum output_case_choice          output_case,
+          enum architecture  target_architecture,
+          enum case_choice          output_case,
           long int                         *output_file_size,
           boolean_type                     *line_incrementing_has_started,
           line_counter_type                *line_count,
@@ -2051,8 +2051,8 @@ emit_line(FILE                             *output_file,
 
 static void
 emit_datum(FILE                             *output_file,
-           enum target_architecture_choice  target_architecture,
-           enum output_case_choice          output_case,
+           enum architecture  target_architecture,
+           enum case_choice          output_case,
            long int                         *output_file_size,
            boolean_type                     typable,
            boolean_type                     *line_incrementing_has_started,
@@ -2113,7 +2113,7 @@ emit_datum(FILE                             *output_file,
 }
 
 static const char *
-exec_command(enum target_architecture_choice target_architecture)
+exec_command(enum architecture target_architecture)
 {
     const char *text = NULL;
 
@@ -2138,8 +2138,8 @@ exec_command(enum target_architecture_choice target_architecture)
 
 static void
 newline_if_needed(FILE                             *output_file,
-                  enum target_architecture_choice  target_architecture,
-                  enum output_case_choice          output_case,
+                  enum architecture  target_architecture,
+                  enum case_choice          output_case,
                   long int                         *output_file_size,
                   line_counter_type                *line_count,
                   line_position_type               *line_position)
@@ -2157,7 +2157,7 @@ newline_if_needed(FILE                             *output_file,
 static void
 check_input_file_remainder(FILE                           *input_file,
                            long int                       input_file_size,
-                           enum input_file_format_choice  input_file_format,
+                           enum file_format  input_file_format,
                            const char                     *input_filename)
 {
     long int remainder = input_file_size - get_file_position(input_file, input_filename);
@@ -2181,8 +2181,8 @@ close_file(FILE *file, const char *filename)
 }
 
 static void
-print_diagnostic_info(enum target_architecture_choice  target_architecture,
-                      enum output_case_choice          output_case,
+print_diagnostic_info(enum architecture  target_architecture,
+                      enum case_choice          output_case,
                       boolean_type                     typable,
                       boolean_type                     remarks,
                       boolean_type                     extended_basic,
@@ -2228,9 +2228,9 @@ int main(int argc, char *argv[])
     long int  output_file_size  = 0;
     long int  blob_size         = 0;
 
-    enum target_architecture_choice  target_architecture  = NO_TARGET_ARCHITECTURE_CHOSEN;
-    enum input_file_format_choice    input_file_format    = NO_INPUT_FILE_FORMAT_CHOSEN;
-    enum output_case_choice          output_case          = NO_OUTPUT_CASE_CHOSEN;
+    enum architecture  target_architecture  = NO_ARCHITECTURE_CHOSEN;
+    enum file_format    input_file_format    = NO_FILE_FORMAT_CHOSEN;
+    enum case_choice          output_case          = NO_CASE_CHOSEN;
 
     boolean_type  typable         = 0;
     boolean_type  remarks         = 0;
