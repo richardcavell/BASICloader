@@ -110,8 +110,8 @@
 #define        PRG_FILE_HEADER_SIZE 2
 
 #define     BINARY_FILE_SIZE_MINIMUM 1
-#define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE\
-	                            + RS_DOS_FILE_POSTAMBLE_SIZE\
+#define     RS_DOS_FILE_SIZE_MINIMUM (RS_DOS_FILE_PREAMBLE_SIZE  \
+	                            + RS_DOS_FILE_POSTAMBLE_SIZE \
                                     + 1)
 #define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
 #define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
