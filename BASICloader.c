@@ -142,8 +142,7 @@ typedef unsigned short int line_position_type;
 typedef unsigned short int memory_location_type;
 typedef unsigned short int file_size_type;
 
-#define LINE_NUMBER_TYPE_MIN 0
-
+#define LINE_NUMBER_TYPE_MIN                                0
 #define LINE_NUMBER_TYPE_MAX       (line_number_type)       -1
 #define LINE_NUMBER_STEP_TYPE_MAX  (line_number_step_type)  -1
 #define LINE_COUNTER_TYPE_MAX      (line_counter_type)      -1
@@ -238,7 +237,7 @@ check_user_defined_type_limits(void)
 }
 
 static void
-check_default_starting_line_macro(void)
+check_default_starting_line(void)
 {
     const char macro_name[] = "DEFAULT_STARTING_LINE";
 
@@ -264,7 +263,7 @@ check_default_starting_line_macro(void)
 }
 
 static void
-check_default_typable_starting_line_number_macro(void)
+check_default_typable_starting_line(void)
 {
     const char macro_name[] = "DEFAULT_TYPABLE_STARTING_LINE";
 
@@ -2251,8 +2250,8 @@ int main(int argc, char *argv[])
 
     check_uchar_type();
     check_user_defined_type_limits();
-    check_default_starting_line_macro();
-    check_default_typable_starting_line_number_macro();
+    check_default_starting_line();
+    check_default_typable_starting_line();
     check_maximum_starting_line_number_macro();
     check_default_line_step_macro();
     check_default_typable_step_macro();
