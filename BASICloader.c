@@ -238,7 +238,7 @@ check_user_defined_type_limits(void)
 }
 
 static void
-check_default_starting_line_number_macro(void)
+check_default_starting_line_macro(void)
 {
     const char macro_name[] = "DEFAULT_STARTING_LINE";
 
@@ -2251,7 +2251,7 @@ int main(int argc, char *argv[])
 
     check_uchar_type();
     check_user_defined_type_limits();
-    check_default_starting_line_number_macro();
+    check_default_starting_line_macro();
     check_default_typable_starting_line_number_macro();
     check_maximum_starting_line_number_macro();
     check_default_line_step_macro();
