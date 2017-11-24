@@ -91,9 +91,9 @@
 #define    C64_MAX_LINE_LENGTH  79
 #define  MAX_BASIC_LINE_LENGTH 249
 
-#define   COCO_DEFAULT_START_LOCATION 0x3e00
-#define DRAGON_DEFAULT_START_LOCATION 0x3e00
-#define    C64_DEFAULT_START_LOCATION 0x8000
+#define   COCO_DEFAULT_START 0x3e00
+#define DRAGON_DEFAULT_START 0x3e00
+#define    C64_DEFAULT_START 0x8000
 
 #define HIGHEST_COCO_ADDRESS   HIGHEST_64K_ADDRESS
 #define HIGHEST_DRAGON_ADDRESS HIGHEST_64K_ADDRESS
@@ -418,16 +418,16 @@ check_checksummed_data_per_line_macro()
 static void
 check_memory_location_macros(void)
 {
-    if (COCO_DEFAULT_START_LOCATION > HIGHEST_COCO_ADDRESS)
-        internal_error("COCO_DEFAULT_START_LOCATION is higher than\n"
+    if (COCO_DEFAULT_START > HIGHEST_COCO_ADDRESS)
+        internal_error("COCO_DEFAULT_START is higher than\n"
 		       "is possible on the Color Computer");
 
-    if (DRAGON_DEFAULT_START_LOCATION > HIGHEST_DRAGON_ADDRESS)
-        internal_error("DRAGON_DEFAULT_START_LOCATION is higher than\n"
+    if (DRAGON_DEFAULT_START > HIGHEST_DRAGON_ADDRESS)
+        internal_error("DRAGON_DEFAULT_START is higher than\n"
 		       "is possible on the Dragon");
 
-    if (C64_DEFAULT_START_LOCATION > HIGHEST_C64_ADDRESS)
-        internal_error("C64_DEFAULT_START_LOCATION is higher than\n"
+    if (C64_DEFAULT_START > HIGHEST_C64_ADDRESS)
+        internal_error("C64_DEFAULT_START is higher than\n"
 		       "is possible on the Commodore 64");
 }
 
@@ -1513,15 +1513,15 @@ set_start_address(enum architecture  target_architecture,
         switch(target_architecture)
         {
             case COCO:
-                start = COCO_DEFAULT_START_LOCATION;
+                start = COCO_DEFAULT_START;
                 break;
 
             case DRAGON:
-                start = DRAGON_DEFAULT_START_LOCATION;
+                start = DRAGON_DEFAULT_START;
                 break;
 
             case C64:
-                start = C64_DEFAULT_START_LOCATION;
+                start = C64_DEFAULT_START;
                 break;
 
             default:
