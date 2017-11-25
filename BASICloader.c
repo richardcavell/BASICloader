@@ -425,6 +425,21 @@ check_maximum_basic_program_size(void)
 }
 
 static void
+check_maximum_input_file_size(void)
+{
+    char macro_name[] = "MAXIMUM_INPUT_FILE_SIZE";
+
+    if (MAXIMUM_INPUT_FILE_SIZE < MINIMUM_MAXIMUM_INPUT_FILE_SIZE)
+        internal_error("%s is too low. It should be at least %d",
+                       macro_name,
+                       MINIMUM_MAXIMUM_INPUT_FILE_SIZE);
+    
+    if (MAXIMUM_INPUT_FILE_SIZE > LONG_MAX)
+        internal_error("%s cannot be operated on internally",
+                        macro_name);
+}
+
+static void
 check_memory_location_macros(void)
 {
     if (COCO_DEFAULT_START > HIGHEST_COCO_ADDRESS)
@@ -451,21 +466,6 @@ check_output_text_buffer_size_macro(void)
                         MINIMUM_TEXT_BUFFER_SIZE);
 
     if (TEXT_BUFFER_SIZE > INT_MAX)
-        internal_error("%s cannot be operated on internally",
-                        macro_name);
-}
-
-static void
-check_max_input_file_size_macro(void)
-{
-    char macro_name[] = "MAXIMUM_INPUT_FILE_SIZE";
-
-    if (MAXIMUM_INPUT_FILE_SIZE < MINIMUM_MAXIMUM_INPUT_FILE_SIZE)
-        internal_error("%s is too low. It should be at least %d",
-                       macro_name,
-                       MINIMUM_MAXIMUM_INPUT_FILE_SIZE);
-    
-    if (MAXIMUM_INPUT_FILE_SIZE > LONG_MAX)
         internal_error("%s cannot be operated on internally",
                         macro_name);
 }
@@ -2270,9 +2270,9 @@ int main(int argc, char *argv[])
     check_maximum_line_length();
     check_maximum_checksummed_data_per_line();
     check_maximum_basic_program_size();
+    check_maximum_input_file_size();
     check_memory_location_macros();
     check_output_text_buffer_size_macro();
-    check_max_input_file_size_macro();
     check_max_machine_language_binary_size_macro();
     check_target_architecture_file_size_max_macro();
 
