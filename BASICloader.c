@@ -394,21 +394,7 @@ check_maximum_line_length(void)
 }
 
 static void
-check_maximum_basic_program_size(void)
-{
-    const char macro_name[] = "MAXIMUM_BASIC_PROGRAM_SIZE";
-
-    if (MAXIMUM_BASIC_PROGRAM_SIZE < MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE)
-        internal_error("%s is too low",
-                        macro_name);
-
-    if (MAXIMUM_BASIC_PROGRAM_SIZE > LONG_MAX)
-        internal_error("%s cannot be operated on internally",
-                        macro_name);
-}
-
-static void
-check_checksummed_data_per_line_macro()
+check_checksummed_data_per_line()
 {
     const char macro_name[] = "MAXIMUM_CHECKSUMMED_DATA_PER_LINE";
 
@@ -419,6 +405,20 @@ check_checksummed_data_per_line_macro()
 
     if (MAXIMUM_CHECKSUMMED_DATA_PER_LINE > USHRT_MAX)
         internal_error("%s cannot be represented internally",
+                        macro_name);
+}
+
+static void
+check_maximum_basic_program_size(void)
+{
+    const char macro_name[] = "MAXIMUM_BASIC_PROGRAM_SIZE";
+
+    if (MAXIMUM_BASIC_PROGRAM_SIZE < MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE)
+        internal_error("%s is too low",
+                        macro_name);
+
+    if (MAXIMUM_BASIC_PROGRAM_SIZE > LONG_MAX)
+        internal_error("%s cannot be operated on internally",
                         macro_name);
 }
 
@@ -2266,8 +2266,8 @@ int main(int argc, char *argv[])
     check_maximum_step();
     check_maximum_line_count();
     check_maximum_line_length();
+    check_checksummed_data_per_line();
     check_maximum_basic_program_size();
-    check_checksummed_data_per_line_macro();
     check_memory_location_macros();
     check_output_text_buffer_size_macro();
     check_max_input_file_size_macro();
