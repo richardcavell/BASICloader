@@ -62,14 +62,13 @@
 
 #define MINIMUM_STEP                        1
 #define MINIMUM_MAXIMUM_LINE_COUNT          5
+#define MINIMUM_MAXIMUM_LINE_LENGTH        20
 #define MINIMUM_CHECKSUMMED_DATA_PER_LINE   1
 #define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE 50
-
-#define MINIMUM_TEXT_BUFFER_SIZE        100
-#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE   1
-#define MINIMUM_MAXIMUM_BINARY_SIZE       1
-
-#define LINE_COUNT_BENCHMARK 100
+#define MINIMUM_MAXIMUM_INPUT_FILE_SIZE     1
+#define MINIMUM_MAXIMUM_BINARY_SIZE         1
+#define MINIMUM_TEXT_BUFFER_SIZE          100
+#define LINE_COUNT_BENCHMARK              100
 
         /* End of values that help check the
          * user-modifiable values */
@@ -226,7 +225,8 @@ check_user_defined_type_limits(void)
 
     if (LINE_POSITION_TYPE_MAX < COCO_MAX_LINE_LENGTH   ||
         LINE_POSITION_TYPE_MAX < DRAGON_MAX_LINE_LENGTH ||
-        LINE_POSITION_TYPE_MAX < C64_MAX_LINE_LENGTH)
+        LINE_POSITION_TYPE_MAX < C64_MAX_LINE_LENGTH    ||
+        LINE_POSITION_TYPE_MAX < MAX_BASIC_LINE_LENGTH)
         internal_error("Line position type has insufficient range");
 
     if (MEMORY_LOCATION_TYPE_MAX < HIGHEST_RAM_ADDRESS)
@@ -335,12 +335,11 @@ check_default_step(void)
 }
 
 static void
-check_default_typable_step_macro(void)
+check_default_typable_step(void)
 {
     const char macro_name[] = "DEFAULT_TYPABLE_STEP";
 
-    if (DEFAULT_TYPABLE_STEP
-          < MINIMUM_STEP)
+    if (DEFAULT_TYPABLE_STEP < MINIMUM_STEP)
         internal_error("%s must be at least %u",
                        macro_name,
                        MINIMUM_STEP);
@@ -351,17 +350,16 @@ check_default_typable_step_macro(void)
 }
 
 static void
-check_maximum_basic_line_number_step_size_macro(void)
+check_maximum_step(void)
 {
     const char macro_name[] = "MAXIMUM_STEP";
 
-    if (MAXIMUM_STEP
-          < MINIMUM_STEP)
+    if (MAXIMUM_STEP < MINIMUM_STEP)
         internal_error("%s must be at least %u",
                        macro_name,
                        MINIMUM_STEP);
 
-    if (MAXIMUM_STEP > UINT_MAX)
+    if (MAXIMUM_STEP > ULONG_MAX)
         internal_error("%s cannot be operated on internally\n"
                        "in get_line_number_step()",
                        macro_name);
@@ -372,7 +370,7 @@ check_maximum_basic_line_number_step_size_macro(void)
 }
 
 static void
-check_maximum_basic_line_count_macro(void)
+check_maximum_line_count(void)
 {
     const char macro_name[] = "MAXIMUM_LINE_COUNT";
 
@@ -386,7 +384,17 @@ check_maximum_basic_line_count_macro(void)
 }
 
 static void
-check_maximum_basic_program_size_macro(void)
+check_maximum_line_length(void)
+{
+    const char macro_name[] = "MAXIMUM_LINE_LENGTH";
+
+    if (MAXIMUM_LINE_LENGTH < MINIMUM_MAXIMUM_LINE_LENGTH)
+        internal_error("%s is too low",
+                        macro_name);
+}
+
+static void
+check_maximum_basic_program_size(void)
 {
     const char macro_name[] = "MAXIMUM_BASIC_PROGRAM_SIZE";
 
@@ -854,9 +862,9 @@ get_line_number_step(const char             *arg1,
                                     MAXIMUM_STEP);
 
     if (ok == 0)
-        fail("%s takes a number from %u to %u", arg1,
+        fail("%s takes a number from %u to %lu", arg1,
              MINIMUM_STEP,
-             MAXIMUM_STEP);
+             (long int) MAXIMUM_STEP);
 
     *step_set = 1;
 }
@@ -2254,10 +2262,11 @@ int main(int argc, char *argv[])
     check_default_typable_starting_line();
     check_maximum_starting_line();
     check_default_step();
-    check_default_typable_step_macro();
-    check_maximum_basic_line_number_step_size_macro();
-    check_maximum_basic_line_count_macro();
-    check_maximum_basic_program_size_macro();
+    check_default_typable_step();
+    check_maximum_step();
+    check_maximum_line_count();
+    check_maximum_line_length();
+    check_maximum_basic_program_size();
     check_checksummed_data_per_line_macro();
     check_memory_location_macros();
     check_output_text_buffer_size_macro();
