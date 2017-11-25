@@ -398,7 +398,8 @@ check_maximum_checksummed_data_per_line()
 {
     const char macro_name[] = "MAXIMUM_CHECKSUMMED_DATA_PER_LINE";
 
-    if (MAXIMUM_CHECKSUMMED_DATA_PER_LINE < MINIMUM_CHECKSUMMED_DATA_PER_LINE)
+    if (MAXIMUM_CHECKSUMMED_DATA_PER_LINE
+                    < MINIMUM_CHECKSUMMED_DATA_PER_LINE)
         internal_error("%s must be at least %d",
                         macro_name,
                         MINIMUM_CHECKSUMMED_DATA_PER_LINE);
@@ -413,7 +414,8 @@ check_maximum_basic_program_size(void)
 {
     const char macro_name[] = "MAXIMUM_BASIC_PROGRAM_SIZE";
 
-    if (MAXIMUM_BASIC_PROGRAM_SIZE < MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE)
+    if (MAXIMUM_BASIC_PROGRAM_SIZE
+                    < MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE)
         internal_error("%s is too low",
                         macro_name);
 
