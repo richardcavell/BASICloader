@@ -510,8 +510,8 @@ error_while_printing_warning(void)
 static void
 warning(const char *fmt, ...)
 {
-    va_list ap;
     FILE *stream = PRINT_WARNINGS_TO_STDERR ? stderr : stdout;
+    va_list ap;
     int vfprintf_return_value = 0;
 
     if (fprintf(stream, "Warning: ") < 0)
