@@ -55,6 +55,10 @@
 #define PRINT_WARNINGS_TO_STDERR   0
 #define STDOUT_FILENAME_SUBSTITUTE "-"
 
+#define   COCO_DEFAULT_START 0x3e00
+#define DRAGON_DEFAULT_START 0x3e00
+#define    C64_DEFAULT_START 0x8000
+
         /* End of user-modifiable values */
 
         /* Values to help check that the
@@ -89,10 +93,6 @@
 #define DRAGON_MAX_LINE_LENGTH 249
 #define    C64_MAX_LINE_LENGTH  79
 #define  MAX_BASIC_LINE_LENGTH 249
-
-#define   COCO_DEFAULT_START 0x3e00
-#define DRAGON_DEFAULT_START 0x3e00
-#define    C64_DEFAULT_START 0x8000
 
 #define HIGHEST_COCO_ADDRESS   HIGHEST_64K_ADDRESS
 #define HIGHEST_DRAGON_ADDRESS HIGHEST_64K_ADDRESS
@@ -141,7 +141,7 @@ typedef unsigned short int line_position_type;
 typedef unsigned short int memory_location_type;
 typedef unsigned short int file_size_type;
 
-#define LINE_NUMBER_TYPE_MIN                                0
+#define LINE_NUMBER_TYPE_MIN                                 0
 #define LINE_NUMBER_TYPE_MAX       (line_number_type)       -1
 #define LINE_NUMBER_STEP_TYPE_MAX  (line_number_step_type)  -1
 #define LINE_COUNTER_TYPE_MAX      (line_counter_type)      -1
@@ -440,7 +440,37 @@ check_maximum_input_file_size(void)
 }
 
 static void
-check_memory_location_macros(void)
+check_maximum_binary_size(void)
+{
+    const char macro_name[] = "MAXIMUM_BINARY_SIZE";
+
+    if (MAXIMUM_BINARY_SIZE < MINIMUM_MAXIMUM_BINARY_SIZE)
+        internal_error("%s is too low. It should be at least %lu",
+                        macro_name,
+                        (unsigned long int) MINIMUM_MAXIMUM_BINARY_SIZE);
+
+    if (MAXIMUM_BINARY_SIZE > LONG_MAX)
+        internal_error("%s cannot be represented internally",
+                        macro_name);
+}
+
+static void
+check_text_buffer_size(void)
+{
+    const char macro_name[] = "TEXT_BUFFER_SIZE";
+
+    if (TEXT_BUFFER_SIZE < MINIMUM_TEXT_BUFFER_SIZE)
+        internal_error("%s is too low. It should be at least %u",
+                        macro_name,
+                        MINIMUM_TEXT_BUFFER_SIZE);
+
+    if (TEXT_BUFFER_SIZE > INT_MAX)
+        internal_error("%s cannot be operated on internally",
+                        macro_name);
+}
+
+static void
+check_default_starts(void)
 {
     if (COCO_DEFAULT_START > HIGHEST_COCO_ADDRESS)
         internal_error("COCO_DEFAULT_START is higher than\n"
@@ -453,45 +483,6 @@ check_memory_location_macros(void)
     if (C64_DEFAULT_START > HIGHEST_C64_ADDRESS)
         internal_error("C64_DEFAULT_START is higher than\n"
                        "is possible on the Commodore 64");
-}
-
-static void
-check_output_text_buffer_size_macro(void)
-{
-    const char macro_name[] = "TEXT_BUFFER_SIZE";
-
-    if (TEXT_BUFFER_SIZE < MINIMUM_TEXT_BUFFER_SIZE)
-        internal_error("%s is too low. It should be at least %d",
-                        macro_name,
-                        MINIMUM_TEXT_BUFFER_SIZE);
-
-    if (TEXT_BUFFER_SIZE > INT_MAX)
-        internal_error("%s cannot be operated on internally",
-                        macro_name);
-}
-
-static void
-check_max_machine_language_binary_size_macro(void)
-{
-    const char macro_name[] = "MAXIMUM_BINARY_SIZE";
-
-    if (MAXIMUM_BINARY_SIZE
-          < MINIMUM_MAXIMUM_BINARY_SIZE)
-        internal_error("%s is too low. It should be at least %d",
-                        macro_name,
-                        MINIMUM_MAXIMUM_BINARY_SIZE);
-
-    if (MAXIMUM_BINARY_SIZE > LONG_MAX)
-        internal_error("%s cannot be represented internally",
-                        macro_name);
-}
-
-static void
-check_target_architecture_file_size_max_macro(void)
-{
-    if (FILE_SIZE_MAX > LONG_MAX)
-        internal_error("FILE_SIZE_MAX is too high"
-                       " to be internally operated on");
 }
 
 static void
@@ -2271,10 +2262,9 @@ int main(int argc, char *argv[])
     check_maximum_checksummed_data_per_line();
     check_maximum_basic_program_size();
     check_maximum_input_file_size();
-    check_memory_location_macros();
-    check_output_text_buffer_size_macro();
-    check_max_machine_language_binary_size_macro();
-    check_target_architecture_file_size_max_macro();
+    check_maximum_binary_size();
+    check_text_buffer_size();
+    check_default_starts();
 
     if (argc > 0)
         while (*++argv)
