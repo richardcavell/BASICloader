@@ -486,7 +486,7 @@ check_default_starts(void)
 }
 
 static void
-fail(const char *fmt, ...)
+error(const char *fmt, ...)
 {
     va_list ap;
 
@@ -502,9 +502,9 @@ fail(const char *fmt, ...)
 }
 
 static void
-fail_while_printing_warning(void)
+error_while_printing_warning(void)
 {
-    fail("Couldn't print warning to standard output");
+    error("Couldn't print warning to standard output");
 }
 
 static void
@@ -515,17 +515,17 @@ warning(const char *fmt, ...)
     int vfprintf_return_value = 0;
 
     if (fprintf(stream, "Warning: ") < 0)
-        fail_while_printing_warning();
+        error_while_printing_warning();
 
     va_start(ap, fmt);
     vfprintf_return_value = vfprintf(stream, fmt, ap);
     va_end(ap);
 
     if (vfprintf_return_value < 0)
-        fail_while_printing_warning();
+        error_while_printing_warning();
 
     if (fprintf(stream, "\n") < 0)
-        fail_while_printing_warning();
+        error_while_printing_warning();
 }
 
 static void
@@ -724,10 +724,10 @@ get_output_filename(const char *arg1,
                     const char **output_filename)
 {
     if (*output_filename != NULL)
-        fail("You can only set option %s once", arg1);
+        error("You can only set option %s once", arg1);
 
     if (arg2 == NULL)
-        fail("You must supply a filename after %s", arg1);
+        error("You must supply a filename after %s", arg1);
 
     *output_filename = arg2;
 }
@@ -738,12 +738,12 @@ get_target_architecture_arg(const char                       *arg1,
                             enum architecture  *target_architecture)
 {
     if (*target_architecture != NO_ARCHITECTURE_CHOSEN)
-        fail("You can only set %s once", arg1);
+        error("You can only set %s once", arg1);
 
          if (strcmp(arg2, COCO_TEXT) == 0)    *target_architecture = COCO;
     else if (strcmp(arg2, DRAGON_TEXT) == 0)  *target_architecture = DRAGON;
     else if (strcmp(arg2, C64_TEXT) == 0)     *target_architecture = C64;
-    else fail("Unknown target architecture \"%s\"", arg2);
+    else error("Unknown target architecture \"%s\"", arg2);
 }
 
 static void
@@ -752,13 +752,13 @@ get_format(const char                     *arg1,
            enum file_format  *format)
 {
     if (*format != NO_FILE_FORMAT_CHOSEN)
-        fail("You can only set %s once", arg1);
+        error("You can only set %s once", arg1);
 
          if (strcmp(arg2, BINARY_TEXT) == 0)      *format = BINARY;
     else if (strcmp(arg2, RS_DOS_TEXT) == 0)      *format = RS_DOS;
     else if (strcmp(arg2, DRAGON_DOS_TEXT) == 0)  *format = DRAGON_DOS;
     else if (strcmp(arg2, PRG_TEXT) == 0)         *format = PRG;
-    else fail("Unknown file format \"%s\"", arg2);
+    else error("Unknown file format \"%s\"", arg2);
 }
 
 static void
@@ -767,12 +767,12 @@ get_case(const char               *arg1,
          enum case_choice  *output_case)
 {
     if (*output_case != NO_CASE_CHOSEN)
-        fail("You can only set %s once", arg1);
+        error("You can only set %s once", arg1);
 
          if (strcmp(arg2, UPPERCASE_TEXT) == 0)   *output_case = UPPERCASE;
     else if (strcmp(arg2, LOWERCASE_TEXT) == 0)   *output_case = LOWERCASE;
     else if (strcmp(arg2, MIXED_CASE_TEXT) == 0)  *output_case = MIXED_CASE;
-    else fail("Unknown case \"%s\"", arg2);
+    else error("Unknown case \"%s\"", arg2);
 }
 
 static void
@@ -780,7 +780,7 @@ set_switch(const char    *arg,
            boolean_type  *sw)
 {
     if (*sw == 1)
-        fail("Option %s has already been set", arg);
+        error("Option %s has already been set", arg);
 
     *sw = 1;
 }
@@ -827,13 +827,13 @@ get_line_number(const char        *arg1,
     boolean_type ok = 0;
 
     if (*line_set != 0)
-        fail("Option %s can only be set once", arg1);
+        error("Option %s can only be set once", arg1);
 
     *line_number = (line_number_type) string_to_unsigned_long(arg2, &ok,
                                       MAXIMUM_STARTING_LINE);
 
     if (ok == 0)
-        fail("%s takes a number from %u to %lu", arg1,
+        error("%s takes a number from %u to %lu", arg1,
              MIN_LINE_NUMBER,
              (long int) MAXIMUM_STARTING_LINE);
 
@@ -849,13 +849,13 @@ get_line_number_step(const char             *arg1,
     boolean_type ok = 0;
 
     if (*step_set != 0)
-        fail("Option %s can only be set once", arg1);
+        error("Option %s can only be set once", arg1);
 
     *step = (line_number_step_type) string_to_unsigned_long(arg2, &ok,
                                     MAXIMUM_STEP);
 
     if (ok == 0)
-        fail("%s takes a number from %u to %lu", arg1,
+        error("%s takes a number from %u to %lu", arg1,
              MINIMUM_STEP,
              (long int) MAXIMUM_STEP);
 
@@ -899,13 +899,13 @@ get_memory_location_type_arg(const char            *arg1,
     boolean_type ok = 0;
 
     if (*set != 0)
-        fail("Option %s can only be set once", arg1);
+        error("Option %s can only be set once", arg1);
 
     *pmem = (memory_location_type) string_to_unsigned_long(arg2, &ok,
                                    HIGHEST_RAM_ADDRESS);
 
     if (ok == 0)
-        fail("%s takes a number up to 0x%x",
+        error("%s takes a number up to 0x%x",
              arg1, HIGHEST_RAM_ADDRESS);
 
     *set = 1;
@@ -925,15 +925,15 @@ check_input_file_format(enum architecture target_architecture,
                         enum file_format   input_file_format)
 {
     if (input_file_format == PRG         && target_architecture != C64)
-        fail("File format \"%s\" should only be used with the \"%s\" target",
+        error("File format \"%s\" should only be used with the \"%s\" target",
              PRG_TEXT, C64_TEXT);
 
     if (input_file_format == DRAGON_DOS  && target_architecture != DRAGON)
-        fail("File format \"%s\" should only be used with the \"%s\" target",
+        error("File format \"%s\" should only be used with the \"%s\" target",
              DRAGON_DOS_TEXT, DRAGON_TEXT);
 
     if (input_file_format == RS_DOS      && target_architecture != COCO)
-        fail("File format \"%s\" should only be used with the \"%s\" target",
+        error("File format \"%s\" should only be used with the \"%s\" target",
              RS_DOS_TEXT, COCO_TEXT);
 }
 
@@ -954,13 +954,13 @@ check_output_case(enum architecture target_architecture,
                   enum case_choice         output_case)
 {
     if (output_case == LOWERCASE && target_architecture == COCO)
-        fail("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
+        error("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
 
     if (output_case == LOWERCASE && target_architecture == DRAGON)
-        fail("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
+        error("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
 
     if (output_case == MIXED_CASE)
-        fail("There is presently no target for mixed case output");
+        error("There is presently no target for mixed case output");
 }
 
 static enum case_choice
@@ -1000,7 +1000,7 @@ check_extended_basic(enum architecture  target_architecture,
                      boolean_type                     extended_basic)
 {
     if (extended_basic && target_architecture != COCO)
-        fail("Extended Color BASIC option should only be used"
+        error("Extended Color BASIC option should only be used"
              " with the \"%s\" target", COCO_TEXT);
 }
 
@@ -1009,7 +1009,7 @@ check_print_options(boolean_type  print_program,
                     boolean_type  print_diag)
 {
     if (print_program == 1 && print_diag == 1)
-        fail("--print and --diag options cannot be used together");
+        error("--print and --diag options cannot be used together");
 }
 
 static void
@@ -1017,10 +1017,10 @@ check_input_filename(const char    *input_filename,
                      boolean_type  read_stdin)
 {
     if (input_filename == NULL && read_stdin == 0)
-        fail("You must specify an input file");
+        error("You must specify an input file");
 
     if (input_filename != NULL && read_stdin == 1)
-        fail("You cannot give an input filename while using --stdin");
+        error("You cannot give an input filename while using --stdin");
 }
 
 static const char *
@@ -1030,7 +1030,7 @@ set_output_filename(enum architecture  target_architecture,
                     boolean_type                     print_program)
 {
     if (print_program == 1 && output_filename != NULL && strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) != 0)
-        fail("You cannot specify an output filename with option --print");
+        error("You cannot specify an output filename with option --print");
 
     if (print_program == 0 && output_filename == NULL)
     {
@@ -1060,7 +1060,7 @@ open_input_file(const char    *input_filename,
         input_file = fopen(input_filename, "r");
 
         if (input_file == NULL)
-            fail("Could not open file \"%s\". Error number %d", input_filename, errno);
+            error("Could not open file \"%s\". Error number %d", input_filename, errno);
     }
 
     return input_file;
@@ -1077,7 +1077,7 @@ get_file_position(FILE        *file,
     file_size = ftell(file);
 
     if (file_size < 0)
-        fail("Could not get size of file \"%s\". Error number %d", filename, errno);
+        error("Could not get size of file \"%s\". Error number %d", filename, errno);
 
     return file_size;
 }
@@ -1106,7 +1106,7 @@ get_input_file_size_min(enum file_format input_file_format)
             break;
 
         default:
-            fail("Unhandled file format type in get_input_file_size_min()");
+            error("Unhandled file format type in get_input_file_size_min()");
     }
 
     return input_file_size_min;
@@ -1118,17 +1118,17 @@ check_input_file_size(long int                       input_file_size,
                       enum file_format  input_file_format)
 {
     if (input_file_size == 0)
-        fail("File \"%s\" is empty", input_filename);
+        error("File \"%s\" is empty", input_filename);
 
     if (input_file_size < get_input_file_size_min(input_file_format))
-        fail("Minimum input file size for file format \"%s\" is %lu\n"
+        error("Minimum input file size for file format \"%s\" is %lu\n"
              "Input file \"%s\" is %lu bytes long",
              format_to_text(input_file_format),
              get_input_file_size_min(input_file_format),
              input_filename, input_file_size);
 
     if (input_file_size > MAXIMUM_INPUT_FILE_SIZE)
-        fail("Input file \"%s\" is too large", input_filename);
+        error("Input file \"%s\" is too large", input_filename);
 }
 
 static long int
@@ -1141,12 +1141,12 @@ get_input_file_size(FILE                           *input_file,
     errno = 0;
 
     if (fseek(input_file, 0L, SEEK_END))
-        fail("Could not find the end of file \"%s\". Error number %d", input_filename, errno);
+        error("Could not find the end of file \"%s\". Error number %d", input_filename, errno);
 
     input_file_size = get_file_position(input_file, input_filename);
 
     if (fseek(input_file, 0L, SEEK_SET) < 0)
-        fail("Could not rewind file \"%s\". Error number %d", input_filename, errno);
+        error("Could not rewind file \"%s\". Error number %d", input_filename, errno);
 
     check_input_file_size(input_file_size, input_filename, input_file_format);
 
@@ -1158,10 +1158,10 @@ check_blob_size(long int    blob_size,
                 const char  *input_filename)
 {
     if (blob_size == 0)
-        fail("Input file \"%s\" contains no machine language content", input_filename);
+        error("Input file \"%s\" contains no machine language content", input_filename);
 
     if (blob_size > MAXIMUM_BINARY_SIZE)
-        fail("The machine language content of input file \"%s\" is too large", input_filename);
+        error("The machine language content of input file \"%s\" is too large", input_filename);
 }
 
 static long int
@@ -1211,11 +1211,11 @@ get_character_from_input_file(FILE        *input_file,
     input_file_character = fgetc(input_file);
 
     if (input_file_character > EIGHT_BIT_BYTE_MAX)
-        fail("Byte read from input file \"%s\" is too high"
+        error("Byte read from input file \"%s\" is too high"
              " for an 8-bit machine", input_filename);
 
     if (input_file_character == EOF)
-        fail("Unexpected end of file while reading file \"%s\"."
+        error("Unexpected end of file while reading file \"%s\"."
              " Error code %d",
               input_filename,
               errno);
@@ -1262,20 +1262,20 @@ process_rs_dos_header(FILE                  *input_file,
     get_header_or_preamble_or_postamble(preamble, sizeof preamble, input_file, input_filename);
 
     if (preamble[0] != 0x0)
-      fail("Input file \"%s\" is not properly formed as an "
+      error("Input file \"%s\" is not properly formed as an "
            "RS-DOS file (bad header)", input_filename);
 
     ln = construct_16bit_value(preamble[1], preamble[2]);
 
     if (ln != blob_size)
-      fail("Input file \"%s\" length (%u) given in the header\n"
+      error("Input file \"%s\" length (%u) given in the header\n"
            "does not match measured length (%u)",
                        input_filename, ln, blob_size);
 
     st = construct_16bit_value(preamble[3], preamble[4]);
 
     if (*start_set == 1 && st != *start)
-      fail("Input RS-DOS file \"%s\" gives a different start address ($%x)\n"
+      error("Input RS-DOS file \"%s\" gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, *start);
 
     *start = st;
@@ -1285,7 +1285,7 @@ process_rs_dos_header(FILE                  *input_file,
               (long int) (0 - RS_DOS_FILE_POSTAMBLE_SIZE),
               SEEK_END)
          < 0)
-      fail("Couldn't operate on file \"%s\". Error number %d",
+      error("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
 
     get_header_or_preamble_or_postamble(postamble,
@@ -1294,36 +1294,36 @@ process_rs_dos_header(FILE                  *input_file,
                                         input_filename);
 
     if (postamble[0] == 0x0)
-      fail("Input RS-DOS file \"%s\" is segmented, and cannot be used",
+      error("Input RS-DOS file \"%s\" is segmented, and cannot be used",
                                 input_filename);
 
     if (postamble[0] != 0xff ||
         postamble[1] != 0x0  ||
         postamble[2] != 0x0)
-      fail("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
+      error("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
                          input_filename);
 
     ex = construct_16bit_value(postamble[3], postamble[4]);
 
     if (*exec_set == 1 && ex != *exec)
-      fail("Input RS-DOS file \"%s\" gives a different exec address ($%x)\n"
+      error("Input RS-DOS file \"%s\" gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)",
                               input_filename, ex, exec);
 
     if (ex < st)
-      fail("The exec location in the tail of the RS-DOS file \"%s\"\n"
+      error("The exec location in the tail of the RS-DOS file \"%s\"\n"
            "($%x) is below the start location of the binary blob ($%x)",
            input_filename, *exec, *start);
 
     if (ex > st + blob_size)
-      fail("The exec location in the tail of the RS-DOS file \"%s\"\n"
+      error("The exec location in the tail of the RS-DOS file \"%s\"\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
            input_filename, *exec, st + blob_size);
 
     *exec = ex;
 
     if (fseek(input_file, (long int) RS_DOS_FILE_PREAMBLE_SIZE, SEEK_SET) < 0)
-      fail("Couldn't operate on file \"%s\". Error number %d",
+      error("Couldn't operate on file \"%s\". Error number %d",
                                      input_filename, errno);
 }
 
@@ -1349,13 +1349,13 @@ process_dragon_dos_header(FILE                  *input_file,
                                         input_filename);
 
     if (header[0] != 0x55 || header[8] != 0xAA)
-        fail("Input file \"%s\" doesn't appear to be a Dragon DOS file",
+        error("Input file \"%s\" doesn't appear to be a Dragon DOS file",
                            input_filename);
 
     switch(header[1])
     {
         case 0x1:
-            fail("Input Dragon DOS file \"%s\" appears to be a BASIC program",
+            error("Input Dragon DOS file \"%s\" appears to be a BASIC program",
                                           input_filename);
             break;
 
@@ -1363,38 +1363,38 @@ process_dragon_dos_header(FILE                  *input_file,
             break;
 
         case 0x3:
-            fail("Input Dragon DOS file \"%s\""
+            error("Input Dragon DOS file \"%s\""
                  " is an unsupported file (possibly DosPlus)\n", input_filename);
             break;
 
         default:
-            fail("Input Dragon DOS file \"%s\""
+            error("Input Dragon DOS file \"%s\""
                  " has an unknown FILETYPE\n", input_filename);
             break;
     }
 
     if (construct_16bit_value(header[4], header[5]) != blob_size)
-      fail("The header of input Dragon DOS file \"%s\""
+      error("The header of input Dragon DOS file \"%s\""
            " gives incorrect length", input_filename);
 
     st = construct_16bit_value(header[2], header[3]);
     ex = construct_16bit_value(header[6], header[7]);
 
     if (*start_set == 1 && st != *start)
-      fail("Input Dragon DOS file \"%s\" gives a different start address ($%x)\n"
+      error("Input Dragon DOS file \"%s\" gives a different start address ($%x)\n"
            "to the one given at the command line ($%x)", st, *start);
 
     if (*exec_set == 1 && ex != *exec)
-      fail("Input Dragon DOS file \"%s\" gives a different exec address ($%x)\n"
+      error("Input Dragon DOS file \"%s\" gives a different exec address ($%x)\n"
            "to the one given at the command line ($%x)", ex, *exec);
 
     if (ex < st)
-      fail("The exec location in the header of the Dragon DOS file \"%s\"\n"
+      error("The exec location in the header of the Dragon DOS file \"%s\"\n"
            "($%x) is below the start location of the binary blob ($%x)",
            input_filename, *exec, *start);
 
     if (ex > st + blob_size)
-      fail("The exec location in the header of the Dragon DOS file \"%s\"\n"
+      error("The exec location in the header of the Dragon DOS file \"%s\"\n"
            "($%x) is beyond the end location of the binary blob ($%x)",
            input_filename, *exec, st + blob_size);
 
@@ -1426,7 +1426,7 @@ process_prg_header(FILE                  *input_file,
     st = construct_16bit_value(header[1], header[0]);
 
     if (st == 0x0801)
-        fail("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
+        error("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
              "It is likely to be a BASIC program, or a hybrid"
              " BASIC/machine language program", input_filename);
 
@@ -1444,7 +1444,7 @@ process_prg_header(FILE                  *input_file,
     (void) blob_size;
 
     if (fseek(input_file, (long int) PRG_FILE_HEADER_SIZE, SEEK_SET) < 0)
-        fail("Couldn't operate on file \"%s\". Error number %d",
+        error("Couldn't operate on file \"%s\". Error number %d",
                                         input_filename,     errno);
 }
 
@@ -1548,7 +1548,7 @@ set_end_address(enum architecture  target_architecture,
     if (end < start
                     || blob_size > get_highest_ram_address(target_architecture)
                     || end > get_highest_ram_address(target_architecture))
-        fail("The machine language blob would overflow the amount of RAM\n"
+        error("The machine language blob would overflow the amount of RAM\n"
              "on the %s",
              target_architecture_to_text(target_architecture));
 
@@ -1572,11 +1572,11 @@ set_exec_address(enum architecture  target_architecture,
                        target_architecture_to_text(target_architecture));
 
     if (exec < start)
-        fail("The exec location given ($%x) is below\n"
+        error("The exec location given ($%x) is below\n"
              "the start location of the binary blob ($%x)", exec, start);
 
     if (exec > end)
-        fail("The exec location given ($%x) is beyond\n"
+        error("The exec location given ($%x) is beyond\n"
              "the end location of the binary blob ($%x)", exec, end);
 
     return exec;
@@ -1595,7 +1595,7 @@ open_output_file(const char    *output_filename,
         output_file = fopen(output_filename, "w");
 
         if (output_file == NULL)
-            fail("Could not open file \"%s\". Error number %d", output_filename, errno);
+            error("Could not open file \"%s\". Error number %d", output_filename, errno);
     }
 
     return output_file;
@@ -1689,7 +1689,7 @@ check_line_number(enum architecture target_architecture,
         internal_error("Line number is below minimum");
 
     if (line_number > get_maximum_basic_line_number(target_architecture))
-        fail("The BASIC line numbers have become too large");
+        error("The BASIC line numbers have become too large");
 }
 
 static line_number_type
@@ -1758,7 +1758,7 @@ inc_line_count(line_counter_type *line_count)
 
 #if (MAXIMUM_LINE_COUNT < LINE_COUNTER_TYPE_MAX)
     if (*line_count > MAXIMUM_LINE_COUNT)
-        fail("Line count has exceeded the set maximum");
+        error("Line count has exceeded the set maximum");
 #endif
 }
 
@@ -1884,19 +1884,19 @@ check_vemit_status(enum vemit_status status)
             break;
 
         case VSPRINTF_FAIL:
-            fail("Couldn't write to output text area");
+            error("Couldn't write to output text area");
             break;
 
         case EMIT_FAIL:
-            fail("Couldn't write to output file. Error number %d", errno);
+            error("Couldn't write to output file. Error number %d", errno);
             break;
 
         case FTELL_FAIL:
-            fail("Couldn't operate on output file. Error number %d", errno);
+            error("Couldn't operate on output file. Error number %d", errno);
             break;
 
         case TOO_LARGE:
-            fail("Generated BASIC program is too large");
+            error("Generated BASIC program is too large");
             break;
 
         default:
@@ -2058,7 +2058,7 @@ emit_datum(FILE                             *output_file,
                                        "%s%lu", typable ? ", " : ",", datum);
 
     if (sprintf_return_value < 0)
-        fail("Couldn't write to output text area in emit_datum()");
+        error("Couldn't write to output text area in emit_datum()");
 
     if (sprintf_return_value >= (signed int) sizeof possible_output_buffer)
         internal_error("Output text buffer overrun");
@@ -2158,7 +2158,7 @@ check_input_file_remainder(FILE                           *input_file,
                                                != RS_DOS_FILE_POSTAMBLE_SIZE)
        || (input_file_format == DRAGON_DOS  && remainder != 0)
        || (input_file_format == PRG         && remainder != 0))
-            fail("Unexpected remaining bytes in input file \"%s\"",
+            error("Unexpected remaining bytes in input file \"%s\"",
                                                             input_filename);
 }
 
@@ -2168,7 +2168,7 @@ close_file(FILE *file, const char *filename)
     if (file         != stdin &&
         file         != stdout &&
         fclose(file) != 0)
-            fail("Couldn't close file \"%s\"", filename);
+            error("Couldn't close file \"%s\"", filename);
 }
 
 static void
@@ -2338,11 +2338,11 @@ int main(int argc, char *argv[])
             else if (arg2_match(argv[0], NULL, "--stdin"))
                 set_switch(argv[0], &read_stdin);
             else if (unknown_arg(argv[0]))
-                fail("Unknown command line option %s", argv[0]);
+                error("Unknown command line option %s", argv[0]);
             else
             {
                 if (input_filename != NULL)
-                    fail("Only one input filename may be specified");
+                    error("Only one input filename may be specified");
 
                 input_filename = argv[0];
             }
