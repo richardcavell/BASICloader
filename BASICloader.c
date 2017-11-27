@@ -611,7 +611,7 @@ static void
 print_all_options(void)
 {
     print_help_text();
-    xputs("  -d  --defaults  Print the default values for some switches");
+    xputs("      --defaults  Print the default values for some switches");
     xputs("      --line      Starting line number");
     xputs("      --step      Line number step");
     xputs("      --diag      Print diagnostic information");
