@@ -529,105 +529,167 @@ warning(const char *fmt, ...)
 }
 
 static void
+xputs(const char *s)
+{
+    if (puts(s) == EOF)
+        error("Couldn't print string to standard output");
+}
+
+static void
+xprintf(const char *fmt, ...)
+{
+    va_list ap;
+    int vprintf_return_value = 0;
+
+    va_start(ap, fmt);
+    vprintf_return_value = vprintf(fmt, ap);
+    va_end(ap);
+
+    if (vprintf_return_value < 0)
+        error("Couldn't print formatted string to standard output");
+}
+
+static void
 print_version_text(void)
 {
-    puts("BASICloader (under development)");
-    puts("(c) 2017 Richard Cavell");
+    xputs("BASICloader (under development)");
+    xputs("(c) 2017 Richard Cavell");
 }
 
 static void
-display_version(void)
+print_version(void)
 {
     print_version_text();
-
     exit(EXIT_SUCCESS);
 }
 
 static void
-display_help(void)
+print_help_text(void)
+{
+      print_version_text();
+      xputs("https://github.com/richardcavell/BASICloader");
+      xputs("");
+      xputs("Usage: BASICloader [options] [filename]");
+      xputs("");
+      xputs("  -o  --output    Output filename");
+    xprintf("  -m  --machine   Target machine (%s/%s/%s)\n",
+                                               COCO_TEXT,
+                                               DRAGON_TEXT,
+                                               C64_TEXT);
+    xprintf("  -f  --format    Input file format (%s/%s/%s/%s)\n",
+                                                  BINARY_TEXT,
+                                                  RS_DOS_TEXT,
+                                                  DRAGON_TEXT,
+                                                  PRG_TEXT);
+    xprintf("  -c  --case      Output case (%s/%s)\n",
+                                            UPPERCASE_TEXT,
+                                            LOWERCASE_TEXT);
+      xputs("  -t  --typable   Human-readable and human-typable");
+      xputs("  -r  --remarks   Add remarks and date");
+    xprintf("  -x  --extbas    Assume Extended Color BASIC (%s only)\n",
+                                                            COCO_TEXT);
+      xputs("  -k  --checksum  Calculate and use checksums");
+      xputs("  -s  --start     Start memory location");
+      xputs("  -e  --exec      Exec memory location");
+      xputs("  -p  --print     Print the BASIC program to standard output");
+      xputs("  -n  --nowarn    Turn warnings off");
+      xputs("  -l  --license   Your license to use this program");
+      xputs("  -i  --info      What this program does");
+      xputs("  -h  --help      This help information");
+      xputs("  -v  --version   Version number");
+      xputs("  -a  --allopt    Show all options");
+}
+
+static void
+print_help(void)
+{
+      print_help_text();
+      exit(EXIT_SUCCESS);
+}
+
+static void
+print_all_options(void)
+{
+    print_help_text();
+    xputs("  -d  --defaults  Print the default values for some switches");
+    xputs("      --line      Starting line number");
+    xputs("      --step      Line number step");
+    xputs("      --diag      Print diagnostic information");
+    xputs("      --majorv    Major version number");
+    xputs("      --minorv    Minor version number");
+    xputs("      --stdin     Read machine language file from standard input");
+    exit(EXIT_SUCCESS);
+}
+
+static void
+print_info(void)
 {
     print_version_text();
-    puts("https://github.com/richardcavell/BASICloader");
-    puts("");
-    puts("Usage: BASICloader [options] [filename]");
-    puts("");
-      puts("  -o  --output    Output filename");
-    printf("  -m  --machine   Target machine (%s/%s/%s)\n", COCO_TEXT, DRAGON_TEXT, C64_TEXT);
-    printf("  -f  --format    Input file format (%s/%s/%s/%s)\n", BINARY_TEXT, RS_DOS_TEXT, DRAGON_TEXT, PRG_TEXT);
-    printf("  -c  --case      Output case (%s/%s)\n", UPPERCASE_TEXT, LOWERCASE_TEXT);
-      puts("  -t  --typable   Unpack the BASIC program and use spaces");
-      puts("  -r  --remarks   Add remarks and date");
-    printf("      --extbas    Assume Extended Color BASIC (%s only)\n", COCO_TEXT);
-      puts("      --checksum  Calculate checksums");
-      puts("  -s  --start     Start memory location");
-      puts("  -e  --exec      Exec memory location");
-      puts("  -p  --print     Print the BASIC program to standard output");
-      puts("  -n  --nowarn    Turn warnings off");
-      puts("  -l  --license   Your license to use this program");
-      puts("  -i  --info      What this program does");
-      puts("  -h  --help      This help information");
-      puts("  -v  --version   Version number");
-    puts("");
-    puts("For advanced options and more description, see the Options.txt file");
-
+    xputs("");
+    xputs("BASICloader generates programs similar to the type-in programs");
+    xputs("from 1980s computer magazines.");
+    xputs("");
+    xputs("It reads in a machine language program that is intended for one");
+    xputs("of the target machines, and then constructs a BASIC program");
+    xputs("that will run on that target machine.");
+    xputs("");
+    xputs("The BASIC program will contain a loop and some DATA statements.");
+    xputs("When run, it will poke the machine language into memory, and");
+    xputs("then execute it.");
     exit(EXIT_SUCCESS);
 }
 
 static void
-display_info(void)
+print_license(void)
 {
-    puts("BASICloader reads in a machine language binary, and then constructs");
-    puts("a BASIC program that will run on the selected target architecture.");
-    puts("");
-    puts("The BASIC program so produced contains DATA statements that represent");
-    puts("the machine language program given to BASICloader when the BASIC program");
-    puts("was generated.");
-    puts("");
-    puts("When run on the target architecture, the BASIC program will poke");
-    puts("that machine language into memory, and execute it.");
-    puts("");
-    puts("BASICloader therefore generates programs similar to the type-in programs");
-    puts("printed in 1980s computer magazines.");
-
-    exit(EXIT_SUCCESS);
-}
-
-static void
-display_license(void)
-{
-    puts("BASICloader License");
-    puts("");
-    puts("(modified MIT License)");
-    puts("");
-    puts("Copyright (c) 2017 Richard Cavell");
-    puts("");
-    puts("Permission is hereby granted, free of charge, to any person obtaining a copy");
-    puts("of this software and associated documentation files (the \"Software\"), to deal");
-    puts("in the Software without restriction, including without limitation the rights");
-    puts("to use, copy, modify, merge, publish, distribute, sublicense, and/or sell");
-    puts("copies of the Software, and to permit persons to whom the Software is");
-    puts("furnished to do so, subject to the following conditions:");
-    puts("");
-    puts("The above copyright notice and this permission notice shall be included in all");
-    puts("copies or substantial portions of the Software.");
-    puts("");
-    puts("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR");
-    puts("IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,");
-    puts("FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE");
-    puts("AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER");
-    puts("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,");
-    puts("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE");
-    puts("SOFTWARE.");
-    puts("");
-    puts("The output of this program is licensed to you under the following license:");
-    puts("");
-    puts("1.  You may use the output of this program, for free, for any worthwhile");
-    puts("    or moral purpose.");
-    puts("2.  You should try to attribute me and the BASICloader program, where");
-    puts("    that is not unreasonable.");
-    puts("");
-    puts("You should not allow people to assume that you wrote the BASIC code yourself.");
-
+    xputs("BASICloader License");
+    xputs("");
+    xputs("(modified MIT License)");
+    xputs("");
+    xputs("Copyright (c) 2017 Richard Cavell");
+    xputs("");
+    xputs("Permission is hereby granted, free of charge,"
+                   " to any person obtaining a copy");
+    xputs("of this software and associated documentation files"
+                   " (the \"Software\"), to deal");
+    xputs("in the Software without restriction, including without"
+                   " limitation the rights");
+    xputs("to use, copy, modify, merge, publish, distribute,"
+                   " sublicense, and/or sell");
+    xputs("copies of the Software, and to permit persons to whom"
+                   " the Software is");
+    xputs("furnished to do so, subject to the following conditions:");
+    xputs("");
+    xputs("The above copyright notice and this permission notice"
+                   " shall be included in all");
+    xputs("copies or substantial portions of the Software.");
+    xputs("");
+    xputs("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY"
+                   " OF ANY KIND, EXPRESS OR");
+    xputs("IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES"
+                   " OF MERCHANTABILITY,");
+    xputs("FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT."
+                   " IN NO EVENT SHALL THE");
+    xputs("AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,"
+                   " DAMAGES OR OTHER");
+    xputs("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR"
+                   " OTHERWISE, ARISING FROM,");
+    xputs("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE"
+                   " OR OTHER DEALINGS IN THE");
+    xputs("SOFTWARE.");
+    xputs("");
+    xputs("The output of this program is licensed to you under the"
+                   " following license:");
+    xputs("");
+    xputs("1.  You may use the output of this program, for free,"
+                   " for any worthwhile");
+    xputs("    or moral purpose.");
+    xputs("2.  You should try to attribute me and the BASICloader"
+                   " program, where");
+    xputs("    that is not unreasonable.");
+    xputs("");
+    xputs("You should not allow people to assume that you wrote"
+                   " the BASIC code yourself.");
     exit(EXIT_SUCCESS);
 }
 
@@ -683,11 +745,11 @@ case_to_text(enum case_choice output_case)
 static void
 display_defaults(void)
 {
-    printf("Default target architecture : %s\n"    , target_architecture_to_text(DEFAULT_ARCHITECTURE));
-    printf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
-    printf("Default output case is      : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
-    printf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
-    printf("Default output filename     : \"%s\" (with --machine %s --case %s)\n",
+    xprintf("Default target architecture : %s\n"    , target_architecture_to_text(DEFAULT_ARCHITECTURE));
+    xprintf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
+    xprintf("Default output case is      : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
+    xprintf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
+    xprintf("Default output filename     : \"%s\" (with --machine %s --case %s)\n",
                                                      DEFAULT_C64LC_OUTPUT_FILENAME, C64_TEXT, LOWERCASE_TEXT);
 
     exit(EXIT_SUCCESS);
@@ -2185,25 +2247,25 @@ print_diagnostic_info(enum architecture  target_architecture,
                       line_counter_type                line_count,
                       long int                         output_file_size)
 {
-    printf("Output is for the %s target architecture%s\n",
+    xprintf("Output is for the %s target architecture%s\n",
                       target_architecture_to_text(target_architecture),
                       extended_basic ? " (with Extended BASIC)" : "");
 
-    printf("The program is %s, %s form%s"
+    xprintf("The program is %s, %s form%s"
            " and with%s program comments\n",
                                case_to_text(output_case),
                                typable ? "typable" : "compact",
                                checksum ? " with checksumming" : "",
                                remarks ? "" : "out");
-    printf("  Start location : $%x (%u)\n", start, start);
-    printf("  Exec location  : $%x (%u)\n", exec, exec);
-    printf("  End location   : $%x (%u)\n", end, end);
+    xprintf("  Start location : $%x (%u)\n", start, start);
+    xprintf("  Exec location  : $%x (%u)\n", exec, exec);
+    xprintf("  End location   : $%x (%u)\n", end, end);
 
     if (blob_size > 15)
-    printf("  Blob size      : $%lx (%lu) bytes\n", blob_size, blob_size);
+    xprintf("  Blob size      : $%lx (%lu) bytes\n", blob_size, blob_size);
     else
-    printf("  Blob size      : %lu bytes\n", blob_size);
-    printf("  BASIC program  : %u lines (%lu characters)\n",
+    xprintf("  Blob size      : %lu bytes\n", blob_size);
+    xprintf("  BASIC program  : %u lines (%lu characters)\n",
                                line_count, output_file_size);
 }
 
@@ -2270,15 +2332,17 @@ int main(int argc, char *argv[])
         while (*++argv)
         {
                  if (arg2_match(argv[0], "-h", "--help"))
-                display_help();
+                print_help();
             else if (arg2_match(argv[0], "-d", "--defaults"))
                 display_defaults();
             else if (arg2_match(argv[0], "-i", "--info"))
-                display_info();
+                print_info();
             else if (arg2_match(argv[0], "-l", "--license"))
-                display_license();
+                print_license();
             else if (arg2_match(argv[0], "-v", "--version"))
-                display_version();
+                print_version();
+            else if (arg2_match(argv[0], "-a", "--allopt"))
+                print_all_options();
             else if (arg2_match(argv[0], "-o", "--output"))
             {
                 get_output_filename(argv[0], argv[1], &output_filename);
@@ -2614,7 +2678,7 @@ output_case, &output_file_size, typable, &line_incrementing_has_started,\
     close_file(input_file,  input_filename);
 
     if (print_program == 0)
-        printf("BASIC program has been generated -> \"%s\"\n", output_filename);
+        xprintf("BASIC program has been generated -> \"%s\"\n", output_filename);
 
     if (print_diag == 1)
         print_diagnostic_info(target_architecture,
