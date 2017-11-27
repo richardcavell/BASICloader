@@ -603,8 +603,8 @@ print_help_text(void)
 static void
 print_help(void)
 {
-      print_help_text();
-      exit(EXIT_SUCCESS);
+    print_help_text();
+    exit(EXIT_SUCCESS);
 }
 
 static void
