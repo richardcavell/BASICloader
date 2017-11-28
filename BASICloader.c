@@ -746,7 +746,7 @@ case_to_text(enum case_choice output_case)
 }
 
 static void
-display_defaults(void)
+print_defaults(void)
 {
     xprintf("Output filename    : \"%s\"\n",
                     DEFAULT_OUTPUT_FILENAME);
@@ -2364,7 +2364,7 @@ int main(int argc, char *argv[])
                  if (arg2_match(argv[0], "-h", "--help"))
                 print_help();
             else if (arg2_match(argv[0], NULL, "--defaults"))
-                display_defaults();
+                print_defaults();
             else if (arg2_match(argv[0], "-i", "--info"))
                 print_info();
             else if (arg2_match(argv[0], "-l", "--license"))
