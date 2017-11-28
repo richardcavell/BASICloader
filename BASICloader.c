@@ -773,6 +773,7 @@ display_defaults(void)
                     (unsigned long int) C64_DEFAULT_START,
                     (unsigned long int) C64_DEFAULT_START,
                     C64_TEXT);
+      xputs("Exec location      : (Equal to start location)");
     xprintf("Starting line      : %lu\n",
                     (unsigned long int) DEFAULT_STARTING_LINE);
     xprintf("Starting line      : %lu (with --typable)\n",
@@ -2362,7 +2363,7 @@ int main(int argc, char *argv[])
         {
                  if (arg2_match(argv[0], "-h", "--help"))
                 print_help();
-            else if (arg2_match(argv[0], "-d", "--defaults"))
+            else if (arg2_match(argv[0], NULL, "--defaults"))
                 display_defaults();
             else if (arg2_match(argv[0], "-i", "--info"))
                 print_info();
