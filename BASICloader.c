@@ -694,7 +694,7 @@ print_license(void)
 }
 
 static const char *
-target_architecture_to_text(enum architecture target_architecture)
+architecture_to_text(enum architecture target_architecture)
 {
     const char *text = NULL;
 
@@ -703,7 +703,8 @@ target_architecture_to_text(enum architecture target_architecture)
         case COCO:    text = COCO_TEXT;    break;
         case DRAGON:  text = DRAGON_TEXT;  break;
         case C64:     text = C64_TEXT;     break;
-        default:      internal_error("Unhandled target architecture in target_architecture_to_text()");
+        default:      internal_error("Unhandled architecture in"
+                                     " architecture_to_text()");
     }
 
     return text;
@@ -720,7 +721,8 @@ format_to_text(enum file_format format)
         case RS_DOS:      text = RS_DOS_TEXT;      break;
         case DRAGON_DOS:  text = DRAGON_DOS_TEXT;  break;
         case PRG:         text = PRG_TEXT;         break;
-        default:          internal_error("Unhandled format in format_to_text()");
+        default:          internal_error("Unhandled format in"
+                                         " format_to_text()");
     }
 
     return text;
@@ -736,7 +738,8 @@ case_to_text(enum case_choice output_case)
         case UPPERCASE:   text = UPPERCASE_TEXT;   break;
         case LOWERCASE:   text = LOWERCASE_TEXT;   break;
         case MIXED_CASE:  text = MIXED_CASE_TEXT;  break;
-        default:          internal_error("Unhandled case in case_to_text()");
+        default:          internal_error("Unhandled case in"
+                                         " case_to_text()");
     }
 
     return text;
@@ -745,13 +748,39 @@ case_to_text(enum case_choice output_case)
 static void
 display_defaults(void)
 {
-    xprintf("Default target architecture : %s\n"    , target_architecture_to_text(DEFAULT_ARCHITECTURE));
-    xprintf("Default input format        : %s\n"    , format_to_text(DEFAULT_INPUT_FILE_FORMAT));
-    xprintf("Default output case is      : %s\n"    , case_to_text(DEFAULT_OUTPUT_CASE));
-    xprintf("Default output filename     : \"%s\"\n", DEFAULT_OUTPUT_FILENAME);
-    xprintf("Default output filename     : \"%s\" (with --machine %s --case %s)\n",
-                                                     DEFAULT_C64LC_OUTPUT_FILENAME, C64_TEXT, LOWERCASE_TEXT);
-
+    xprintf("Output filename    : \"%s\"\n",
+                    DEFAULT_OUTPUT_FILENAME);
+    xprintf("                     \"%s\""
+                    " (with --machine %s --case %s)\n",
+                    DEFAULT_C64LC_OUTPUT_FILENAME,
+                    C64_TEXT,
+                    LOWERCASE_TEXT);
+    xprintf("Target machine     : %s\n",
+                    architecture_to_text(DEFAULT_ARCHITECTURE));
+    xprintf("Input file format  : %s\n",
+                    format_to_text(DEFAULT_INPUT_FILE_FORMAT));
+    xprintf("Output case        : %s\n",
+                    case_to_text(DEFAULT_OUTPUT_CASE));
+    xprintf("Start location     : Hex=0x%lx Dec=%lu (%s)\n",
+                    (unsigned long int) COCO_DEFAULT_START,
+                    (unsigned long int) COCO_DEFAULT_START,
+                    COCO_TEXT);
+    xprintf("Start location     : Hex=0x%lx Dec=%lu (%s)\n",
+                    (unsigned long int) DRAGON_DEFAULT_START,
+                    (unsigned long int) DRAGON_DEFAULT_START,
+                    DRAGON_TEXT);
+    xprintf("Start location     : Hex=0x%lx Dec=%lu (%s)\n",
+                    (unsigned long int) C64_DEFAULT_START,
+                    (unsigned long int) C64_DEFAULT_START,
+                    C64_TEXT);
+    xprintf("Starting line      : %lu\n",
+                    (unsigned long int) DEFAULT_STARTING_LINE);
+    xprintf("Starting line      : %lu (with --typable)\n",
+                    (unsigned long int) DEFAULT_TYPABLE_STARTING_LINE);
+    xprintf("Starting step      : %lu\n",
+                    (unsigned long int) DEFAULT_STEP);
+    xprintf("Starting step      : %lu (with --typable)\n",
+                    (unsigned long int) DEFAULT_TYPABLE_STEP);
     exit(EXIT_SUCCESS);
 }
 
@@ -1595,7 +1624,7 @@ set_start_address(enum architecture  target_architecture,
         internal_error("Start location is higher than the highest possible"
                        " RAM address\n"
                        "on the %s",
-                        target_architecture_to_text(target_architecture));
+                        architecture_to_text(target_architecture));
 
     return start;
 }
@@ -1612,7 +1641,7 @@ set_end_address(enum architecture  target_architecture,
                     || end > get_highest_ram_address(target_architecture))
         error("The machine language blob would overflow the amount of RAM\n"
              "on the %s",
-             target_architecture_to_text(target_architecture));
+             architecture_to_text(target_architecture));
 
     return (memory_location_type) end;
 }
@@ -1631,7 +1660,7 @@ set_exec_address(enum architecture  target_architecture,
         internal_error("Exec location is higher than the highest possible"
                        " RAM address\n"
                        "on the %s",
-                       target_architecture_to_text(target_architecture));
+                       architecture_to_text(target_architecture));
 
     if (exec < start)
         error("The exec location given ($%x) is below\n"
@@ -1861,7 +1890,7 @@ check_line_position(enum architecture  target_architecture,
 
     if (line_position > get_architecture_maximum_basic_line_length(target_architecture))
         internal_error("The maximum BASIC line length for the \"%s\" target architecture was exceeded",
-                        target_architecture_to_text(target_architecture));
+                        architecture_to_text(target_architecture));
 }
 
 static void
@@ -2248,7 +2277,7 @@ print_diagnostic_info(enum architecture  target_architecture,
                       long int                         output_file_size)
 {
     xprintf("Output is for the %s target architecture%s\n",
-                      target_architecture_to_text(target_architecture),
+                      architecture_to_text(target_architecture),
                       extended_basic ? " (with Extended BASIC)" : "");
 
     xprintf("The program is %s, %s form%s"
