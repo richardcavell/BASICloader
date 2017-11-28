@@ -765,22 +765,22 @@ display_defaults(void)
                     (unsigned long int) COCO_DEFAULT_START,
                     (unsigned long int) COCO_DEFAULT_START,
                     COCO_TEXT);
-    xprintf("Start location     : Hex=0x%lx Dec=%lu (%s)\n",
+    xprintf("                   : Hex=0x%lx Dec=%lu (%s)\n",
                     (unsigned long int) DRAGON_DEFAULT_START,
                     (unsigned long int) DRAGON_DEFAULT_START,
                     DRAGON_TEXT);
-    xprintf("Start location     : Hex=0x%lx Dec=%lu (%s)\n",
+    xprintf("                   : Hex=0x%lx Dec=%lu (%s)\n",
                     (unsigned long int) C64_DEFAULT_START,
                     (unsigned long int) C64_DEFAULT_START,
                     C64_TEXT);
       xputs("Exec location      : (Equal to start location)");
     xprintf("Starting line      : %lu\n",
                     (unsigned long int) DEFAULT_STARTING_LINE);
-    xprintf("Starting line      : %lu (with --typable)\n",
+    xprintf("                   : %lu (with --typable)\n",
                     (unsigned long int) DEFAULT_TYPABLE_STARTING_LINE);
     xprintf("Starting step      : %lu\n",
                     (unsigned long int) DEFAULT_STEP);
-    xprintf("Starting step      : %lu (with --typable)\n",
+    xprintf("                   : %lu (with --typable)\n",
                     (unsigned long int) DEFAULT_TYPABLE_STEP);
     exit(EXIT_SUCCESS);
 }
