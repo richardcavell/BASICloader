@@ -786,28 +786,28 @@ print_defaults(void)
 }
 
 static boolean_type
-arg_match(const char *arg_text,
-          const char *option_name)
+arg_match(const char *actual_arg,
+          const char *option_text)
 {
-    return arg_text    != NULL &&
-           option_name != NULL &&
-           strcmp(arg_text, option_name) == 0;
+    return actual_arg    != NULL &&
+           option_text   != NULL &&
+           strcmp(actual_arg, option_text) == 0;
 }
 
 static boolean_type
 arg2_match(const char *arg_text,
-           const char *short_option_name,
-           const char *long_option_name)
+           const char *short_option_text,
+           const char *long_option_text)
 {
-    return arg_match(arg_text, short_option_name)
-        || arg_match(arg_text, long_option_name);
+    return arg_match(arg_text, short_option_text) ||
+           arg_match(arg_text, long_option_text);
 }
 
 static int
-unknown_arg(const char *arg)
+is_option(const char *arg)
 {
-  const int dash = '-';
-  return arg[0] == dash;
+    const char dash = '-';
+    return arg[0] == dash;
 }
 
 static void
@@ -2431,7 +2431,7 @@ int main(int argc, char *argv[])
                 set_switch(argv[0], &print_diag);
             else if (arg2_match(argv[0], NULL, "--stdin"))
                 set_switch(argv[0], &read_stdin);
-            else if (unknown_arg(argv[0]))
+            else if (is_option(argv[0]))
                 error("Unknown command line option %s", argv[0]);
             else
             {
