@@ -786,8 +786,8 @@ print_defaults(void)
 }
 
 static boolean_type
-arg_match(const char *actual_arg,
-          const char *option_text)
+string_match(const char *actual_arg,
+             const char *option_text)
 {
     return actual_arg    != NULL &&
            option_text   != NULL &&
@@ -799,8 +799,8 @@ arg2_match(const char *arg_text,
            const char *short_option_text,
            const char *long_option_text)
 {
-    return arg_match(arg_text, short_option_text) ||
-           arg_match(arg_text, long_option_text);
+    return string_match(arg_text, short_option_text) ||
+           string_match(arg_text, long_option_text);
 }
 
 static int
@@ -810,18 +810,18 @@ is_option(const char *arg)
     return arg[0] == dash;
 }
 
-static void
+static const char *
 get_output_filename(const char *arg1,
                     const char *arg2,
-                    const char **output_filename)
+                    const char *output_filename)
 {
-    if (*output_filename != NULL)
+    if (output_filename != NULL)
         error("You can only set option %s once", arg1);
 
     if (arg2 == NULL)
         error("You must supply a filename after %s", arg1);
 
-    *output_filename = arg2;
+    return arg2;
 }
 
 static void
@@ -2375,7 +2375,9 @@ int main(int argc, char *argv[])
                 print_all_options();
             else if (arg2_match(argv[0], "-o", "--output"))
             {
-                get_output_filename(argv[0], argv[1], &output_filename);
+                output_filename = get_output_filename(argv[0],
+                                                      argv[1],
+                                                      output_filename);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-m", "--machine"))
