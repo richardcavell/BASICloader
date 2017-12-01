@@ -824,33 +824,37 @@ get_output_filename(const char *arg1,
     return arg2;
 }
 
-static void
-get_target_architecture_arg(const char                       *arg1,
-                            const char                       *arg2,
-                            enum architecture  *target_architecture)
+static enum architecture
+get_target_architecture(const char         *arg1,
+                        const char         *arg2,
+                        enum architecture  target_architecture)
 {
-    if (*target_architecture != NO_ARCHITECTURE_CHOSEN)
+    if (target_architecture != NO_ARCHITECTURE_CHOSEN)
         error("You can only set %s once", arg1);
 
-         if (strcmp(arg2, COCO_TEXT) == 0)    *target_architecture = COCO;
-    else if (strcmp(arg2, DRAGON_TEXT) == 0)  *target_architecture = DRAGON;
-    else if (strcmp(arg2, C64_TEXT) == 0)     *target_architecture = C64;
+         if (strcmp(arg2, COCO_TEXT) == 0)    target_architecture = COCO;
+    else if (strcmp(arg2, DRAGON_TEXT) == 0)  target_architecture = DRAGON;
+    else if (strcmp(arg2, C64_TEXT) == 0)     target_architecture = C64;
     else error("Unknown target architecture \"%s\"", arg2);
+
+    return target_architecture;
 }
 
-static void
-get_format(const char                     *arg1,
-           const char                     *arg2,
-           enum file_format  *format)
+static enum file_format
+get_format(const char        *arg1,
+           const char        *arg2,
+           enum file_format  format)
 {
-    if (*format != NO_FILE_FORMAT_CHOSEN)
+    if (format != NO_FILE_FORMAT_CHOSEN)
         error("You can only set %s once", arg1);
 
-         if (strcmp(arg2, BINARY_TEXT) == 0)      *format = BINARY;
-    else if (strcmp(arg2, RS_DOS_TEXT) == 0)      *format = RS_DOS;
-    else if (strcmp(arg2, DRAGON_DOS_TEXT) == 0)  *format = DRAGON_DOS;
-    else if (strcmp(arg2, PRG_TEXT) == 0)         *format = PRG;
+         if (strcmp(arg2, BINARY_TEXT) == 0)      format = BINARY;
+    else if (strcmp(arg2, RS_DOS_TEXT) == 0)      format = RS_DOS;
+    else if (strcmp(arg2, DRAGON_DOS_TEXT) == 0)  format = DRAGON_DOS;
+    else if (strcmp(arg2, PRG_TEXT) == 0)         format = PRG;
     else error("Unknown file format \"%s\"", arg2);
+
+    return format;
 }
 
 static void
@@ -2382,12 +2386,17 @@ int main(int argc, char *argv[])
             }
             else if (arg2_match(argv[0], "-m", "--machine"))
             {
-                get_target_architecture_arg(argv[0], argv[1], &target_architecture);
+                target_architecture = 
+                        get_target_architecture(argv[0],
+                                                argv[1],
+                                                target_architecture);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-f", "--format"))
             {
-                get_format(argv[0], argv[1], &input_file_format);
+                input_file_format = get_format(argv[0],
+                                               argv[1],
+                                               input_file_format);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-c", "--case"))
