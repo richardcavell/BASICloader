@@ -857,18 +857,20 @@ get_format(const char        *arg1,
     return format;
 }
 
-static void
-get_case(const char               *arg1,
-         const char               *arg2,
-         enum case_choice  *output_case)
+static enum case_choice
+get_case(const char        *arg1,
+         const char        *arg2,
+         enum case_choice  output_case)
 {
-    if (*output_case != NO_CASE_CHOSEN)
+    if (output_case != NO_CASE_CHOSEN)
         error("You can only set %s once", arg1);
 
-         if (strcmp(arg2, UPPERCASE_TEXT) == 0)   *output_case = UPPERCASE;
-    else if (strcmp(arg2, LOWERCASE_TEXT) == 0)   *output_case = LOWERCASE;
-    else if (strcmp(arg2, MIXED_CASE_TEXT) == 0)  *output_case = MIXED_CASE;
+         if (strcmp(arg2, UPPERCASE_TEXT) == 0)   output_case = UPPERCASE;
+    else if (strcmp(arg2, LOWERCASE_TEXT) == 0)   output_case = LOWERCASE;
+    else if (strcmp(arg2, MIXED_CASE_TEXT) == 0)  output_case = MIXED_CASE;
     else error("Unknown case \"%s\"", arg2);
+
+    return output_case;
 }
 
 static void
@@ -2401,7 +2403,7 @@ int main(int argc, char *argv[])
             }
             else if (arg2_match(argv[0], "-c", "--case"))
             {
-                get_case(argv[0], argv[1], &output_case);
+                output_case = get_case(argv[0], argv[1], output_case);
                 ++argv;
             }
             else if (arg2_match(argv[0], NULL, "--line"))
