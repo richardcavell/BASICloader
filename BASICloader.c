@@ -832,9 +832,12 @@ get_target_architecture(const char         *arg1,
     if (target_architecture != NO_ARCHITECTURE_CHOSEN)
         error("You can only set %s once", arg1);
 
-         if (strcmp(arg2, COCO_TEXT) == 0)    target_architecture = COCO;
-    else if (strcmp(arg2, DRAGON_TEXT) == 0)  target_architecture = DRAGON;
-    else if (strcmp(arg2, C64_TEXT) == 0)     target_architecture = C64;
+    if (arg2 == NULL)
+        error("You must name a machine after %s", arg1);
+
+         if (string_match(arg2, COCO_TEXT))    target_architecture = COCO;
+    else if (string_match(arg2, DRAGON_TEXT))  target_architecture = DRAGON;
+    else if (string_match(arg2, C64_TEXT))     target_architecture = C64;
     else error("Unknown target architecture \"%s\"", arg2);
 
     return target_architecture;
@@ -848,10 +851,13 @@ get_format(const char        *arg1,
     if (format != NO_FILE_FORMAT_CHOSEN)
         error("You can only set %s once", arg1);
 
-         if (strcmp(arg2, BINARY_TEXT) == 0)      format = BINARY;
-    else if (strcmp(arg2, RS_DOS_TEXT) == 0)      format = RS_DOS;
-    else if (strcmp(arg2, DRAGON_DOS_TEXT) == 0)  format = DRAGON_DOS;
-    else if (strcmp(arg2, PRG_TEXT) == 0)         format = PRG;
+    if (arg2 == NULL)
+        error("You must name a file format after %s", arg1);
+
+         if (string_match(arg2, BINARY_TEXT))      format = BINARY;
+    else if (string_match(arg2, RS_DOS_TEXT))      format = RS_DOS;
+    else if (string_match(arg2, DRAGON_DOS_TEXT))  format = DRAGON_DOS;
+    else if (string_match(arg2, PRG_TEXT))         format = PRG;
     else error("Unknown file format \"%s\"", arg2);
 
     return format;
@@ -865,9 +871,12 @@ get_case(const char        *arg1,
     if (output_case != NO_CASE_CHOSEN)
         error("You can only set %s once", arg1);
 
-         if (strcmp(arg2, UPPERCASE_TEXT) == 0)   output_case = UPPERCASE;
-    else if (strcmp(arg2, LOWERCASE_TEXT) == 0)   output_case = LOWERCASE;
-    else if (strcmp(arg2, MIXED_CASE_TEXT) == 0)  output_case = MIXED_CASE;
+    if (arg2 == NULL)
+        error("You must name a case choice after %s", arg1);
+
+         if (string_match(arg2, UPPERCASE_TEXT))   output_case = UPPERCASE;
+    else if (string_match(arg2, LOWERCASE_TEXT))   output_case = LOWERCASE;
+    else if (string_match(arg2, MIXED_CASE_TEXT))  output_case = MIXED_CASE;
     else error("Unknown case \"%s\"", arg2);
 
     return output_case;
@@ -877,7 +886,7 @@ static void
 set_switch(const char    *arg,
            boolean_type  *sw)
 {
-    if (*sw == 1)
+    if (*sw != 0)
         error("Option %s has already been set", arg);
 
     *sw = 1;
