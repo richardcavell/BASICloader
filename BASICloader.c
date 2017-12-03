@@ -882,14 +882,16 @@ get_case(const char        *arg1,
     return output_case;
 }
 
-static void
-set_switch(const char    *arg,
-           boolean_type  *sw)
+static boolean_type
+get_switch_state(const char    *arg,
+                 boolean_type  sw)
 {
-    if (*sw != 0)
+    if (sw != 0)
         error("Option %s has already been set", arg);
 
-    *sw = 1;
+    sw = 1;
+
+    return sw;
 }
 
 static unsigned long int
@@ -2436,23 +2438,23 @@ int main(int argc, char *argv[])
                 ++argv;
             }
             else if (arg2_match(argv[0], "-n", "--nowarn"))
-                set_switch(argv[0], &nowarn);
+                nowarn = get_switch_state(argv[0], nowarn);
             else if (arg2_match(argv[0], "-t", "--typable"))
-                set_switch(argv[0], &typable);
+                typable = get_switch_state(argv[0], typable);
             else if (arg2_match(argv[0], NULL, "--verify"))
-                set_switch(argv[0], &verify);
+                verify = get_switch_state(argv[0], verify);
             else if (arg2_match(argv[0], NULL, "--checksum"))
-                set_switch(argv[0], &checksum);
+                checksum = get_switch_state(argv[0], checksum);
             else if (arg2_match(argv[0], NULL, "--extbas"))
-                set_switch(argv[0], &extended_basic);
+                extended_basic = get_switch_state(argv[0], extended_basic);
             else if (arg2_match(argv[0], "-r", "--remarks"))
-                set_switch(argv[0], &remarks);
+                remarks = get_switch_state(argv[0], remarks);
             else if (arg2_match(argv[0], "-p", "--print"))
-                set_switch(argv[0], &print_program);
+                print_program = get_switch_state(argv[0], print_program);
             else if (arg2_match(argv[0], NULL, "--diag"))
-                set_switch(argv[0], &print_diag);
+                print_diag = get_switch_state(argv[0], print_diag);
             else if (arg2_match(argv[0], NULL, "--stdin"))
-                set_switch(argv[0], &read_stdin);
+                read_stdin = get_switch_state(argv[0], read_stdin);
             else if (is_option(argv[0]))
                 error("Unknown command line option %s", argv[0]);
             else
