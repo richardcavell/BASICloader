@@ -905,6 +905,10 @@ string_to_unsigned_long(const char         *pstring,
 
     errno = 0;
 
+    if (pstring != NULL)
+        while (*pstring == ' ')
+            ++pstring;
+
     if (pstring != NULL && pstring[0] == '$')
     {
         base = 16;
@@ -924,7 +928,7 @@ string_to_unsigned_long(const char         *pstring,
             &&  pstring[0] != '-'
             &&  l <= max );
 
-  return l;
+    return l;
 }
 
 static void
