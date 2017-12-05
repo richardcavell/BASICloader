@@ -970,7 +970,8 @@ get_line_number_step(const char             *arg1,
     if (*step_set != 0)
         error("Option %s can only be set once", arg1);
 
-    *step = (line_number_step_type) string_to_unsigned_long(arg2, &ok,
+    *step = (line_number_step_type) string_to_unsigned_long(arg2,
+                                    &ok,
                                     MINIMUM_STEP,
                                     MAXIMUM_STEP);
 
@@ -1021,7 +1022,8 @@ get_memory_location_type_arg(const char            *arg1,
     if (*set != 0)
         error("Option %s can only be set once", arg1);
 
-    *pmem = (memory_location_type) string_to_unsigned_long(arg2, &ok,
+    *pmem = (memory_location_type) string_to_unsigned_long(arg2,
+                                   &ok,
                                    LOWEST_RAM_ADDRESS,
                                    HIGHEST_RAM_ADDRESS);
 
