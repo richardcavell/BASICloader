@@ -897,10 +897,10 @@ get_switch_state(const char    *arg,
 }
 
 static unsigned long int
-string_to_unsigned_long(const char         *pstring,
-                        boolean_type       *ok,
-                        unsigned long int  min,
-                        unsigned long int  max)
+arg_to_unsigned_long(const char         *pstring,
+                     boolean_type       *ok,
+                     unsigned long int  min,
+                     unsigned long int  max)
 {
     unsigned long int l = 0;
     char *endptr = NULL;
@@ -946,7 +946,7 @@ get_line_number(const char        *arg1,
     if (*line_set != 0)
         error("Option %s can only be set once", arg1);
 
-    *line_number = (line_number_type) string_to_unsigned_long(arg2,
+    *line_number = (line_number_type) arg_to_unsigned_long(arg2,
                                       &ok,
                                       MIN_LINE_NUMBER,
                                       MAXIMUM_STARTING_LINE);
@@ -970,7 +970,7 @@ get_line_number_step(const char             *arg1,
     if (*step_set != 0)
         error("Option %s can only be set once", arg1);
 
-    *step = (line_number_step_type) string_to_unsigned_long(arg2,
+    *step = (line_number_step_type) arg_to_unsigned_long(arg2,
                                     &ok,
                                     MINIMUM_STEP,
                                     MAXIMUM_STEP);
@@ -1022,7 +1022,7 @@ get_memory_location_type_arg(const char            *arg1,
     if (*set != 0)
         error("Option %s can only be set once", arg1);
 
-    *pmem = (memory_location_type) string_to_unsigned_long(arg2,
+    *pmem = (memory_location_type) arg_to_unsigned_long(arg2,
                                    &ok,
                                    LOWEST_RAM_ADDRESS,
                                    HIGHEST_RAM_ADDRESS);
