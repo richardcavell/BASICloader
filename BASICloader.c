@@ -94,6 +94,8 @@
 #define    C64_MAX_LINE_LENGTH  79
 #define  MAX_BASIC_LINE_LENGTH 249
 
+#define LOWEST_RAM_ADDRESS     0
+
 #define HIGHEST_COCO_ADDRESS   HIGHEST_64K_ADDRESS
 #define HIGHEST_DRAGON_ADDRESS HIGHEST_64K_ADDRESS
 #define HIGHEST_C64_ADDRESS    HIGHEST_64K_ADDRESS
@@ -897,6 +899,7 @@ get_switch_state(const char    *arg,
 static unsigned long int
 string_to_unsigned_long(const char         *pstring,
                         boolean_type       *ok,
+                        unsigned long int  min,
                         unsigned long int  max)
 {
     unsigned long int l = 0;
@@ -926,6 +929,7 @@ string_to_unsigned_long(const char         *pstring,
             && *endptr     == '\0'
             &&  errno      == 0
             &&  pstring[0] != '-'
+            &&  l >= min
             &&  l <= max );
 
     return l;
@@ -942,7 +946,9 @@ get_line_number(const char        *arg1,
     if (*line_set != 0)
         error("Option %s can only be set once", arg1);
 
-    *line_number = (line_number_type) string_to_unsigned_long(arg2, &ok,
+    *line_number = (line_number_type) string_to_unsigned_long(arg2,
+                                      &ok,
+                                      MIN_LINE_NUMBER,
                                       MAXIMUM_STARTING_LINE);
 
     if (ok == 0)
@@ -965,6 +971,7 @@ get_line_number_step(const char             *arg1,
         error("Option %s can only be set once", arg1);
 
     *step = (line_number_step_type) string_to_unsigned_long(arg2, &ok,
+                                    MINIMUM_STEP,
                                     MAXIMUM_STEP);
 
     if (ok == 0)
@@ -1015,6 +1022,7 @@ get_memory_location_type_arg(const char            *arg1,
         error("Option %s can only be set once", arg1);
 
     *pmem = (memory_location_type) string_to_unsigned_long(arg2, &ok,
+                                   LOWEST_RAM_ADDRESS,
                                    HIGHEST_RAM_ADDRESS);
 
     if (ok == 0)
