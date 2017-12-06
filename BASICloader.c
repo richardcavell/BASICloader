@@ -219,8 +219,11 @@ check_uchar_type(void)
 static void
 check_user_defined_type_limits(void)
 {
+    if (LINE_NUMBER_TYPE_MIN > MIN_LINE_NUMBER)
+        internal_error("Line number type has insufficient lower range");
+     
     if (LINE_NUMBER_TYPE_MAX < MAX_LINE_NUMBER)
-        internal_error("Line number type has insufficient range");
+        internal_error("Line number type has insufficient upper range");
 
     if (LINE_COUNTER_TYPE_MAX < LINE_COUNT_BENCHMARK)
         internal_error("Line counter type has insufficient range");
@@ -935,10 +938,10 @@ arg_to_unsigned_long(const char         *pstring,
     return l;
 }
 
-static void
+static line_number_type
 get_line_number(const char        *arg1,
                 const char        *arg2,
-                line_number_type  *line_number,
+                line_number_type  line_number,
                 boolean_type      *line_set)
 {
     boolean_type ok = 0;
@@ -946,17 +949,19 @@ get_line_number(const char        *arg1,
     if (*line_set != 0)
         error("Option %s can only be set once", arg1);
 
-    *line_number = (line_number_type) arg_to_unsigned_long(arg2,
-                                      &ok,
-                                      MIN_LINE_NUMBER,
-                                      MAXIMUM_STARTING_LINE);
+    line_number = (line_number_type) arg_to_unsigned_long(arg2,
+                                     &ok,
+                                     MIN_LINE_NUMBER,
+                                     MAXIMUM_STARTING_LINE);
 
     if (ok == 0)
-        error("%s takes a number from %u to %lu", arg1,
-             MIN_LINE_NUMBER,
-             (long int) MAXIMUM_STARTING_LINE);
+        error("%s takes a number from %i to %lu", arg1,
+             (signed int) MIN_LINE_NUMBER,
+               (long int) MAXIMUM_STARTING_LINE);
 
     *line_set = 1;
+
+    return line_number;
 }
 
 static void
@@ -2433,7 +2438,10 @@ int main(int argc, char *argv[])
             }
             else if (arg2_match(argv[0], NULL, "--line"))
             {
-                get_line_number(argv[0], argv[1], &line_number, &line_number_set);
+                line_number = get_line_number(argv[0],
+                                              argv[1],
+                                              line_number,
+                                              &line_number_set);
                 ++argv;
             }
             else if (arg2_match(argv[0], NULL, "--step"))
