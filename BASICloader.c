@@ -955,19 +955,20 @@ get_line_number(const char        *arg1,
                                      MAXIMUM_STARTING_LINE);
 
     if (ok == 0)
-        error("%s takes a number from %i to %lu", arg1,
-             (signed int) MIN_LINE_NUMBER,
-               (long int) MAXIMUM_STARTING_LINE);
+        error("%s takes a number from %i to %lu",
+                                      arg1,
+                         (signed int) MIN_LINE_NUMBER,
+                           (long int) MAXIMUM_STARTING_LINE);
 
     *line_set = 1;
 
     return line_number;
 }
 
-static void
+static line_number_step_type
 get_line_number_step(const char             *arg1,
                      const char             *arg2,
-                     line_number_step_type  *step,
+                     line_number_step_type  step,
                      boolean_type           *step_set)
 {
     boolean_type ok = 0;
@@ -975,17 +976,20 @@ get_line_number_step(const char             *arg1,
     if (*step_set != 0)
         error("Option %s can only be set once", arg1);
 
-    *step = (line_number_step_type) arg_to_unsigned_long(arg2,
-                                    &ok,
-                                    MINIMUM_STEP,
-                                    MAXIMUM_STEP);
+    step = (line_number_step_type) arg_to_unsigned_long(arg2,
+                                   &ok,
+                                   MINIMUM_STEP,
+                                   MAXIMUM_STEP);
 
     if (ok == 0)
-        error("%s takes a number from %u to %lu", arg1,
-             MINIMUM_STEP,
-             (long int) MAXIMUM_STEP);
+        error("%s takes a number from %u to %lu",
+                                     arg1,
+                      (unsigned int) MINIMUM_STEP,
+                          (long int) MAXIMUM_STEP);
 
     *step_set = 1;
+
+    return step;
 }
 
 static memory_location_type
@@ -2446,7 +2450,10 @@ int main(int argc, char *argv[])
             }
             else if (arg2_match(argv[0], NULL, "--step"))
             {
-                get_line_number_step(argv[0], argv[1], &step, &step_set);
+                step = get_line_number_step(argv[0],
+                                            argv[1],
+                                            step,
+                                            &step_set);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-s", "--start"))
