@@ -1020,10 +1020,10 @@ get_highest_ram_address(enum architecture target_architecture)
     return highest_ram_address;
 }
 
-static void
+static memory_location_type
 get_memory_location_type_arg(const char            *arg1,
                              const char            *arg2,
-                             memory_location_type  *pmem,
+                             memory_location_type  mem,
                              boolean_type          *set)
 {
     boolean_type ok = 0;
@@ -1031,16 +1031,20 @@ get_memory_location_type_arg(const char            *arg1,
     if (*set != 0)
         error("Option %s can only be set once", arg1);
 
-    *pmem = (memory_location_type) arg_to_unsigned_long(arg2,
-                                   &ok,
-                                   LOWEST_RAM_ADDRESS,
-                                   HIGHEST_RAM_ADDRESS);
+    mem = (memory_location_type) arg_to_unsigned_long(arg2,
+                                 &ok,
+                                 LOWEST_RAM_ADDRESS,
+                                 HIGHEST_RAM_ADDRESS);
 
     if (ok == 0)
-        error("%s takes a number up to 0x%x",
-             arg1, HIGHEST_RAM_ADDRESS);
+        error("%s takes a number from 0x%x to 0x%x",
+               arg1,
+               LOWEST_RAM_ADDRESS,
+               HIGHEST_RAM_ADDRESS);
 
     *set = 1;
+
+    return mem;
 }
 
 static enum architecture
@@ -2458,12 +2462,18 @@ int main(int argc, char *argv[])
             }
             else if (arg2_match(argv[0], "-s", "--start"))
             {
-                get_memory_location_type_arg(argv[0], argv[1], &start, &start_set);
+                start = get_memory_location_type_arg(argv[0],
+                                                     argv[1],
+                                                     start,
+                                                     &start_set);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-e", "--exec"))
             {
-                get_memory_location_type_arg(argv[0], argv[1], &exec, &exec_set);
+                exec = get_memory_location_type_arg(argv[0],
+                                                    argv[1],
+                                                    exec,
+                                                    &exec_set);
                 ++argv;
             }
             else if (arg2_match(argv[0], "-n", "--nowarn"))
