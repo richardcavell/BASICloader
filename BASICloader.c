@@ -958,7 +958,7 @@ get_line_number(const char        *arg1,
         error("%s takes a number from %i to %lu",
                                       arg1,
                          (signed int) MIN_LINE_NUMBER,
-                           (long int) MAXIMUM_STARTING_LINE);
+                  (unsigned long int) MAXIMUM_STARTING_LINE);
 
     *line_set = 1;
 
@@ -982,10 +982,10 @@ get_line_number_step(const char             *arg1,
                                    MAXIMUM_STEP);
 
     if (ok == 0)
-        error("%s takes a number from %u to %lu",
+        error("%s takes a number from %lu to %lu",
                                      arg1,
-                      (unsigned int) MINIMUM_STEP,
-                          (long int) MAXIMUM_STEP);
+                 (unsigned long int) MINIMUM_STEP,
+                 (unsigned long int) MAXIMUM_STEP);
 
     *step_set = 1;
 
@@ -1037,10 +1037,10 @@ get_memory_location_type_arg(const char            *arg1,
                                  HIGHEST_RAM_ADDRESS);
 
     if (ok == 0)
-        error("%s takes a number from 0x%x to 0x%x",
+        error("%s takes a number from 0x%lx to 0x%lx",
                arg1,
-               LOWEST_RAM_ADDRESS,
-               HIGHEST_RAM_ADDRESS);
+               (unsigned long int) LOWEST_RAM_ADDRESS,
+               (unsigned long int) HIGHEST_RAM_ADDRESS);
 
     *set = 1;
 
