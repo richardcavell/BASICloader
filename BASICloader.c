@@ -1126,7 +1126,10 @@ set_output_case(enum architecture  target_architecture,
 static boolean_type
 set_typable(boolean_type typable, boolean_type use_checksum)
 {
-    return (use_checksum) ? 1 : typable;
+    if (use_checksum)
+        typable = 1;
+    
+    return typable;
 }
 
 static boolean_type
