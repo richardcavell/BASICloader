@@ -949,16 +949,17 @@ get_line_number(const char        *arg1,
     if (*line_set != 0)
         error("Option %s can only be set once", arg1);
 
-    line_number = (line_number_type) arg_to_unsigned_long(arg2,
-                                     &ok,
-                                     MIN_LINE_NUMBER,
-                                     MAXIMUM_STARTING_LINE);
+    line_number = (line_number_type)
+                   arg_to_unsigned_long(arg2,
+                                        &ok,
+                                        MIN_LINE_NUMBER,
+                                        MAXIMUM_STARTING_LINE);
 
     if (ok == 0)
         error("%s takes a number from %i to %lu",
-                                      arg1,
-                         (signed int) MIN_LINE_NUMBER,
-                  (unsigned long int) MAXIMUM_STARTING_LINE);
+                                   arg1,
+                      (signed int) MIN_LINE_NUMBER,
+               (unsigned long int) MAXIMUM_STARTING_LINE);
 
     *line_set = 1;
 
@@ -976,16 +977,17 @@ get_line_number_step(const char             *arg1,
     if (*step_set != 0)
         error("Option %s can only be set once", arg1);
 
-    step = (line_number_step_type) arg_to_unsigned_long(arg2,
-                                   &ok,
-                                   MINIMUM_STEP,
-                                   MAXIMUM_STEP);
+    step = (line_number_step_type)
+            arg_to_unsigned_long(arg2,
+                                 &ok,
+                                 MINIMUM_STEP,
+                                 MAXIMUM_STEP);
 
     if (ok == 0)
         error("%s takes a number from %lu to %lu",
-                                     arg1,
-                 (unsigned long int) MINIMUM_STEP,
-                 (unsigned long int) MAXIMUM_STEP);
+                                   arg1,
+               (unsigned long int) MINIMUM_STEP,
+               (unsigned long int) MAXIMUM_STEP);
 
     *step_set = 1;
 
@@ -1031,7 +1033,8 @@ get_memory_location_type_arg(const char            *arg1,
     if (*set != 0)
         error("Option %s can only be set once", arg1);
 
-    mem = (memory_location_type) arg_to_unsigned_long(arg2,
+    mem = (memory_location_type)
+            arg_to_unsigned_long(arg2,
                                  &ok,
                                  LOWEST_RAM_ADDRESS,
                                  HIGHEST_RAM_ADDRESS);
