@@ -1095,22 +1095,24 @@ set_input_file_format(enum architecture  target_architecture,
 }
 
 static void
-check_output_case(enum architecture target_architecture,
-                  enum case_choice         output_case)
+check_output_case(enum architecture  target_architecture,
+                  enum case_choice   output_case)
 {
     if (output_case == LOWERCASE && target_architecture == COCO)
-        error("Lowercase output is not useful for the \"%s\" target", COCO_TEXT);
+        error("Lowercase output is not useful"
+              " for the \"%s\" target", COCO_TEXT);
 
     if (output_case == LOWERCASE && target_architecture == DRAGON)
-        error("Lowercase output is not useful for the \"%s\" target", DRAGON_TEXT);
+        error("Lowercase output is not useful"
+              " for the \"%s\" target", DRAGON_TEXT);
 
     if (output_case == MIXED_CASE)
-        error("There is presently no target for mixed case output");
+        error("Mixed case output cannot be run on any target architecture");
 }
 
 static enum case_choice
 set_output_case(enum architecture  target_architecture,
-                enum case_choice          output_case)
+                enum case_choice   output_case)
 {
     if (output_case == NO_CASE_CHOSEN)
         output_case =  DEFAULT_OUTPUT_CASE;
@@ -2517,8 +2519,10 @@ int main(int argc, char *argv[])
     target_architecture = set_target_architecture(target_architecture);
     input_file_format   = set_input_file_format(target_architecture,
                                                 input_file_format);
-    output_case         = set_output_case(target_architecture, output_case);
-    print_program       = set_print_program(output_filename, print_program);
+    output_case         = set_output_case(target_architecture,
+                                          output_case);
+    print_program       = set_print_program(output_filename,
+                                            print_program);
     nowarn              = set_nowarn(nowarn, print_program);
     typable             = set_typable(typable, checksum);
 
