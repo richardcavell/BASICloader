@@ -1124,15 +1124,9 @@ set_output_case(enum architecture  target_architecture,
 }
 
 static boolean_type
-set_nowarn(boolean_type nowarn, boolean_type print_program)
+set_typable(boolean_type typable, boolean_type use_checksum)
 {
-    return (print_program) ? 1 : nowarn;
-}
-
-static boolean_type
-set_typable(boolean_type typable, boolean_type checksum)
-{
-    return (checksum) ? 1 : typable;
+    return (use_checksum) ? 1 : typable;
 }
 
 static boolean_type
@@ -1141,6 +1135,12 @@ set_print_program(const char    *output_filename,
 {
     return (output_filename != NULL &&
             strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) == 0) ? 1 : print_program;
+}
+
+static boolean_type
+set_nowarn(boolean_type nowarn, boolean_type print_program)
+{
+    return (print_program) ? 1 : nowarn;
 }
 
 static void
@@ -2325,7 +2325,7 @@ print_diagnostic_info(enum architecture  target_architecture,
                       boolean_type                     typable,
                       boolean_type                     remarks,
                       boolean_type                     extended_basic,
-                      boolean_type                     checksum,
+                      boolean_type                     use_checksum,
                       memory_location_type             start,
                       memory_location_type             exec,
                       memory_location_type             end,
@@ -2341,7 +2341,7 @@ print_diagnostic_info(enum architecture  target_architecture,
            " and with%s program comments\n",
                                case_to_text(output_case),
                                typable ? "typable" : "compact",
-                               checksum ? " with checksumming" : "",
+                               use_checksum ? " with checksumming" : "",
                                remarks ? "" : "out");
     xprintf("  Start location : $%x (%u)\n", start, start);
     xprintf("  Exec location  : $%x (%u)\n", exec, exec);
@@ -2375,7 +2375,7 @@ int main(int argc, char *argv[])
     boolean_type  remarks         = 0;
     boolean_type  extended_basic  = 0;
     boolean_type  verify          = 0;
-    boolean_type  checksum        = 0;
+    boolean_type  use_checksum    = 0;
     boolean_type  read_stdin      = 0;
     boolean_type  print_program   = 0;
     boolean_type  print_diag      = 0;
@@ -2495,7 +2495,7 @@ int main(int argc, char *argv[])
             else if (arg2_match(argv[0], NULL, "--verify"))
                 verify = get_switch_state(argv[0], verify);
             else if (arg2_match(argv[0], NULL, "--checksum"))
-                checksum = get_switch_state(argv[0], checksum);
+                use_checksum = get_switch_state(argv[0], use_checksum);
             else if (arg2_match(argv[0], NULL, "--extbas"))
                 extended_basic = get_switch_state(argv[0], extended_basic);
             else if (arg2_match(argv[0], "-r", "--remarks"))
@@ -2521,9 +2521,9 @@ int main(int argc, char *argv[])
     input_file_format   = set_input_file_format(target_architecture,
                                                 input_file_format);
     output_case         = set_output_case(target_architecture, output_case);
+    typable             = set_typable(typable, use_checksum);
     print_program       = set_print_program(output_filename, print_program);
     nowarn              = set_nowarn(nowarn, print_program);
-    typable             = set_typable(typable, checksum);
 
     check_extended_basic(target_architecture, extended_basic);
     check_print_options(print_program, print_diag);
@@ -2651,7 +2651,7 @@ int main(int argc, char *argv[])
         EMITLINEA("PRINT\"Error!\":END")
     }
 
-    if (typable == 1 && checksum == 0 && verify == 0)
+    if (typable == 1 && use_checksum == 0 && verify == 0)
     {
         EMITLINEC("FOR P = %d TO %d", start, end)
         EMITLINEA("READ A")
@@ -2661,7 +2661,7 @@ int main(int argc, char *argv[])
         EMITLINEA("END")
     }
 
-    if (typable == 1 && checksum == 0 && verify == 1)
+    if (typable == 1 && use_checksum == 0 && verify == 1)
     {
         EMITLINEC("FOR P = %d TO %d", start, end)
         EMITLINEA("READ A")
@@ -2674,7 +2674,7 @@ int main(int argc, char *argv[])
         EMITLINEA("END")
     }
 
-    if (checksum == 1 && verify == 0)
+    if (use_checksum == 1 && verify == 0)
     {
         EMITLINEB("P = %u", start)
         EMITLINEB("Q = %u", end)
@@ -2698,7 +2698,7 @@ int main(int argc, char *argv[])
         EMITLINEA("END")
     }
 
-    if (checksum == 1 && verify == 1)
+    if (use_checksum == 1 && verify == 1)
     {
         EMITLINEB("P = %u", start)
         EMITLINEB("Q = %u", end)
@@ -2729,7 +2729,7 @@ int main(int argc, char *argv[])
 output_case, &output_file_size, typable, &line_incrementing_has_started,\
 &line_count, &line_number, &step, &line_position, A);
 
-    if (checksum == 0)
+    if (use_checksum == 0)
     {
         long int b = blob_size;
 
@@ -2792,7 +2792,7 @@ output_case, &output_file_size, typable, &line_incrementing_has_started,\
                               typable,
                               remarks,
                               extended_basic,
-                              checksum,
+                              use_checksum,
                               start,
                               exec,
                               end,
