@@ -1107,7 +1107,8 @@ check_output_case(enum architecture  target_architecture,
               " for the \"%s\" target", DRAGON_TEXT);
 
     if (output_case == MIXED_CASE)
-        error("Mixed case output cannot be run on any target architecture");
+        error("Mixed case output cannot be run on any current"
+                        "target architecture");
 }
 
 static enum case_choice
@@ -2519,10 +2520,8 @@ int main(int argc, char *argv[])
     target_architecture = set_target_architecture(target_architecture);
     input_file_format   = set_input_file_format(target_architecture,
                                                 input_file_format);
-    output_case         = set_output_case(target_architecture,
-                                          output_case);
-    print_program       = set_print_program(output_filename,
-                                            print_program);
+    output_case         = set_output_case(target_architecture, output_case);
+    print_program       = set_print_program(output_filename, print_program);
     nowarn              = set_nowarn(nowarn, print_program);
     typable             = set_typable(typable, checksum);
 
