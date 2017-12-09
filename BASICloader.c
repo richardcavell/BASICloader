@@ -1058,24 +1058,30 @@ set_target_architecture(enum architecture target_architecture)
 
 static void
 check_input_file_format(enum architecture target_architecture,
-                        enum file_format   input_file_format)
+                        enum file_format  input_file_format)
 {
     if (input_file_format == PRG         && target_architecture != C64)
-        error("File format \"%s\" should only be used with the \"%s\" target",
-             PRG_TEXT, C64_TEXT);
+        error("File format \"%s\" should only be used"
+              " with the \"%s\" target",
+              PRG_TEXT,
+              C64_TEXT);
 
     if (input_file_format == DRAGON_DOS  && target_architecture != DRAGON)
-        error("File format \"%s\" should only be used with the \"%s\" target",
-             DRAGON_DOS_TEXT, DRAGON_TEXT);
+        error("File format \"%s\" should only be used"
+              " with the \"%s\" target",
+             DRAGON_DOS_TEXT,
+             DRAGON_TEXT);
 
     if (input_file_format == RS_DOS      && target_architecture != COCO)
-        error("File format \"%s\" should only be used with the \"%s\" target",
-             RS_DOS_TEXT, COCO_TEXT);
+        error("File format \"%s\" should only be used"
+              " with the \"%s\" target",
+             RS_DOS_TEXT,
+             COCO_TEXT);
 }
 
 static enum file_format
 set_input_file_format(enum architecture  target_architecture,
-                      enum file_format    input_file_format)
+                      enum file_format   input_file_format)
 {
     if (input_file_format == NO_FILE_FORMAT_CHOSEN)
         input_file_format =  DEFAULT_INPUT_FILE_FORMAT;
@@ -2506,7 +2512,8 @@ int main(int argc, char *argv[])
         }
 
     target_architecture = set_target_architecture(target_architecture);
-    input_file_format   = set_input_file_format(target_architecture, input_file_format);
+    input_file_format   = set_input_file_format(target_architecture,
+                                                input_file_format);
     output_case         = set_output_case(target_architecture, output_case);
     print_program       = set_print_program(output_filename, print_program);
     nowarn              = set_nowarn(nowarn, print_program);
