@@ -1136,19 +1136,25 @@ static boolean_type
 set_print_program(const char    *output_filename,
                   boolean_type  print_program)
 {
-    return (output_filename != NULL &&
-            strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) == 0) ? 1 : print_program;
+    if (output_filename != NULL &&
+        strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) == 0)
+           print_program = 1;
+
+    return print_program;
 }
 
 static boolean_type
 set_nowarn(boolean_type nowarn, boolean_type print_program)
 {
-    return (print_program) ? 1 : nowarn;
+    if (print_program)
+        no_warn = 1;
+
+    return nowarn;
 }
 
 static void
 check_extended_basic(enum architecture  target_architecture,
-                     boolean_type                     extended_basic)
+                     boolean_type       extended_basic)
 {
     if (extended_basic && target_architecture != COCO)
         error("Extended Color BASIC option should only be used"
@@ -1159,7 +1165,7 @@ static void
 check_print_options(boolean_type  print_program,
                     boolean_type  print_diag)
 {
-    if (print_program == 1 && print_diag == 1)
+    if (print_program != 0 && print_diag != 0)
         error("--print and --diag options cannot be used together");
 }
 
