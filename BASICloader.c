@@ -1144,12 +1144,12 @@ set_print_program(const char    *output_filename,
 }
 
 static boolean_type
-set_nowarn(boolean_type nowarn, boolean_type print_program)
+set_nowarn(boolean_type no_warn, boolean_type print_program)
 {
     if (print_program)
         no_warn = 1;
 
-    return nowarn;
+    return no_warn;
 }
 
 static void
@@ -1168,6 +1168,8 @@ check_print_options(boolean_type  print_program,
     if (print_program != 0 && print_diag != 0)
         error("--print and --diag options cannot be used together");
 }
+
+/* Code review is down to here */
 
 static void
 check_input_filename(const char    *input_filename,
