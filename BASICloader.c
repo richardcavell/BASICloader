@@ -1169,8 +1169,6 @@ check_print_options(boolean_type  print_program,
         error("--print and --diag options cannot be used together");
 }
 
-/* Code review is down to here */
-
 static void
 check_input_filename(const char    *input_filename,
                      boolean_type  read_stdin)
@@ -1184,12 +1182,14 @@ check_input_filename(const char    *input_filename,
 
 static const char *
 set_output_filename(enum architecture  target_architecture,
-                    enum case_choice          output_case,
-                    const char                       *output_filename,
-                    boolean_type                     print_program)
+                    enum case_choice   output_case,
+                    const char         *output_filename,
+                    boolean_type       print_program)
 {
-    if (print_program == 1 && output_filename != NULL && strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) != 0)
-        error("You cannot specify an output filename with option --print");
+    if (print_program   == 1    &&
+        output_filename != NULL &&
+        strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) != 0)
+        error("You cannot specify an output filename while using --print");
 
     if (print_program == 0 && output_filename == NULL)
     {
@@ -2538,9 +2538,12 @@ int main(int argc, char *argv[])
 
     check_extended_basic(target_architecture, extended_basic);
     check_print_options(print_program, print_diag);
-
     check_input_filename(input_filename, read_stdin);
-    output_filename  = set_output_filename(target_architecture, output_case, output_filename, print_program);
+
+    output_filename  = set_output_filename(target_architecture,
+                                           output_case,
+                                           output_filename,
+                                           print_program);
 
     input_file       = open_input_file(input_filename, read_stdin);
     input_file_size  = get_input_file_size(input_file, input_filename, input_file_format);
