@@ -1124,7 +1124,8 @@ set_output_case(enum architecture  target_architecture,
 }
 
 static boolean_type
-set_typable(boolean_type typable, boolean_type use_checksum)
+set_typable(boolean_type  typable,
+            boolean_type  use_checksum)
 {
     if (use_checksum)
         typable = 1;
@@ -1144,7 +1145,8 @@ set_print_program(const char    *output_filename,
 }
 
 static boolean_type
-set_nowarn(boolean_type no_warn, boolean_type print_program)
+set_nowarn(boolean_type  no_warn,
+           boolean_type  print_program)
 {
     if (print_program)
         no_warn = 1;
@@ -1180,17 +1182,22 @@ check_input_filename(const char    *input_filename,
         error("You cannot give an input filename while using --stdin");
 }
 
+static void
+check_output_filename(const char    *output_filename,
+                      boolean_type  print_program)
+{
+    if (print_program   != 0    &&
+        output_filename != NULL &&
+        strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) != 0)
+        error("You cannot specify an output filename while using --print");
+}
+
 static const char *
 set_output_filename(enum architecture  target_architecture,
                     enum case_choice   output_case,
                     const char         *output_filename,
                     boolean_type       print_program)
 {
-    if (print_program   != 0    &&
-        output_filename != NULL &&
-        strcmp(output_filename, STDOUT_FILENAME_SUBSTITUTE) != 0)
-        error("You cannot specify an output filename while using --print");
-
     if (print_program == 0 && output_filename == NULL)
     {
         if (target_architecture == C64 && output_case == LOWERCASE)
@@ -2539,6 +2546,7 @@ int main(int argc, char *argv[])
     check_extended_basic(target_architecture, extended_basic);
     check_print_options(print_program, print_diag);
     check_input_filename(input_filename, read_stdin);
+    check_output_filename(output_filename, print_program);
 
     output_filename  = set_output_filename(target_architecture,
                                            output_case,
