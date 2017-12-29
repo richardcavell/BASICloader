@@ -2355,7 +2355,7 @@ print_diagnostic_info(enum architecture  target_architecture,
                       architecture_to_text(target_architecture),
                       extended_basic ? " (with Extended BASIC)" : "");
 
-    xprintf("The program is %s, %s form%s"
+    xprintf("The program is %s case, %s form%s"
            " and with%s program comments\n",
                                case_to_text(output_case),
                                typable ? "typable" : "compact",
