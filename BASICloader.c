@@ -2387,8 +2387,8 @@ int main(int argc, char *argv[])
     long int  blob_size         = 0;
 
     enum architecture  target_architecture  = NO_ARCHITECTURE_CHOSEN;
-    enum file_format    input_file_format    = NO_FILE_FORMAT_CHOSEN;
-    enum case_choice          output_case          = NO_CASE_CHOSEN;
+    enum file_format   input_file_format    = NO_FILE_FORMAT_CHOSEN;
+    enum case_choice   output_case          = NO_CASE_CHOSEN;
 
     boolean_type  typable         = 0;
     boolean_type  remarks         = 0;
