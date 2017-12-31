@@ -1223,7 +1223,7 @@ open_input_file(const char    *input_filename,
     {
         errno = 0;
 
-        input_file = fopen(input_filename, "r");
+        input_file = fopen(input_filename, "rb");
 
         if (input_file == NULL)
             error("Could not open file \"%s\". Error number %d",
@@ -1237,14 +1237,15 @@ static long int
 get_file_position(FILE        *file,
                   const char  *filename)
 {
-    long int file_size;
+    long int file_size = 0;
 
     errno = 0;
 
     file_size = ftell(file);
 
     if (file_size < 0)
-        error("Could not get size of file \"%s\". Error number %d", filename, errno);
+        error("Could not get size of file \"%s\". Error number %d",
+                                            filename,          errno);
 
     return file_size;
 }
