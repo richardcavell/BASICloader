@@ -1281,40 +1281,45 @@ get_input_file_size_min(enum file_format input_file_format)
 }
 
 static void
-check_input_file_size(long int                       input_file_size,
-                      const char                     *input_filename,
+check_input_file_size(long int          input_file_size,
+                      const char        *input_filename,
                       enum file_format  input_file_format)
 {
     if (input_file_size == 0)
         error("File \"%s\" is empty", input_filename);
 
     if (input_file_size < get_input_file_size_min(input_file_format))
-        error("Minimum input file size for file format \"%s\" is %lu\n"
-             "Input file \"%s\" is %lu bytes long",
-             format_to_text(input_file_format),
-             get_input_file_size_min(input_file_format),
-             input_filename, input_file_size);
+        error("Input file \"%s\" is too short. Minimum file size for\n"
+              "file format \"%s\" is %ld bytes, but input file is %ld bytes",
+              input_filename,
+              format_to_text(input_file_format),
+              get_input_file_size_min(input_file_format),
+              input_file_size);
 
     if (input_file_size > MAXIMUM_INPUT_FILE_SIZE)
-        error("Input file \"%s\" is too large", input_filename);
+        error("Input file \"%s\" is too large (maximum is %ld bytes",
+                            input_filename,
+                            MAXIMUM_INPUT_FILE_SIZE);
 }
 
 static long int
-get_input_file_size(FILE                           *input_file,
-                    const char                     *input_filename,
+get_input_file_size(FILE              *input_file,
+                    const char        *input_filename,
                     enum file_format  input_file_format)
 {
     long int input_file_size = 0;
 
     errno = 0;
 
-    if (fseek(input_file, 0L, SEEK_END))
-        error("Could not find the end of file \"%s\". Error number %d", input_filename, errno);
+    if (fseek(input_file, 0L, SEEK_END) != 0)
+        error("Could not find the end of file \"%s\". Error number %d",
+                                                input_filename, errno);
 
     input_file_size = get_file_position(input_file, input_filename);
 
-    if (fseek(input_file, 0L, SEEK_SET) < 0)
-        error("Could not rewind file \"%s\". Error number %d", input_filename, errno);
+    if (fseek(input_file, 0L, SEEK_SET) != 0)
+        error("Could not rewind file \"%s\". Error number %d",
+                                       input_filename,    errno);
 
     check_input_file_size(input_file_size, input_filename, input_file_format);
 
