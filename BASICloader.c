@@ -1299,7 +1299,7 @@ check_input_file_size(long int          input_file_size,
     if (input_file_size > MAXIMUM_INPUT_FILE_SIZE)
         error("Input file \"%s\" is too large (maximum is %ld bytes",
                             input_filename,
-                            MAXIMUM_INPUT_FILE_SIZE);
+                            (long int) MAXIMUM_INPUT_FILE_SIZE);
 }
 
 static long int
@@ -1331,16 +1331,21 @@ check_blob_size(long int    blob_size,
                 const char  *input_filename)
 {
     if (blob_size == 0)
-        error("Input file \"%s\" contains no machine language content", input_filename);
+        error("Input file \"%s\" contains no machine language content",
+                            input_filename);
 
     if (blob_size > MAXIMUM_BINARY_SIZE)
-        error("The machine language content of input file \"%s\" is too large", input_filename);
+        error("The machine language content of input file \"%s\" is"
+              " too large\n"
+              "(Maximum allowed is %ld)",
+              input_filename,
+              (long int) MAXIMUM_BINARY_SIZE);
 }
 
 static long int
-get_blob_size(const char                     *input_filename,
+get_blob_size(const char        *input_filename,
               enum file_format  input_file_format,
-              long int                       input_file_size)
+              long int          input_file_size)
 {
     long int blob_size = 0;
 
