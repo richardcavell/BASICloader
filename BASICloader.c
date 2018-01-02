@@ -1382,7 +1382,7 @@ static unsigned char
 get_character_from_input_file(FILE        *input_file,
                               const char  *input_filename)
 {
-    int input_file_character;
+    int input_file_character = EOF;
 
     errno = 0;
 
@@ -1393,10 +1393,22 @@ get_character_from_input_file(FILE        *input_file,
              " for an 8-bit machine", input_filename);
 
     if (input_file_character == EOF)
-        error("Unexpected end of file while reading file \"%s\"."
-             " Error code %d",
-              input_filename,
-              errno);
+    {
+         int eno = errno;
+
+         if (feof(input_file))
+         {
+             error("Unexpected end of file while reading file \"%s\"",
+                   input_filename);
+         }
+         else
+         {
+             error("Unexpected error while reading file \"%s\"\n"
+                   "Error code %d",
+                   input_filename,
+                   eno);
+         }
+    }
 
     return (unsigned char) input_file_character;
 }
