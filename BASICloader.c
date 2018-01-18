@@ -1441,11 +1441,11 @@ process_rs_dos_header(FILE                  *input_file,
                       long int              blob_size,
                       boolean_type          nowarn)
 {
+    unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE];
+    unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE];
     memory_location_type  st = 0;
     memory_location_type  ex = 0;
     file_size_type        ln = 0;
-    unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE];
-    unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE];
 
     (void) nowarn;
 
@@ -1547,10 +1547,13 @@ process_dragon_dos_header(FILE                  *input_file,
                           boolean_type          nowarn)
 {
     unsigned char header[DRAGON_DOS_FILE_HEADER_SIZE];
-    memory_location_type st = 0;
-    memory_location_type ex = 0;
+    memory_location_type  st = 0;
+    memory_location_type  ex = 0;
+    file_size_type        ln = 0;
 
     (void) nowarn;
+
+    (void) memset(header, 0, sizeof header);
 
     get_header_or_preamble_or_postamble(header,
                                         sizeof header,
@@ -1573,7 +1576,8 @@ process_dragon_dos_header(FILE                  *input_file,
 
         case 0x3:
             error("Input Dragon DOS file \"%s\""
-                 " is an unsupported file (possibly DosPlus)\n", input_filename);
+                 " is an unsupported file (possibly DosPlus)\n",
+                                           input_filename);
             break;
 
         default:
@@ -1582,30 +1586,47 @@ process_dragon_dos_header(FILE                  *input_file,
             break;
     }
 
-    if (construct_16bit_value(header[4], header[5]) != blob_size)
-      error("The header of input Dragon DOS file \"%s\""
-           " gives incorrect length", input_filename);
+    ln = construct_16bit_value(header[4], header[5]);
+
+    if (ln != blob_size)
+      error("The header of input Dragon DOS file \"%s\"\n"
+           "gives length $%lx, but measured length is $%lx",
+            input_filename,
+            (unsigned long int) blob_size,
+            (unsigned long int) ln);
 
     st = construct_16bit_value(header[2], header[3]);
     ex = construct_16bit_value(header[6], header[7]);
 
     if (*start_set != 0 && st != *start)
-      error("Input Dragon DOS file \"%s\" gives a different start address ($%x)\n"
-           "to the one given at the command line ($%x)", st, *start);
+        error("Input Dragon DOS file \"%s\" gives a different\n"
+              "start address ($%lx) to the one given at\n"
+              "the command line ($%lx)",
+               input_filename,
+               (unsigned long int) st,
+               (unsigned long int) *start);
 
     if (*exec_set != 0 && ex != *exec)
-      error("Input Dragon DOS file \"%s\" gives a different exec address ($%x)\n"
-           "to the one given at the command line ($%x)", ex, *exec);
+        error("Input Dragon DOS file \"%s\" gives a different\n"
+              "exec address ($%lx) to the one given at\n"
+              "the command line ($%lx)",
+               input_filename,
+               (unsigned long int) ex,
+               (unsigned long int) *exec);
 
     if (ex < st)
       error("The exec location in the header of the Dragon DOS file \"%s\"\n"
-           "($%x) is below the start location of the binary blob ($%x)",
-           input_filename, *exec, *start);
+           "($%lx) is below the start location of the binary blob ($%lx)",
+            input_filename,
+            (unsigned long int) *exec,
+            (unsigned long int) *start);
 
-    if (ex > st + blob_size)
+    if (ex > st + blob_size - 1)
       error("The exec location in the header of the Dragon DOS file \"%s\"\n"
-           "($%x) is beyond the end location of the binary blob ($%x)",
-           input_filename, *exec, st + blob_size);
+           "($%lx) is beyond the end location of the binary blob ($%lx)",
+            input_filename,
+            (unsigned long int) *exec,
+            (unsigned long int) (st + blob_size + 1));
 
     *start = st;
     *start_set = 1;
@@ -1627,6 +1648,8 @@ process_prg_header(FILE                  *input_file,
     unsigned char header[PRG_FILE_HEADER_SIZE];
     memory_location_type st = 0;
 
+    (void) memset(header, 0, sizeof header);
+
     get_header_or_preamble_or_postamble(header,
                                         sizeof header,
                                         input_file,
@@ -1636,16 +1659,24 @@ process_prg_header(FILE                  *input_file,
 
     if (st == 0x0801)
         error("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
-             "It is likely to be a BASIC program, or a hybrid"
-             " BASIC/machine language program", input_filename);
+              "It appears to be a BASIC program, or a hybrid\n"
+              "BASIC/machine language program",
+               input_filename);
 
-    if (nowarn == 0 && *start_set != 0 && st != *start)
-        warning("Input PRG file \"%s\" gives a different start address ($%x)\n"
-             "to the one given at the command line ($%x)", input_filename, st, *start);
+    if (*start_set != 0 && st != *start)
+        error("Input PRG file \"%s\" gives a different start address ($%lx)\n"
+              "to the one given at the command line ($%lx)",
+               input_filename,
+               (unsigned long int) st,
+               (unsigned long int) *start);
 
     if (nowarn == 0 && *exec_set != 0 && st != *exec)
-        warning("Exec address given at the command line ($%x) is not the"
-                "same as the start address ($%x) of input PRG file \"%s\"\n", *exec, st, input_filename);
+        warning("Exec address given at the command line ($%lx) is not the\n"
+                "same as the start address ($%lx)"
+                " of input PRG file \"%s\"\n",
+                (unsigned long int) *exec,
+                (unsigned long int) st,
+                input_filename);
 
     *start     = st;
     *start_set = 1;
@@ -1713,9 +1744,9 @@ process_header(enum file_format      input_file_format,
 }
 
 static memory_location_type
-set_start_address(enum architecture  target_architecture,
-                  boolean_type                     start_set,
-                  memory_location_type             start)
+set_start_address(enum architecture     target_architecture,
+                  boolean_type          start_set,
+                  memory_location_type  start)
 {
     if (start_set == 0)
     {
