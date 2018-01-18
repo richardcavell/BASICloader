@@ -1441,32 +1441,43 @@ process_rs_dos_header(FILE                  *input_file,
                       long int              blob_size,
                       boolean_type          nowarn)
 {
-    memory_location_type st = 0;
-    memory_location_type ex = 0;
-    file_size_type ln = 0;
+    memory_location_type  st = 0;
+    memory_location_type  ex = 0;
+    file_size_type        ln = 0;
     unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE];
     unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE];
 
     (void) nowarn;
 
-    get_header_or_preamble_or_postamble(preamble, sizeof preamble, input_file, input_filename);
+    (void) memset(preamble,  0, sizeof preamble);
+    (void) memset(postamble, 0, sizeof postamble);
+
+    get_header_or_preamble_or_postamble(preamble,
+                                        sizeof preamble, 
+                                        input_file, 
+                                        input_filename);
 
     if (preamble[0] != 0x0)
-      error("Input file \"%s\" is not properly formed as an "
-           "RS-DOS file (bad header)", input_filename);
+        error("Input file \"%s\" is not properly formed\n"
+              " as an RS-DOS file (bad header)", input_filename);
 
     ln = construct_16bit_value(preamble[1], preamble[2]);
 
     if (ln != blob_size)
-      error("Input file \"%s\" length (%u) given in the header\n"
-           "does not match measured length (%u)",
-                       input_filename, ln, blob_size);
+      error("Input file \"%s\" length (%lu) given in the header\n"
+           "does not match measured length (%ld)",
+                       input_filename,
+                       (unsigned long int) ln,
+                       blob_size);
 
     st = construct_16bit_value(preamble[3], preamble[4]);
 
     if (*start_set != 0 && st != *start)
-      error("Input RS-DOS file \"%s\" gives a different start address ($%x)\n"
-           "to the one given at the command line ($%x)", st, *start);
+      error("Input RS-DOS file \"%s\" gives a different start address ($%lx)\n"
+           "to the one given at the command line ($%lx)",
+                               input_filename,
+                               (unsigned long int) st,
+                               (unsigned long int) *start);
 
     *start = st;
     *start_set = 1;
@@ -1476,7 +1487,7 @@ process_rs_dos_header(FILE                  *input_file,
               SEEK_END)
          < 0)
       error("Couldn't operate on file \"%s\". Error number %d",
-                                     input_filename, errno);
+                                     input_filename,       errno);
 
     get_header_or_preamble_or_postamble(postamble,
                                         sizeof postamble,
@@ -1490,31 +1501,39 @@ process_rs_dos_header(FILE                  *input_file,
     if (postamble[0] != 0xff ||
         postamble[1] != 0x0  ||
         postamble[2] != 0x0)
-      error("Input file \"%s\" is not properly formed as an RS-DOS file (bad tail)",
-                         input_filename);
+      error("Input file \"%s\" is not properly formed\n"
+            "as an RS-DOS file (bad tail)",
+            input_filename);
 
     ex = construct_16bit_value(postamble[3], postamble[4]);
 
     if (*exec_set != 0 && ex != *exec)
-      error("Input RS-DOS file \"%s\" gives a different exec address ($%x)\n"
-           "to the one given at the command line ($%x)",
-                              input_filename, ex, exec);
+      error("Input RS-DOS file \"%s\" gives a different exec address ($%lx)\n"
+           "to the one given at the command line ($%lx)",
+                              input_filename,
+                              (unsigned long int) ex,
+                              (unsigned long int) exec);
 
     if (ex < st)
       error("The exec location in the tail of the RS-DOS file \"%s\"\n"
-           "($%x) is below the start location of the binary blob ($%x)",
-           input_filename, *exec, *start);
+           "($%lx) is below the start location of the binary blob ($%lx)",
+           input_filename,
+           (unsigned long int) ex,
+           (unsigned long int) st);
 
-    if (ex > st + blob_size)
+    if (ex > (st + blob_size - 1))
       error("The exec location in the tail of the RS-DOS file \"%s\"\n"
-           "($%x) is beyond the end location of the binary blob ($%x)",
-           input_filename, *exec, st + blob_size);
+           "($%lx) is beyond the end location of the binary blob ($%lx)",
+               input_filename,
+               (unsigned long int) ex,
+               (unsigned long int) (st + blob_size - 1));
 
     *exec = ex;
+    *exec_set = 1;
 
     if (fseek(input_file, (long int) RS_DOS_FILE_PREAMBLE_SIZE, SEEK_SET) < 0)
-      error("Couldn't operate on file \"%s\". Error number %d",
-                                     input_filename, errno);
+        error("Couldn't operate on file \"%s\". Error number %d",
+                                          input_filename, errno);
 }
 
 static void
@@ -1639,15 +1658,15 @@ process_prg_header(FILE                  *input_file,
 }
 
 static void
-process_header(enum file_format  input_file_format,
-               FILE                           *input_file,
-               const char                     *input_filename,
-               boolean_type                   *start_set,
-               memory_location_type           *start,
-               boolean_type                   *exec_set,
-               memory_location_type           *exec,
-               long int                       blob_size,
-               boolean_type                   nowarn)
+process_header(enum file_format      input_file_format,
+               FILE                  *input_file,
+               const char            *input_filename,
+               boolean_type          *start_set,
+               memory_location_type  *start,
+               boolean_type          *exec_set,
+               memory_location_type  *exec,
+               long int              blob_size,
+               boolean_type          nowarn)
 {
     switch(input_file_format)
     {
