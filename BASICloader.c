@@ -1343,9 +1343,9 @@ check_blob_size(long int    blob_size,
 }
 
 static long int
-get_blob_size(const char        *input_filename,
-              enum file_format  input_file_format,
-              long int          input_file_size)
+calculate_blob_size(const char        *input_filename,
+                    enum file_format  input_file_format,
+                    long int          input_file_size)
 {
     long int blob_size = 0;
 
@@ -1369,7 +1369,7 @@ get_blob_size(const char        *input_filename,
             break;
 
         default:
-            internal_error("Unhandled file format in get_blob_size()");
+            internal_error("Unhandled file format in calculate_blob_size()");
             break;
     }
 
@@ -1379,20 +1379,20 @@ get_blob_size(const char        *input_filename,
 }
 
 static unsigned char
-get_character_from_input_file(FILE        *input_file,
-                              const char  *input_filename)
+getc_safe(FILE        *input_file,
+          const char  *input_filename)
 {
-    int input_file_character = EOF;
+    int c = EOF;
 
     errno = 0;
 
-    input_file_character = fgetc(input_file);
+    c = fgetc(input_file);
 
-    if (input_file_character > EIGHT_BIT_BYTE_MAX)
+    if (c > EIGHT_BIT_BYTE_MAX)
         error("Byte read from input file \"%s\" is too high"
              " for an 8-bit machine", input_filename);
 
-    if (input_file_character == EOF)
+    if (c == EOF)
     {
          int eno = errno;
 
@@ -1410,19 +1410,27 @@ get_character_from_input_file(FILE        *input_file,
          }
     }
 
-    return (unsigned char) input_file_character;
+    return (unsigned char) c;
 }
 
 static void
-get_header_or_preamble_or_postamble(unsigned char  arr[],
-                                    size_t         size,
-                                    FILE           *input_file,
-                                    const char     *input_filename)
+clear_uchar_array(unsigned char *p, size_t n)
+{
+    (void) memset(p, 0, n);
+}
+
+static void
+getc_array(unsigned char  arr[],
+           size_t         size,
+           FILE           *input_file,
+           const char     *input_filename)
 {
     unsigned short int i = 0;
 
+    clear_uchar_array(arr, size);
+
     for (i = 0; i < size; ++i)
-        arr[i] = get_character_from_input_file(input_file, input_filename);
+        arr[i] = getc_safe(input_file, input_filename);
 }
 
 static memory_location_type
@@ -1432,45 +1440,296 @@ construct_16bit_value(unsigned char hi, unsigned char lo)
 }
 
 static void
-process_rs_dos_header(FILE                  *input_file,
-                      const char            *input_filename,
-                      boolean_type          *start_set,
-                      memory_location_type  *start,
-                      boolean_type          *exec_set,
-                      memory_location_type  *exec,
-                      long int              blob_size,
-                      boolean_type          nowarn)
+set_file_position_error(const char *input_filename)
 {
-    unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE];
-    unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE];
-    memory_location_type  st = 0;
-    memory_location_type  ex = 0;
-    file_size_type        ln = 0;
+    error("Couldn't set file position indicator on file \"%s\".\n"
+          "Error number %d",
+           input_filename,
+           errno);
+}
 
-    (void) nowarn;
+static void
+set_file_position_from_start(FILE        *input_file,
+                             const char  *input_filename,
+                             long int    position)
+{
+    if (fseek(input_file, position, SEEK_SET)
+         < 0)
+        set_file_position_error(input_filename);
+}
 
-    (void) memset(preamble,  0, sizeof preamble);
-    (void) memset(postamble, 0, sizeof postamble);
+static void
+set_file_position_zero(FILE        *input_file,
+                       const char  *input_filename)
+{
+    set_file_position_from_start(input_file, input_filename, 0);
+}
 
-    get_header_or_preamble_or_postamble(preamble,
-                                        sizeof preamble, 
-                                        input_file, 
-                                        input_filename);
+static void
+set_file_position_from_end(FILE        *input_file,
+                           const char  *input_filename,
+                           long int    position)
+{
+    if (fseek(input_file, -1 * position, SEEK_END)
+         < 0)
+        set_file_position_error(input_filename);
+}
+
+struct file_info
+{
+    boolean_type          start_given;
+    memory_location_type  start;
+
+    boolean_type          exec_given;
+    memory_location_type  exec;
+
+    boolean_type          length_given;
+    file_size_type        length;
+};
+
+struct file_info
+empty_file_info(void)
+{
+    struct file_info fi;
+
+    fi.start_given     = 0;
+    fi.start           = 0;
+
+    fi.exec_given      = 0;
+    fi.exec            = 0;
+
+    fi.length_given    = 0;
+    fi.length          = 0;
+
+    return fi;
+}
+
+static struct file_info 
+process_rs_dos_file_format(FILE        *input_file,
+                           const char  *input_filename)
+{
+    unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE]  = { 0 };
+    unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE] = { 0 };
+    struct file_info fi = empty_file_info();
+
+    set_file_position_zero(input_file, input_filename);
+
+    getc_array(preamble,
+               sizeof preamble, 
+               input_file, 
+               input_filename);
 
     if (preamble[0] != 0x0)
         error("Input file \"%s\" is not properly formed\n"
-              " as an RS-DOS file (bad header)", input_filename);
+              "as an RS-DOS file (bad header)", input_filename);
 
-    ln = construct_16bit_value(preamble[1], preamble[2]);
+    fi.length_given = 1;
+    fi.length       = construct_16bit_value(preamble[1], preamble[2]);
 
-    if (ln != blob_size)
-      error("Input file \"%s\" length (%lu) given in the header\n"
-           "does not match measured length (%ld)",
-                       input_filename,
-                       (unsigned long int) ln,
-                       blob_size);
+    fi.start_given  = 1;
+    fi.start        = construct_16bit_value(preamble[3], preamble[4]);
 
-    st = construct_16bit_value(preamble[3], preamble[4]);
+    set_file_position_from_end(input_file,
+                               input_filename, 
+                               RS_DOS_FILE_POSTAMBLE_SIZE);
+
+    getc_array(postamble,
+               sizeof postamble,
+               input_file,
+               input_filename);
+
+    if (postamble[0] == 0x0)
+        error("Input RS-DOS file \"%s\" is segmented, and cannot be used",
+                                   input_filename);
+
+    if (postamble[0] != 0xff ||
+        postamble[1] != 0x0  ||
+        postamble[2] != 0x0)
+      error("Input file \"%s\" is not properly formed\n"
+            "as an RS-DOS file (bad tail)",
+             input_filename);
+
+    fi.exec_given = 1;
+    fi.exec       = construct_16bit_value(postamble[3], postamble[4]);
+
+    set_file_position_from_start(input_file,
+                                 input_filename,
+                                 RS_DOS_FILE_PREAMBLE_SIZE);
+
+    return fi;
+}
+
+static void
+check_dragon_dos_filetype(const char     *input_filename,
+                          unsigned char  file_type)
+{
+    switch(file_type)
+    {
+        case 0x1:
+            error("Input Dragon DOS file \"%s\" appears\n"
+                  "to be a BASIC program",
+                                           input_filename);
+            break;
+
+        case 0x2: /* Success */
+            break;
+
+        case 0x3:
+            error("Input Dragon DOS file \"%s\"\n"
+                  "is an unsupported file (possibly DosPlus)\n",
+                                           input_filename);
+            break;
+
+        default:
+            error("Input Dragon DOS file \"%s\""
+                  "has an unknown FILETYPE ($%x)\n",
+                                           input_filename,
+                                           (unsigned int) file_type);
+            break;
+    }
+}
+
+static struct file_info
+process_dragon_dos_file_format(FILE        *input_file,
+                               const char  *input_filename)
+{
+    unsigned char header[DRAGON_DOS_FILE_HEADER_SIZE] = { 0 };
+    struct file_info fi = empty_file_info();
+
+    set_file_position_zero(input_file, input_filename);
+
+    getc_array(header,
+               sizeof header,
+               input_file,
+               input_filename);
+
+    if (header[0] != 0x55 || header[8] != 0xAA)
+        error("Input file \"%s\" doesn't appear to be a Dragon DOS file",
+                            input_filename);
+
+    check_dragon_dos_filetype(input_filename, header[1]);
+
+    fi.length_given = 1;
+    fi.length       = construct_16bit_value(header[4], header[5]);
+
+    fi.start_given  = 1;
+    fi.start        = construct_16bit_value(header[2], header[3]);
+
+    fi.exec_given   = 1;
+    fi.exec         = construct_16bit_value(header[6], header[7]);
+
+    set_file_position_from_start(input_file,
+                                 input_filename,
+                                 DRAGON_DOS_FILE_HEADER_SIZE);
+
+    return fi;
+}
+
+static struct file_info
+process_prg_file_format(FILE        *input_file,
+                        const char  *input_filename)
+{
+    unsigned char header[PRG_FILE_HEADER_SIZE] = { 0 };
+    struct file_info fi = empty_file_info();
+
+    set_file_position_zero(input_file, input_filename);
+
+    getc_array(header,
+               sizeof header,
+               input_file,
+               input_filename);
+
+    fi.start_given = 1;
+    fi.start       = construct_16bit_value(header[1], header[0]);
+
+    if (fi.start == 0x0801)
+        error("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
+              "It appears to be a BASIC program, or a hybrid\n"
+              "BASIC/machine language program. (This is a common issue).",
+               input_filename);
+
+    fi.exec_given   = 0;
+    fi.length_given = 0;
+
+    set_file_position_from_start(input_file,
+                                 input_filename,
+                                 PRG_FILE_HEADER_SIZE);
+
+    return fi;
+}
+
+static struct file_info
+process_binary_file_format(FILE        *input_file,
+                           const char  *input_filename)
+{
+    struct file_info fi = empty_file_info();
+
+    set_file_position_zero(input_file, input_filename);
+
+    fi.start_given  = 0;
+    fi.exec_given   = 0;
+    fi.length_given = 0;
+
+    set_file_position_zero(input_file, input_filename);
+
+    return fi;
+}
+
+static void
+process_file_format(enum file_format      input_file_format,
+                    FILE                  *input_file,
+                    const char            *input_filename,
+                    boolean_type          *start_set,
+                    memory_location_type  *start,
+                    boolean_type          *exec_set,
+                    memory_location_type  *exec,
+                    long int              blob_size,
+                    boolean_type          nowarn)
+{
+    switch(input_file_format)
+    {
+        case BINARY:
+                break;
+
+        case RS_DOS:
+               process_rs_dos_file_format(input_file,
+                                          input_filename,
+                                          start_set,
+                                          start,
+                                          exec_set,
+                                          exec,
+                                          blob_size,
+                                          nowarn);
+                break;
+
+        case DRAGON_DOS:
+           process_dragon_dos_file_format(input_file,
+                                          input_filename,
+                                          start_set,
+                                          start,
+                                          exec_set,
+                                          exec,
+                                          blob_size,
+                                          nowarn);
+                break;
+
+        case PRG:
+                  process_prg_file_format(input_file,
+                                          input_filename,
+                                          start_set,
+                                          start,
+                                          exec_set,
+                                          exec,
+                                          blob_size,
+                                          nowarn);
+                break;
+
+        default:
+            internal_error("Unhandled file format in"
+                           " process_file_format()");
+                break;
+    }
+}
 
     if (*start_set != 0 && st != *start)
       error("Input RS-DOS file \"%s\" gives a different start address ($%lx)\n"
@@ -1479,35 +1738,7 @@ process_rs_dos_header(FILE                  *input_file,
                                (unsigned long int) st,
                                (unsigned long int) *start);
 
-    *start = st;
-    *start_set = 1;
-
-    if (fseek(input_file,
-              (long int) (0 - RS_DOS_FILE_POSTAMBLE_SIZE),
-              SEEK_END)
-         < 0)
-      error("Couldn't operate on file \"%s\". Error number %d",
-                                     input_filename,       errno);
-
-    get_header_or_preamble_or_postamble(postamble,
-                                        sizeof postamble,
-                                        input_file,
-                                        input_filename);
-
-    if (postamble[0] == 0x0)
-      error("Input RS-DOS file \"%s\" is segmented, and cannot be used",
-                                input_filename);
-
-    if (postamble[0] != 0xff ||
-        postamble[1] != 0x0  ||
-        postamble[2] != 0x0)
-      error("Input file \"%s\" is not properly formed\n"
-            "as an RS-DOS file (bad tail)",
-            input_filename);
-
-    ex = construct_16bit_value(postamble[3], postamble[4]);
-
-    if (*exec_set != 0 && ex != *exec)
+     if (*exec_set != 0 && ex != *exec)
       error("Input RS-DOS file \"%s\" gives a different exec address ($%lx)\n"
            "to the one given at the command line ($%lx)",
                               input_filename,
@@ -1528,220 +1759,16 @@ process_rs_dos_header(FILE                  *input_file,
                (unsigned long int) ex,
                (unsigned long int) (st + blob_size - 1));
 
-    *exec = ex;
-    *exec_set = 1;
-
-    if (fseek(input_file, (long int) RS_DOS_FILE_PREAMBLE_SIZE, SEEK_SET) < 0)
-        error("Couldn't operate on file \"%s\". Error number %d",
-                                          input_filename, errno);
-}
-
-static void
-process_dragon_dos_header(FILE                  *input_file,
-                          const char            *input_filename,
-                          boolean_type          *start_set,
-                          memory_location_type  *start,
-                          boolean_type          *exec_set,
-                          memory_location_type  *exec,
-                          long int              blob_size,
-                          boolean_type          nowarn)
-{
-    unsigned char header[DRAGON_DOS_FILE_HEADER_SIZE];
-    memory_location_type  st = 0;
-    memory_location_type  ex = 0;
-    file_size_type        ln = 0;
-
-    (void) nowarn;
-
-    (void) memset(header, 0, sizeof header);
-
-    get_header_or_preamble_or_postamble(header,
-                                        sizeof header,
-                                        input_file,
-                                        input_filename);
-
-    if (header[0] != 0x55 || header[8] != 0xAA)
-        error("Input file \"%s\" doesn't appear to be a Dragon DOS file",
-                           input_filename);
-
-    switch(header[1])
-    {
-        case 0x1:
-            error("Input Dragon DOS file \"%s\" appears to be a BASIC program",
-                                          input_filename);
-            break;
-
-        case 0x2:
-            break;
-
-        case 0x3:
-            error("Input Dragon DOS file \"%s\""
-                 " is an unsupported file (possibly DosPlus)\n",
-                                           input_filename);
-            break;
-
-        default:
-            error("Input Dragon DOS file \"%s\""
-                 " has an unknown FILETYPE\n", input_filename);
-            break;
-    }
-
-    ln = construct_16bit_value(header[4], header[5]);
 
     if (ln != blob_size)
-      error("The header of input Dragon DOS file \"%s\"\n"
-           "gives length $%lx, but measured length is $%lx",
-            input_filename,
-            (unsigned long int) blob_size,
-            (unsigned long int) ln);
+      error("Input file \"%s\" length (%lu) given in the header\n"
+           "does not match measured length (%ld)",
+                       input_filename,
+                       (unsigned long int) ln,
+                       blob_size);
 
-    st = construct_16bit_value(header[2], header[3]);
-    ex = construct_16bit_value(header[6], header[7]);
 
-    if (*start_set != 0 && st != *start)
-        error("Input Dragon DOS file \"%s\" gives a different\n"
-              "start address ($%lx) to the one given at\n"
-              "the command line ($%lx)",
-               input_filename,
-               (unsigned long int) st,
-               (unsigned long int) *start);
 
-    if (*exec_set != 0 && ex != *exec)
-        error("Input Dragon DOS file \"%s\" gives a different\n"
-              "exec address ($%lx) to the one given at\n"
-              "the command line ($%lx)",
-               input_filename,
-               (unsigned long int) ex,
-               (unsigned long int) *exec);
-
-    if (ex < st)
-      error("The exec location in the header of the Dragon DOS file \"%s\"\n"
-           "($%lx) is below the start location of the binary blob ($%lx)",
-            input_filename,
-            (unsigned long int) *exec,
-            (unsigned long int) *start);
-
-    if (ex > st + blob_size - 1)
-      error("The exec location in the header of the Dragon DOS file \"%s\"\n"
-           "($%lx) is beyond the end location of the binary blob ($%lx)",
-            input_filename,
-            (unsigned long int) *exec,
-            (unsigned long int) (st + blob_size + 1));
-
-    *start = st;
-    *start_set = 1;
-
-    *exec  = ex;
-    *exec_set = 1;
-}
-
-static void
-process_prg_header(FILE                  *input_file,
-                   const char            *input_filename,
-                   boolean_type          *start_set,
-                   memory_location_type  *start,
-                   boolean_type          *exec_set,
-                   memory_location_type  *exec,
-                   long int              blob_size,
-                   boolean_type          nowarn)
-{
-    unsigned char header[PRG_FILE_HEADER_SIZE];
-    memory_location_type st = 0;
-
-    (void) memset(header, 0, sizeof header);
-
-    get_header_or_preamble_or_postamble(header,
-                                        sizeof header,
-                                        input_file,
-                                        input_filename);
-
-    st = construct_16bit_value(header[1], header[0]);
-
-    if (st == 0x0801)
-        error("Input PRG file \"%s\" is unsuitable for use with BASICloader\n"
-              "It appears to be a BASIC program, or a hybrid\n"
-              "BASIC/machine language program",
-               input_filename);
-
-    if (*start_set != 0 && st != *start)
-        error("Input PRG file \"%s\" gives a different start address ($%lx)\n"
-              "to the one given at the command line ($%lx)",
-               input_filename,
-               (unsigned long int) st,
-               (unsigned long int) *start);
-
-    if (nowarn == 0 && *exec_set != 0 && st != *exec)
-        warning("Exec address given at the command line ($%lx) is not the\n"
-                "same as the start address ($%lx)"
-                " of input PRG file \"%s\"\n",
-                (unsigned long int) *exec,
-                (unsigned long int) st,
-                input_filename);
-
-    *start     = st;
-    *start_set = 1;
-
-    (void) blob_size;
-
-    if (fseek(input_file, (long int) PRG_FILE_HEADER_SIZE, SEEK_SET) < 0)
-        error("Couldn't operate on file \"%s\". Error number %d",
-                                        input_filename,     errno);
-}
-
-static void
-process_header(enum file_format      input_file_format,
-               FILE                  *input_file,
-               const char            *input_filename,
-               boolean_type          *start_set,
-               memory_location_type  *start,
-               boolean_type          *exec_set,
-               memory_location_type  *exec,
-               long int              blob_size,
-               boolean_type          nowarn)
-{
-    switch(input_file_format)
-    {
-        case BINARY:
-                break;
-
-        case RS_DOS:
-                    process_rs_dos_header(input_file,
-                                          input_filename,
-                                          start_set,
-                                          start,
-                                          exec_set,
-                                          exec,
-                                          blob_size,
-                                          nowarn);
-                break;
-
-        case DRAGON_DOS:
-                process_dragon_dos_header(input_file,
-                                          input_filename,
-                                          start_set,
-                                          start,
-                                          exec_set,
-                                          exec,
-                                          blob_size,
-                                          nowarn);
-                break;
-
-        case PRG:
-                       process_prg_header(input_file,
-                                          input_filename,
-                                          start_set,
-                                          start,
-                                          exec_set,
-                                          exec,
-                                          blob_size,
-                                          nowarn);
-                break;
-
-        default:
-                internal_error("Unhandled file format in process_header()");
-                break;
-    }
-}
 
 static memory_location_type
 set_start_address(enum architecture     target_architecture,
@@ -2631,11 +2658,11 @@ int main(int argc, char *argv[])
     input_file_size  = get_input_file_size(input_file,
                                            input_filename,
                                            input_file_format);
-    blob_size        = get_blob_size(input_filename,
+    blob_size        = calculate_blob_size(input_filename,
                                      input_file_format,
                                      input_file_size);
 
-    process_header(input_file_format,
+    process_file_format(input_file_format,
                    input_file,
                    input_filename,
                    &start_set,
@@ -2837,7 +2864,7 @@ output_case, &output_file_size, typable, &line_incrementing_has_started,\
         long int b = blob_size;
 
         while (b--)
-            EMITDATUM(get_character_from_input_file(input_file, input_filename))
+            EMITDATUM(getc_safe(input_file, input_filename))
     }
     else
     {
@@ -2852,7 +2879,7 @@ output_case, &output_file_size, typable, &line_incrementing_has_started,\
 
             for (cs = 0, i = 0; i < sizeof d && b > 0; ++i, --b)
             {
-                d[i] = get_character_from_input_file(input_file, input_filename);
+                d[i] = getc_safe(input_file, input_filename);
                 cs += d[i];
             }
 
