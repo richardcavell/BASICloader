@@ -1327,24 +1327,29 @@ get_input_file_size(FILE              *input_file,
 }
 
 static void
-check_blob_size(long int    blob_size,
-                const char  *input_filename)
+check_blob_size(enum architecture  target_architecture,
+                long int           blob_size,
+                const char         *input_filename)
 {
+    long int max = MAXIMUM_BINARY_SIZE < 
+                   get_highest_ram_address(target_architecture) ?
+                   get_highest_ram_address(target_architecture) :
+                   MAXIMUM_BINARY_SIZE;
+
     if (blob_size == 0)
         error("Input file \"%s\" contains no machine language content",
                             input_filename);
 
-    if (blob_size > MAXIMUM_BINARY_SIZE)
+    if (blob_size > max)
         error("The machine language content of input file \"%s\" is"
               " too large\n"
-              "(Maximum allowed is %ld)",
+              "(Maximum allowed is %lu)",
               input_filename,
-              (long int) MAXIMUM_BINARY_SIZE);
+              max);
 }
 
 static long int
-calculate_blob_size(const char        *input_filename,
-                    enum file_format  input_file_format,
+calculate_blob_size(enum file_format  input_file_format,
                     long int          input_file_size)
 {
     long int blob_size = 0;
@@ -1372,8 +1377,6 @@ calculate_blob_size(const char        *input_filename,
             internal_error("Unhandled file format in calculate_blob_size()");
             break;
     }
-
-    check_blob_size(blob_size, input_filename);
 
     return blob_size;
 }
@@ -1504,13 +1507,12 @@ empty_file_info(void)
     return fi;
 }
 
-static struct file_info 
-process_rs_dos_file_format(FILE        *input_file,
-                           const char  *input_filename)
+static struct file_info
+process_rs_dos_header(FILE              *input_file,
+                      const char        *input_filename,
+                      struct file_info  fi)
 {
-    unsigned char  preamble[RS_DOS_FILE_PREAMBLE_SIZE]  = { 0 };
-    unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE] = { 0 };
-    struct file_info fi = empty_file_info();
+    unsigned char preamble[RS_DOS_FILE_PREAMBLE_SIZE]  = { 0 };
 
     set_file_position_zero(input_file, input_filename);
 
@@ -1528,6 +1530,16 @@ process_rs_dos_file_format(FILE        *input_file,
 
     fi.start_given  = 1;
     fi.start        = construct_16bit_value(preamble[3], preamble[4]);
+
+    return fi;
+}
+
+static struct file_info
+process_rs_dos_tail(FILE              *input_file,
+                    const char        *input_filename,
+                    struct file_info  fi)
+{
+    unsigned char postamble[RS_DOS_FILE_POSTAMBLE_SIZE] = { 0 };
 
     set_file_position_from_end(input_file,
                                input_filename, 
@@ -1551,6 +1563,18 @@ process_rs_dos_file_format(FILE        *input_file,
 
     fi.exec_given = 1;
     fi.exec       = construct_16bit_value(postamble[3], postamble[4]);
+
+    return fi;
+} 
+
+static struct file_info 
+process_rs_dos_file_format(FILE        *input_file,
+                           const char  *input_filename)
+{
+    struct file_info fi = empty_file_info();
+
+    fi = process_rs_dos_header(input_file, input_filename, fi);
+    fi = process_rs_dos_tail  (input_file, input_filename, fi);
 
     set_file_position_from_start(input_file,
                                  input_filename,
@@ -1675,6 +1699,44 @@ process_binary_file_format(FILE        *input_file,
     return fi;
 }
 
+static struct file_info
+extract_file_info(enum file_format   input_file_format,
+                  FILE               *input_file,
+                  const char         *input_filename)
+{
+    struct file_info fi = empty_file_info();
+
+    switch(input_file_format)
+    {
+        case BINARY:
+            fi = process_binary_file_format(input_file,
+                                            input_filename);
+            break;
+
+        case RS_DOS:
+            fi = process_rs_dos_file_format(input_file,
+                                            input_filename);
+            break;
+
+        case DRAGON_DOS:
+            fi = process_dragon_dos_file_format(input_file,
+                                                input_filename);
+            break;
+
+        case PRG:
+            fi = process_prg_file_format(input_file,
+                                         input_filename);
+            break;
+
+        default:
+            internal_error("Unhandled file format in"
+                           " process_file_format()");
+            break;
+    }
+
+    return fi;
+}
+
 static void
 process_file_format(enum file_format      input_file_format,
                     FILE                  *input_file,
@@ -1683,99 +1745,59 @@ process_file_format(enum file_format      input_file_format,
                     memory_location_type  *start,
                     boolean_type          *exec_set,
                     memory_location_type  *exec,
-                    long int              blob_size,
-                    boolean_type          nowarn)
+                    long int              blob_size)
 {
-    switch(input_file_format)
-    {
-        case BINARY:
-                break;
+    struct file_info fi = extract_file_info(input_file_format,
+                                            input_file,
+                                            input_filename);
 
-        case RS_DOS:
-               process_rs_dos_file_format(input_file,
-                                          input_filename,
-                                          start_set,
-                                          start,
-                                          exec_set,
-                                          exec,
-                                          blob_size,
-                                          nowarn);
-                break;
-
-        case DRAGON_DOS:
-           process_dragon_dos_file_format(input_file,
-                                          input_filename,
-                                          start_set,
-                                          start,
-                                          exec_set,
-                                          exec,
-                                          blob_size,
-                                          nowarn);
-                break;
-
-        case PRG:
-                  process_prg_file_format(input_file,
-                                          input_filename,
-                                          start_set,
-                                          start,
-                                          exec_set,
-                                          exec,
-                                          blob_size,
-                                          nowarn);
-                break;
-
-        default:
-            internal_error("Unhandled file format in"
-                           " process_file_format()");
-                break;
-    }
-}
-
-    if (*start_set != 0 && st != *start)
-      error("Input RS-DOS file \"%s\" gives a different start address ($%lx)\n"
+    if (*start_set      != 0 &&
+         fi.start_given != 0 &&
+         fi.start       != *start)
+      error("Input file \"%s\" gives a different start address ($%lx)\n"
            "to the one given at the command line ($%lx)",
                                input_filename,
-                               (unsigned long int) st,
+                               (unsigned long int) fi.start,
                                (unsigned long int) *start);
 
-     if (*exec_set != 0 && ex != *exec)
-      error("Input RS-DOS file \"%s\" gives a different exec address ($%lx)\n"
-           "to the one given at the command line ($%lx)",
-                              input_filename,
-                              (unsigned long int) ex,
-                              (unsigned long int) exec);
+     if (fi.start_given != 0 &&
+             *start_set == 0)
+     {
+         *start_set = 1;
+         *start = fi.start;
+     }
 
-    if (ex < st)
-      error("The exec location in the tail of the RS-DOS file \"%s\"\n"
-           "($%lx) is below the start location of the binary blob ($%lx)",
-           input_filename,
-           (unsigned long int) ex,
-           (unsigned long int) st);
+     if (*exec_set     != 0 &&
+         fi.exec_given != 0 &&
+         fi.exec       != *exec)
+         error("Input file \"%s\" gives a different exec address ($%lx)\n"
+               "to the one given at the command line ($%lx)",
+                          input_filename,
+                          (unsigned long int) fi.exec,
+                          (unsigned long int) *exec);
 
-    if (ex > (st + blob_size - 1))
-      error("The exec location in the tail of the RS-DOS file \"%s\"\n"
-           "($%lx) is beyond the end location of the binary blob ($%lx)",
-               input_filename,
-               (unsigned long int) ex,
-               (unsigned long int) (st + blob_size - 1));
+    if (fi.exec_given != 0 &&
+            *exec_set == 0)
+    {
+        *exec_set = 1;
+        *exec = fi.exec;
+    }
 
-
-    if (ln != blob_size)
-      error("Input file \"%s\" length (%lu) given in the header\n"
-           "does not match measured length (%ld)",
-                       input_filename,
-                       (unsigned long int) ln,
-                       blob_size);
-
-
-
+    if (fi.length_given != 0 &&
+        fi.length       != blob_size)
+        error("Input file \"%s\" gives a different \"blob size\" ($%lx)\n"
+              "to the measured blob size ($%lx)",
+                            input_filename,
+                            (unsigned long int) fi.length,
+                            (unsigned long int) blob_size);
+}
 
 static memory_location_type
 set_start_address(enum architecture     target_architecture,
-                  boolean_type          start_set,
+                  boolean_type          *start_set,
                   memory_location_type  start)
 {
-    if (start_set == 0)
+    if (*start_set == 0)
     {
         switch(target_architecture)
         {
@@ -1792,46 +1814,59 @@ set_start_address(enum architecture     target_architecture,
                 break;
 
             default:
-                internal_error("Unhandled target architecture in set_start_address()");
+                internal_error("Unhandled target architecture"
+                               " in set_start_address()");
         }
-    }
 
-    if (start > get_highest_ram_address(target_architecture))
-        internal_error("Start location is higher than the highest possible"
-                       " RAM address\n"
-                       "on the %s",
-                        architecture_to_text(target_architecture));
+        *start_set = 1;
+    }
 
     return start;
 }
 
-static memory_location_type
-set_end_address(enum architecture  target_architecture,
-                memory_location_type             start,
-                long int                         blob_size)
+static void
+check_start_address(enum architecture     target_architecture,
+                    memory_location_type  start)
 {
-    long int end = start + blob_size - 1;
-
-    if (end < start
-                    || blob_size > get_highest_ram_address(target_architecture)
-                    || end > get_highest_ram_address(target_architecture))
-        error("The machine language blob would overflow the amount of RAM\n"
-             "on the %s",
-             architecture_to_text(target_architecture));
-
-    return (memory_location_type) end;
+    if (start > get_highest_ram_address(target_architecture))
+        internal_error("Start location is higher than the highest possible"
+                       " RAM address\n"
+                       "on the %s architecture",
+                        architecture_to_text(target_architecture));
 }
 
 static memory_location_type
-set_exec_address(enum architecture  target_architecture,
-                 boolean_type                     exec_set,
-                 memory_location_type             start,
-                 memory_location_type             exec,
-                 memory_location_type             end)
+set_end_address(enum architecture     target_architecture,
+                memory_location_type  start,
+                long int              blob_size)
 {
-    if (exec_set == 0)
-        exec     = start;
+    memory_location_type end = (memory_location_type)
+                               (start + blob_size - 1);
 
+    if (end < start)
+        error("The machine language blob will not fit in the RAM\n"
+             "of the %s architecture",
+             architecture_to_text(target_architecture));
+
+    return end;
+}
+
+static void
+check_end_address(enum architecture     target_architecture,
+                  memory_location_type  end)
+{
+    if (end > get_highest_ram_address(target_architecture))
+        error("The machine language blob would overflow the amount of RAM\n"
+             "on the %s architecture",
+             architecture_to_text(target_architecture));
+}
+
+static void
+check_exec_address(enum architecture     target_architecture,
+                   memory_location_type  exec,
+                   memory_location_type  start,
+                   memory_location_type  end)
+{
     if (exec > get_highest_ram_address(target_architecture))
         internal_error("Exec location is higher than the highest possible"
                        " RAM address\n"
@@ -1839,12 +1874,28 @@ set_exec_address(enum architecture  target_architecture,
                        architecture_to_text(target_architecture));
 
     if (exec < start)
-        error("The exec location given ($%x) is below\n"
-             "the start location of the binary blob ($%x)", exec, start);
+        error("The exec location ($%lx) is below\n"
+              "the start location of the binary blob ($%lx)",
+              (unsigned long int) exec,
+              (unsigned long int) start);
 
     if (exec > end)
-        error("The exec location given ($%x) is beyond\n"
-             "the end location of the binary blob ($%x)", exec, end);
+        error("The exec location ($%lx) is beyond\n"
+              "the end location of the binary blob ($%lx)",
+              (unsigned long int) exec,
+              (unsigned long int) end);
+}
+
+static memory_location_type
+set_exec_address(boolean_type          *exec_set,
+                 memory_location_type  start,
+                 memory_location_type  exec)
+{
+    if (*exec_set == 0)
+    {
+        *exec_set = 1;
+        exec      = start;
+    }
 
     return exec;
 }
@@ -2658,9 +2709,10 @@ int main(int argc, char *argv[])
     input_file_size  = get_input_file_size(input_file,
                                            input_filename,
                                            input_file_format);
-    blob_size        = calculate_blob_size(input_filename,
-                                     input_file_format,
-                                     input_file_size);
+    blob_size        = calculate_blob_size(input_file_format,
+                                           input_file_size);
+
+    check_blob_size(target_architecture, blob_size, input_filename);
 
     process_file_format(input_file_format,
                    input_file,
@@ -2669,16 +2721,15 @@ int main(int argc, char *argv[])
                    &start,
                    &exec_set,
                    &exec,
-                   blob_size,
-                   nowarn);
+                   blob_size);
 
-    start           = set_start_address(target_architecture, start_set, start);
-    end             = set_end_address(target_architecture, start, blob_size);
-    exec            = set_exec_address(target_architecture,
-                                       exec_set,
-                                       start,
-                                       exec,
-                                       end);
+    start  = set_start_address(target_architecture, &start_set, start);
+    end    = set_end_address(target_architecture, start, blob_size);
+    exec   = set_exec_address(&exec_set, start, exec);
+
+    check_start_address(target_architecture, start);
+    check_end_address  (target_architecture, end);
+    check_exec_address (target_architecture, exec, start, end);
 
     line_number     = set_line_number(target_architecture,
                                       line_number_set,
