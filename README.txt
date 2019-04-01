@@ -74,7 +74,7 @@ try these commands:
 If you want to use the output on an emulated C64 using VICE:
 
     $ ./BASICloader --machine c64 --case lower XXX.bin
-    $ petcat -w2 -o loader.prg loader
+    $ petcat -2 -w2 -o loader.prg loader
     $ c1541 -format loader,"88 2a" d64 loader.d64 -write loader.prg loader
     $ x64 -autostart loader.d64
 
