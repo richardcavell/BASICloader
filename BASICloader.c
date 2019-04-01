@@ -1,19 +1,18 @@
 /*
       BASICloader.c
 
-      A program by Richard Cavell (c) 2017
+      A program by Richard Cavell (c) 2017-2018
       https://github.com/richardcavell/BASICloader
 
     Coding standards:
 
-    * We strictly use C89
+    * We strictly use C89 only
     * No external libraries, no POSIX, no GNU extensions
     * Everything in one file to make building easier
     * Every error that can reasonably be detected, is detected
     * This code is intended to be capable of being compiled with
       retro machines and compilers. Many of these machines and
       compilers are really limited, and predate *all* C standards.
-      We don't assume that the compiler is standards-compliant.
 */
 
 #include <stdio.h>
