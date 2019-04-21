@@ -15,7 +15,8 @@ or any other operating system that can compile standard C.
 It is written in standard C (C89) and does not rely on any external
 libraries or header files outside of the standard C library. The Makefile
 is intended for GNU Make. If you don't have GNU Make, you will have to
-compile BASICloader manually. This won't be difficult.
+compile BASICloader manually. This won't be difficult. There is only one
+source file.
 
 Currently BASICloader supports the following target computers:
 
