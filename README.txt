@@ -26,7 +26,8 @@ Currently BASICloader supports the following target computers:
   * Commodore 64
 
 A number of computer models that are similar to the above machines will
-be able to run the output as well.
+be able to run the output as well. The Color Computer can be referred to
+as "Coco".
 
 The BASIC program that is output by BASICloader incorporates the machine
 language program as data. If run on the target machine, it will poke the
