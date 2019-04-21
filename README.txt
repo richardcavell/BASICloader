@@ -45,7 +45,7 @@ an RS-DOS Coco file, a Dragon DOS file, or a Commodore 64 PRG file. The Coco,
 Dragon and PRG formats specify the start location (where the binary blob is
 loaded to). The Coco and Dragon formats specify an exec location as well
 (where the execution begins). For binary and PRG files, we assume that
-execution starts at the start location.
+execution starts at the first (lowest) memory location.
 
 BASICloader will correctly obtain start and exec information, if available
 in the chosen input format.
