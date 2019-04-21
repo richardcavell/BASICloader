@@ -35,7 +35,9 @@ checking that it is doing so correctly, and then (optionally) it will
 execute the program.
 
 The output of BASICloader will therefore look like the old "type-in"
-programs from 1980s computer magazines.
+programs from 1980s computer magazines. The core of the program is a loop
+that uses the READ keyword and the POKE command. The program will contain
+DATA statements as well.
 
 The input file must be a machine language program. It can be a plain binary,
 an RS-DOS Coco file, a Dragon DOS file, or a Commodore 64 PRG file. The Coco,
