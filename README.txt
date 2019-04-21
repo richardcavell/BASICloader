@@ -28,10 +28,11 @@ Currently BASICloader supports the following target computers:
 A number of computer models that are similar to the above machines will
 be able to run the output as well.
 
-This BASIC program output by BASICloader incorporates the machine language
-program as data. If run on the target machine, it will poke the machine
-language program into the correct memory locations, checking that it is
-doing so correctly, and then it will execute the program.
+The BASIC program that is output by BASICloader incorporates the machine
+language program as data. If run on the target machine, it will poke the
+machine language program into the correct memory locations, optionally
+checking that it is doing so correctly, and then (optionally) it will
+execute the program.
 
 The output of BASICloader will therefore look like the old "type-in"
 programs from 1980s computer magazines.
