@@ -8,7 +8,7 @@ and then execute it.
 
 The BASICloader program is designed to be run on any operating system
 that has a command line. It should work on Linux, MacOS, Windows, UNIX,
-or almost any other operating system that can compile standard C.
+or any other operating system that can compile standard C.
 
 It is written in standard C (C89) and does not rely on any external
 libraries or header files outside of the standard C library. The Makefile
