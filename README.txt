@@ -1,6 +1,6 @@
 BASICloader
 Version : in development, don't use it yet
-(c) 2017 Richard John Foster Cavell
+(c) 2017-2019 Richard John Foster Cavell
 
 BASICloader reads in a machine language program, and creates a BASIC
 program that will construct that machine language program in memory,
