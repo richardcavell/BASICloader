@@ -108,6 +108,9 @@ an RS-DOS Coco file, a Dragon DOS file, or a Commodore 64 PRG file.
 
 You choose. You can specify this on the command line.
 
+We might refer to the machine language program, once it has been POKEd into
+memory, as a "binary blob".
+
 Advanced info:
 
 The Coco, Dragon and PRG formats specify the start location (where the
@@ -120,9 +123,6 @@ If you specify a different address on the command line to the one that is in
 the input file, BASICloader will warn you.
 
 13. Where does execution of the machine language program begin?
-
-We might refer to the machine language program, once it has been POKEd into
-memory, as a "binary blob".
 
 The Coco and Dragon formats specify an exec location (where program
 execution begins), in addition to specifying a start location.  BASICloader
