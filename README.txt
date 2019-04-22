@@ -147,7 +147,28 @@ which is distributed with BASICloader. You can also run ./BASICloader --help
 You can read about technical information in Technical_info.txt, which
 is distributed with BASICloader.
 
-16. What is my license to use this program?
+16. Can I use other tools with the output of this program?
+
+Yes. You can use the output of this program with:
+
+  * c1541   (part of VICE)
+  * decb    (part of the Toolshed)
+  * MAME
+  * petcat  (part of VICE)
+  * VICE
+  * XRoar
+
+See the file Examples.txt for some examples.
+
+17. Who wrote this program?
+
+Me, Richard John Foster Cavell.
+
+I'm an Australian man living near Blackpool in England.
+
+You can find some of my software at https://github.com/richardcavell
+
+18. What is my license to use this program?
 
 This program is free open source software. There is a custom license,
 which you can read in the LICENSE file, which should have been distributed
@@ -161,18 +182,5 @@ The output of this program is licensed to you under the following license:
       that is not unreasonable.
 
 You should not allow people to assume that you wrote the BASIC code yourself.
-
-17. Can I use other tools with the output of this program?
-
-Yes. You can use the output of this program with:
-
-  * c1541   (part of VICE)
-  * decb    (part of the Toolshed)
-  * MAME
-  * petcat  (part of VICE)
-  * VICE
-  * XRoar
-
-See the file Examples.txt for some examples.
 
 Richard Cavell
