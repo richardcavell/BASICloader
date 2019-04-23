@@ -1,6 +1,7 @@
 README.txt
 BASICloader version : Still in development
 (c) 2017-2019 Richard John Foster Cavell
+https://github.com/richardcavell/BASICloader
 
 BASICloader is a magazine type-in generator. It is free, open-source software
 that is intended as a retro computing project.
@@ -77,5 +78,8 @@ BASICloader can optionally:
       ... and more!
 
 For more information, take a look at FAQ.txt in the Documents folder.
+
+You can find this project on the web at:
+  https://github.com/richardcavell/BASICloader
 
 Richard Cavell
