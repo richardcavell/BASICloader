@@ -25,17 +25,57 @@ This is a BASIC program, which contains DATA statements. The DATA statements
 are code for a machine-language program. The main part of the program is a
 loop that pokes these values into memory.
 
-BASICloader is designed to automatically construct the BASIC program. The
-program can then be published in printed form, and typed in by an enthusiastic
-computer user.
+When given a machine language program (or "binary blob"), BASICloader will
+automatically construct the BASIC program. The program can then be published
+in printed form, and typed in by an enthusiastic computer user.
 
 You still have to create the machine-language program, of course. BASICloader
-will take this program as input. It can take many different types of input
-file.
+can take many different types of file as input.
 
-BASICloader has many features and is quite versatile in the sort of output
-that it can generate.
+BASICloader is quite versatile in the sort of output that it can generate.
 
-For more information, take a look in the Documents folder.
+Here are some of BASICloader's features:
+
+    * Written entirely in standard C, so that it can be compiled and run
+      on a wide range of operating systems and machines
+
+    * Is specially written to detect problems with old compilers and
+      unusual implementation choices
+
+    * Has exactly one (long) source file, so that building and linking
+      couldn't be simpler
+
+    * Understands the file format native to each machine
+
+    * Very customizable output, with many command-line switches
+
+    * Detects every error and problem that can reasonably be detected
+
+    * BASICloader and its output carry permissive licenses, so that you
+      can use it widely in your own work
+
+BASICloader can optionally:
+
+    * Target one of several different machines (and BASIC dialects):
+
+        * TRS-80 Color Computer 1, 2 and 3
+        * Dragon 32 and 64
+        * Commodore 64
+
+    * Emit special instructions for Extended Color BASIC
+      (For the Color Computer)
+
+    * Output in uppercase, lowercase or mixed case
+
+    * Add custom REM statements and build date
+
+    * Produce and use checksums to ensure the program is typed correctly
+
+    * Produce output that is compact (saves memory) or not (easier to
+      read and type)
+
+      ... and more!
+
+For more information, take a look at FAQ.txt in the Documents folder.
 
 Richard Cavell
