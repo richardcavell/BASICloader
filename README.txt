@@ -26,9 +26,11 @@ This is a BASIC program, which contains DATA statements. The DATA statements
 are code for a machine-language program. The main part of the program is a
 loop that pokes these values into memory.
 
-When given a machine language program (or "binary blob"), BASICloader will
-automatically construct the BASIC program. The program can then be published
-in printed form, and typed in by an enthusiastic computer user.
+When given a machine language program (or any other data), BASICloader will
+automatically construct a BASIC program. The program that BASICloader creates,
+if it is typed in and run, will set up that machine language program (or data)
+in memory. The BASIC program can be published in printed form, and typed in
+by an enthusiastic computer user.
 
 You still have to create the machine-language program, of course. BASICloader
 can take many different types of file as input.
