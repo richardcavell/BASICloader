@@ -1,5 +1,5 @@
 README.txt
-BASICloader version : Still in development
+BASICloader version : Still in development.
 (c) 2017-2019 Richard John Foster Cavell
 https://github.com/richardcavell/BASICloader
 
