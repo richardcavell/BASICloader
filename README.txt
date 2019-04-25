@@ -34,7 +34,8 @@ in memory. The BASIC program can be published in printed form, and typed in
 by an enthusiastic computer user.
 
 You still have to create the machine-language program, of course. BASICloader
-can take many different types of file as input.
+can take a raw binary as input. It can also recognize and use the native file
+format of each of the machines that it supports.
 
 BASICloader is quite versatile in the sort of output that it can generate.
 
