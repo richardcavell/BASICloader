@@ -23,8 +23,9 @@ Many of these programs looked like this:
        ... etc ...
 
 This is a BASIC program, which contains DATA statements. The DATA statements
-are code for a machine-language program. The main part of the program is a
-loop that pokes these values into memory.
+are code for a machine-language program. The main part of this BASIC program
+is a loop that pokes these values into memory. BASICloader creates BASIC
+programs of this type.
 
 When given a machine language program (or any other data), BASICloader will
 automatically construct a BASIC program. The program that BASICloader creates,
