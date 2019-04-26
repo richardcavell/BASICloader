@@ -60,7 +60,8 @@ Here are some of BASICloader's features:
 
     * Detects every error and problem that can reasonably be detected
 
-    * Understands the file format that is native to each machine
+    * Versatile input options, with the ability to understand the file
+      format that is native to each machine
 
     * Very customizable output, with many command-line switches
 
