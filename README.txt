@@ -5,7 +5,7 @@ https://github.com/richardcavell/BASICloader
 
 1. What BASICloader does
 2. BASICloader's features
-3. Customizing the output
+3. BASICloader's output options
 
 === 1.  What BASICloader does ===
 
@@ -70,7 +70,7 @@ Here are some of BASICloader's features:
 
       ... and more!
 
-=== 3. Customizing the output ===
+=== 3. BASICloader's output options ===
 
 Here is how BASICloader's output can be customized:
 
