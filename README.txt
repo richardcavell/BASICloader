@@ -44,13 +44,13 @@ Here are some of BASICloader's features:
     * Written entirely in standard C, so that it can be compiled and run
       on a wide range of operating systems and machines
 
-    * Is specially written to detect problems with old compilers and
-      unusual implementation choices
+    * Specially written to detect problems with old compilers and
+      implementations
 
-    * Has exactly one (long) source file, so that building and linking
-      couldn't be simpler
+    * Made up of exactly one (long) source file, so that building and
+      linking couldn't be simpler
 
-    * Understands the file format native to each machine
+    * Understands the file format that is native to each machine
 
     * Very customizable output, with many command-line switches
 
