@@ -3,6 +3,12 @@ BASICloader version : Still in development.
 (c) 2017-2019 Richard John Foster Cavell
 https://github.com/richardcavell/BASICloader
 
+1. What BASICloader does
+2. BASICloader's features
+3. Customizing the output
+
+=== 1.  What BASICloader does ===
+
 BASICloader is a magazine type-in generator. It is free, open-source software
 that is intended as a retro computing project.
 
@@ -39,6 +45,8 @@ format of each of the machines that it supports.
 
 BASICloader is quite versatile in the sort of output that it can generate.
 
+=== 2. BASICloader's features ====
+
 Here are some of BASICloader's features:
 
     * Written entirely in standard C, so that it can be compiled and run
@@ -60,6 +68,8 @@ Here are some of BASICloader's features:
       can use it widely in your own work
 
       ... and more!
+
+=== 3. Customizing the output ===
 
 Here is how BASICloader's output can be customized:
 
