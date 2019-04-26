@@ -59,7 +59,9 @@ Here are some of BASICloader's features:
     * BASICloader and its output carry permissive licenses, so that you
       can use it widely in your own work
 
-BASICloader can optionally:
+      ... and more!
+
+Here is how BASICloader's output can be customized:
 
     * Target one of several different machines (and BASIC dialects):
 
