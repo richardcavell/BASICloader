@@ -39,6 +39,9 @@ or SYS (C64) call.
 
 On any machine you like.
 
+However, you will have trouble using BASICloader on a machine with
+limited RAM.
+
 It is completely acceptable to run BASICloader on a different machine to
 the one that is the intended target of the resulting output. For example,
 you can use an IBM PC to generate a BASIC program that is intended to be run
@@ -46,11 +49,13 @@ on a Commodore 64.
 
 6. What operating systems can BASICloader run on?
 
-Any operating system that can compile standard C, and which has a command
-line.
+Any operating system that can compile standard C.
 
-This includes MS-DOS, OS/2, Windows, Linux, UNIX, OS X, MacOS, and many
+This includes MS-DOS, Windows, Linux, UNIX, OS X, MacOS, OS/2, and many
 others.
+
+BASICloader works better on those operating systems that have a command
+line.
 
 7. Should I run it on the machine that the output is targeted at?
 
