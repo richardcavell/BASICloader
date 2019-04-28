@@ -25,7 +25,7 @@ appropriate part of RAM, and then transfer control of the computer over
 to the machine language program once it was set up.
 
 BASICloader generates the BASIC program, when given the machine language
-program that is to be set up.
+program as input.
 
 4.  How does it work?
 
