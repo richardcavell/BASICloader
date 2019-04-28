@@ -107,6 +107,7 @@ You can customize the output of BASICloader to:
 For more information, take a look at FAQ.txt in the Documents folder.
 
 You can find this project on the web at:
-  https://github.com/richardcavell/BASICloader
+
+            https://github.com/richardcavell/BASICloader
 
 Richard Cavell
