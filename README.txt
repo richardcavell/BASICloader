@@ -5,7 +5,8 @@ https://github.com/richardcavell/BASICloader
 
 1. What BASICloader does
 2. BASICloader's features
-3. BASICloader's output options
+3. BASICloader's input options
+4. BASICloader's output options
 
 === 1.  What BASICloader does ===
 
@@ -72,7 +73,16 @@ Here are some of BASICloader's features:
 
       ... and more!
 
-=== 3. BASICloader's output options ===
+=== 3. BASICloader's input options ===
+
+BASICloader can take the following types of files as input:
+
+    * Raw binary
+    * Disk Extended Color BASIC (also known as RS-DOS)  /BIN format
+    * DragonDOS                                         /BIN format
+    * Commodore 64                                      /PRG format
+
+=== 4. BASICloader's output options ===
 
 You can customize the output of BASICloader to:
 
