@@ -91,6 +91,12 @@ You can customize the output of BASICloader to:
 
     * Add custom REM statements
 
+    * Start the program automatically
+
+    * Place the binary blob at a custom location
+
+    * Start executing from somewhere other than the first memory location
+
     * Produce and use checksums to ensure the program is typed correctly
 
     * Produce output that is compact (saves memory) or not (easier to
