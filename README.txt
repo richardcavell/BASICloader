@@ -87,7 +87,9 @@ You can customize the output of BASICloader to:
 
     * Output in uppercase, lowercase or mixed case
 
-    * Add custom REM statements and build date
+    * Automatically add a build date
+
+    * Add custom REM statements
 
     * Produce and use checksums to ensure the program is typed correctly
 
