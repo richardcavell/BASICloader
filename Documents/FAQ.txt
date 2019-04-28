@@ -40,7 +40,8 @@ or SYS (C64) call.
 On any machine you like.
 
 However, you will have trouble using BASICloader on a machine with
-limited RAM.
+limited RAM. BASICloader will work best on a more powerful machine, such as
+an IBM PC, or a computer designed to run UNIX.
 
 It is completely acceptable to run BASICloader on a different machine to
 the one that is the intended target of the resulting output. For example,
