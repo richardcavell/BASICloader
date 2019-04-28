@@ -74,7 +74,7 @@ Here are some of BASICloader's features:
 
 === 3. BASICloader's output options ===
 
-Here is how BASICloader's output can be customized:
+You can customize the output of BASICloader to:
 
     * Target one of several different machines (and BASIC dialects):
 
