@@ -52,8 +52,11 @@ on a Commodore 64.
 
 Any operating system that can compile standard C.
 
-BASICloader works better on those operating systems that have a command
-line.  This includes Linux, UNIX, OS X, MacOS, MS-DOS, and OS/2.
+BASICloader works better on those operating systems that have a robust
+command line environment.  This includes Linux, UNIX, OS X, MacOS, MS-DOS,
+and OS/2.
+
+You can also run it on Windows and many other operating systems.
 
 7. Should I run it on the machine that the output is targeted at?
 
