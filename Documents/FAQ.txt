@@ -58,20 +58,21 @@ and OS/2.
 
 You can also run it on Windows and many other operating systems.
 
-7. Should I run it on the machine that the output is targeted at?
+7. Should I run it on an 8-bit machine?
 
-To "target" a computer, for our purposes, means to create a BASIC program
-that will run on that machine.
+(To "target" a computer, for our purposes, means to create a BASIC program
+that will run on that machine).
 
 You might find it tedious to run this program on the actual 8-bit machine
 that the output targets. These machines typically don't have these
 things, which you need:
 
-  * A proper command line. You need to be able to specify command-line
-    switches.
   * A standards-compliant, properly functioning implementation of the
     C language. (Both the compiler and the run-time)
+  * A proper command line. You will get the best experience if you can
+    specify command-line switches.
   * Additional tools necessary to manipulate the output text file.
+  * Terminal displays (or printers) that can display many lines at once.
 
 8. Which character set should I be using?
 
