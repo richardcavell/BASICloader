@@ -30,8 +30,9 @@ Many of these programs looked like this:
 
 This is a BASIC program, which contains DATA statements. The DATA statements
 are code for a machine-language program. The main part of this BASIC program
-is a loop that pokes these values into memory. BASICloader creates BASIC
-programs of this type.
+is a loop that pokes these values into memory.
+
+BASICloader creates BASIC programs of this type.
 
 When given a machine language program (or any other data), BASICloader will
 automatically construct a BASIC program. The program that BASICloader creates,
@@ -41,9 +42,8 @@ by an enthusiastic computer user.
 
 You still have to create the machine-language program, of course. BASICloader
 can take a raw binary as input. It can also recognize and use the native file
-format of each of the machines that it supports.
-
-BASICloader is quite versatile in the sort of output that it can generate.
+format of each of the machines that it supports. BASICloader is quite
+versatile in the sort of output that it can generate.
 
 === 2. BASICloader's features ====
 
