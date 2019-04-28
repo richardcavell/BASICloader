@@ -83,7 +83,7 @@ You can customize the output of BASICloader to:
         * Commodore 64
 
     * Emit special instructions for Extended Color BASIC
-      (For the Color Computer)
+      (For the TRS-80 Color Computer)
 
     * Output in uppercase, lowercase or mixed case
 
