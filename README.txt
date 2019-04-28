@@ -79,8 +79,8 @@ BASICloader can take the following types of files as input:
 
     * Raw binary
     * Disk Extended Color BASIC (also known as RS-DOS)  /BIN format
-    * DragonDOS                                         /BIN format
-    * Commodore 64                                      /PRG format
+    * DragonDOS                                         .BIN format
+    * Commodore 64                                      .PRG format
 
 === 4. BASICloader's output options ===
 
