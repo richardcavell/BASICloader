@@ -58,9 +58,9 @@ Here are some of BASICloader's features:
     * Specially written to detect problems with old compilers and
       implementations
 
-    * Detects every error and problem (in the input file, in generating
-      the output, or in the selection of command line switches) that
-      can reasonably be detected
+    * Detects every error and problem (in the input file, or while
+      generating the output, or in the selection of command line switches)
+      that can reasonably be detected
 
     * Versatile input options, with the ability to understand the file
       format that is native to each machine
