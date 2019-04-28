@@ -1,6 +1,7 @@
-BASICloader
-Version : in development, don't use it yet
+FAQ.txt
+BASICloader version : in development, don't use it yet
 (c) 2017-2019 Richard John Foster Cavell
+https://github.com/richardcavell/BASICloader
 
 1.  What is BASICloader?
 
