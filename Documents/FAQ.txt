@@ -119,15 +119,16 @@ https://github.com/richardcavell/BASICloader
 
     Currently BASICloader supports the following target computers:
 
-      * TRS-80 Color Computer 1, 2 and 3
+      * TRS-80 Color Computer 1, 2 and 3     (Color BASIC)
       * TRS-80 Color Computer 1, 2 and 3 with Extended Color BASIC
-      * Dragon 32 and Dragon 64
-      * Commodore 64
+      * Dragon 32 and Dragon 64              (DragonDOS)
+      * Commodore 64                         (Commodore BASIC)
 
     A number of computer models that are similar to the above machines will
     be able to run the output as well.
 
-    The Color Computer can be referred to as "Coco".
+    The Color Computer can be referred to as "Coco". There is specific
+    optional support for Extended Color BASIC.
 
 14. What does BASICloader take as input?
 
