@@ -86,14 +86,27 @@ machine.
 
 9. What language is BASICloader written in?
 
-It is written in standard C (C89) and does not rely on any external
-libraries or header files outside of the standard C library.
+It is written in standard C (the C89 dialect, to be precise), and uses
+the C standard library.
 
-The Makefile is intended for GNU Make. If you don't have GNU Make, you
-will have to compile BASICloader manually. This won't be difficult. There
-is only one source file.
+10. How do I build BASICloader?
 
-10. Which computers can BASICloader target?
+The Makefile is intended for GNU Make. Simply type "make". The output file
+will be called BASICloader.
+
+If you don't have GNU Make, you will have to compile BASICloader manually.
+This won't be difficult. There is only one source file. You need to compile
+the file called "BASICloader.c".
+
+11. Which additional libraries or header files do I need to install?
+
+None whatsoever.
+
+BASICloader is written in C89. It uses only the standard library. It does
+not use any external libraries, header files, or operating system calls
+whatsoever.
+
+12. Which computers can BASICloader target?
 
 Currently BASICloader supports the following target computers:
 
@@ -107,12 +120,15 @@ be able to run the output as well.
 
 The Color Computer can be referred to as "Coco".
 
-11. What does BASICloader take as input?
+13. What does BASICloader take as input?
 
-The input file must be a machine language program. It can be a plain binary,
-an RS-DOS Coco file, a Dragon DOS file, or a Commodore 64 PRG file.
+The input file can be a plain binary, an RS-DOS Coco file, a Dragon DOS file,
+or a Commodore 64 PRG file.
 
-12. Where is the resulting machine language program placed in memory?
+It will typically be a machine language program, but it can be any data you
+like.
+
+14. Where is the resulting machine language program placed in memory?
 
 You choose. You can specify this on the command line.
 
@@ -130,32 +146,31 @@ use the address specified in the input file, or use a sensible default.
 If you specify a different address on the command line to the one that is in
 the input file, BASICloader will warn you.
 
-13. Where does execution of the machine language program begin?
+15. Where does execution of the machine language program begin?
 
 The Coco and Dragon formats specify an exec location (where program
 execution begins), in addition to specifying a start location.  BASICloader
 will correctly read the exec addresses, if the input file format provides one.
 
-For binary and PRG files, BASICloader assumes that execution starts at
-the first (lowest) memory location.
-
 If you don't specify an exec location on the command line, BASICloader will
-use the address specified in the input file, or use a sensible default.
+use the address specified in the input file. For binary and PRG files,
+BASICloader assumes that execution starts at the first (lowest) memory
+location.
 
 If you specify a different address on the command line to the one that is in
 the input file, BASICloader will warn you.
 
-14. What are the command line options?
+16. What are the command line options?
 
 You can read more about the command line options in the file Options.txt,
 which is distributed with BASICloader. You can also run ./BASICloader --help
 
-15. What if I want to know more about what's going on internally?
+17. What if I want to know more about what's going on internally?
 
 You can read about technical information in Technical_info.txt, which
 is distributed with BASICloader.
 
-16. Can I use other tools with the output of this program?
+18. Can I use other tools with the output of this program?
 
 Yes. You can use the output of this program with:
 
@@ -168,7 +183,7 @@ Yes. You can use the output of this program with:
 
 See the file Examples.txt for some examples.
 
-17. Who wrote this program?
+19. Who wrote this program?
 
 Me, Richard John Foster Cavell.
 
@@ -176,7 +191,7 @@ I'm an Australian man living near Blackpool in England.
 
 You can find some of my software at https://github.com/richardcavell
 
-18. What is my license to use this program?
+20. What is my license to use this program?
 
 This program is free open source software. There is a custom license,
 which you can read in the LICENSE file, which should have been distributed
@@ -190,5 +205,9 @@ The output of this program is licensed to you under the following license:
       that is not unreasonable.
 
 You should not allow people to assume that you wrote the BASIC code yourself.
+
+21. Where can I find out more?
+
+    https://github.com/richardcavell/BASICloader
 
 Richard Cavell
