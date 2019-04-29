@@ -5,13 +5,14 @@
 CC         += -std=c89
 CFLAGS     += -Wall -Werror -Wextra -Wconversion -Wpedantic -fmax-errors=3
 
+SOURCE      = BASICloader.c
 EXECUTABLE  = BASICloader
 
 .DEFAULT: all
 .PHONY: all
 all: BASICloader
 
-$(EXECUTABLE): $(EXECUTABLE).c
+$(EXECUTABLE): $(SOURCE)
 	$(CC) $(CFLAGS) $< $(OUTPUT_OPTION)
 
 .PHONY: clean
