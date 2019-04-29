@@ -8,9 +8,9 @@ CFLAGS     += -Wall -Werror -Wextra -Wconversion -Wpedantic -fmax-errors=3
 SOURCE      = BASICloader.c
 EXECUTABLE  = BASICloader
 
-.DEFAULT: all
-.PHONY:   all
-all:      $(EXECUTABLE)
+.DEFAULT:     all
+.PHONY:       all
+all:          $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCE)
 	$(CC) $(CFLAGS) $< $(OUTPUT_OPTION)
