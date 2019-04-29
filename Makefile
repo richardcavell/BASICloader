@@ -10,7 +10,7 @@ EXECUTABLE  = BASICloader
 
 .DEFAULT: all
 .PHONY:   all
-all:      BASICloader
+all:      $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCE)
 	$(CC) $(CFLAGS) $< $(OUTPUT_OPTION)
