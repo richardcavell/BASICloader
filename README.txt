@@ -120,4 +120,6 @@ You can find this project on the web at:
 
             https://github.com/richardcavell/BASICloader
 
+This project is actively maintained, and was last reviewed in April 2019.
+
 Richard Cavell
