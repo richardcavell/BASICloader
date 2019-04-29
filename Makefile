@@ -1,6 +1,6 @@
-# BASICloader (under development)
-# by Richard Cavell (c) 2017
 # Makefile
+# BASICloader (under development)
+# by Richard Cavell (c) 2017-2019
 
 CC += -std=c89
 CFLAGS += -Wall -Werror -Wextra -Wconversion -Wpedantic -fmax-errors=3
