@@ -97,11 +97,11 @@ You can customize the output of BASICloader to:
 
     * Output in uppercase, lowercase or mixed case
 
-    * Automatically add a build date
+    * Add the build date in a REM statement
 
     * Add custom REM statements
 
-    * Start the program automatically
+    * Start running the machine language program automatically
 
     * Place the binary blob at a custom location
 
