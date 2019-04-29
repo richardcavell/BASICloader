@@ -2,10 +2,10 @@
 # BASICloader (under development)
 # by Richard Cavell (c) 2017-2019
 
-CC += -std=c89
-CFLAGS += -Wall -Werror -Wextra -Wconversion -Wpedantic -fmax-errors=3
+CC         += -std=c89
+CFLAGS     += -Wall -Werror -Wextra -Wconversion -Wpedantic -fmax-errors=3
 
-EXECUTABLE = BASICloader
+EXECUTABLE  = BASICloader
 
 .DEFAULT: all
 .PHONY: all
