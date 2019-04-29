@@ -148,6 +148,10 @@ the input file, BASICloader will warn you.
 
 15. Where does execution of the machine language program begin?
 
+You choose. You can specify this on the command line.
+
+Advanced info:
+
 The Coco and Dragon formats specify an exec location (where program
 execution begins), in addition to specifying a start location.  BASICloader
 will correctly read the exec addresses, if the input file format provides one.
