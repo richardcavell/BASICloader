@@ -90,7 +90,15 @@ https://github.com/richardcavell/BASICloader
     It is written in standard C (the C89 dialect, to be precise), and uses
     the C standard library.
 
-10. How do I build BASICloader?
+10. Which C standard does BASICloader follow?
+
+    C89. This is the first C standard, from 1989. It is also known as C90
+    and during the 1990s was referred to as ANSI C.
+
+    The code is specifically written to try to detect idiosyncracies and
+    lack of standards compliance in the build chain.
+
+11. How do I build BASICloader?
 
     The Makefile is intended for GNU Make. Simply type "make". The output
     file will be called BASICloader.
@@ -99,7 +107,7 @@ https://github.com/richardcavell/BASICloader
     manually. This won't be difficult. There is only one source file. You
     need to compile the file called "BASICloader.c".
 
-11. Which additional libraries or header files do I need to install?
+12. Which additional libraries or header files do I need to install?
 
     None whatsoever.
 
@@ -107,7 +115,7 @@ https://github.com/richardcavell/BASICloader
     does not use any external libraries, header files, or operating system
     calls whatsoever.
 
-12. Which computers can BASICloader target?
+13. Which computers can BASICloader target?
 
     Currently BASICloader supports the following target computers:
 
@@ -121,7 +129,7 @@ https://github.com/richardcavell/BASICloader
 
     The Color Computer can be referred to as "Coco".
 
-13. What does BASICloader take as input?
+14. What does BASICloader take as input?
 
     The input file can be a plain binary, an RS-DOS Coco file, a Dragon DOS
     file, or a Commodore 64 PRG file.
@@ -129,7 +137,7 @@ https://github.com/richardcavell/BASICloader
     It will typically be a machine language program, but it can be any data
     you like.
 
-14. Where is the resulting machine language program placed in memory?
+15. Where is the resulting machine language program placed in memory?
 
     You choose. You can specify this on the command line.
 
@@ -148,7 +156,7 @@ https://github.com/richardcavell/BASICloader
     If you specify a different address on the command line to the one that
     is in the input file, BASICloader will warn you.
 
-15. Where does execution of the machine language program begin?
+16. Where does execution of the machine language program begin?
 
     You choose. You can specify this on the command line.
 
@@ -167,13 +175,13 @@ https://github.com/richardcavell/BASICloader
     If you specify a different address on the command line to the one that
     is in the input file, BASICloader will warn you.
 
-16. What are the command line options?
+17. What are the command line options?
 
     You can read more about the command line options in the file
     Options.txt, which is distributed with BASICloader. You can also run
     ./BASICloader --help
 
-17. What if I want to know more about what's going on internally?
+18. What if I want to know more about what's going on internally?
 
     You can read about technical information in Technical_info.txt, which
     is distributed with BASICloader.
@@ -181,7 +189,7 @@ https://github.com/richardcavell/BASICloader
     You can also run BASICloader with the --diag option, which will print
     out diagnostic information.
 
-18. Can I use other tools with the output of this program?
+19. Can I use other tools with the output of this program?
 
     Yes. You can use the output of this program with:
 
@@ -194,7 +202,7 @@ https://github.com/richardcavell/BASICloader
 
     See the file Examples.txt for some examples.
 
-19. Who wrote this program?
+20. Who wrote this program?
 
     Me, Richard John Foster Cavell.
 
@@ -202,7 +210,7 @@ https://github.com/richardcavell/BASICloader
 
     You can find some of my software at https://github.com/richardcavell
 
-20. What is my license to use this program?
+21. What is my license to use this program?
 
     This program is free open source software. There is a custom license,
     which you can read in the LICENSE file, which should have been
@@ -222,7 +230,7 @@ https://github.com/richardcavell/BASICloader
     You should not allow people to assume that you wrote the BASIC code
     yourself.
 
-21. Where can I find out more?
+22. Where can I find out more?
 
     https://github.com/richardcavell/BASICloader
 
