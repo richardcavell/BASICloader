@@ -9,8 +9,8 @@ SOURCE      = BASICloader.c
 EXECUTABLE  = BASICloader
 
 .DEFAULT: all
-.PHONY: all
-all: BASICloader
+.PHONY:   all
+all:      BASICloader
 
 $(EXECUTABLE): $(SOURCE)
 	$(CC) $(CFLAGS) $< $(OUTPUT_OPTION)
