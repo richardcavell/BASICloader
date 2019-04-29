@@ -68,8 +68,8 @@ Here are some of BASICloader's features:
 
     * Very customizable output, with many command-line switches
 
-    * BASICloader and its output carry a permissive license, so that you
-      can use them widely in your own work
+    * Permissive licensing, so that you can use BASICloader and its output
+      widely in your own work
 
       ... and more!
 
