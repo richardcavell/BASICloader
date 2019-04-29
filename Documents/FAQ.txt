@@ -209,7 +209,8 @@ https://github.com/richardcavell/BASICloader
     distributed with the BASICloader program. You can also run
     ./BASICloader --license
 
-    The output of this program is licensed to you under the following license:
+    The output of this program is licensed to you under the following
+    license:
 
     1.  You may use the output of this program for any worthwhile or moral
         purpose.
