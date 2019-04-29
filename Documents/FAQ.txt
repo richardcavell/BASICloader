@@ -1,5 +1,5 @@
 FAQ.txt
-BASICloader version : in development, don't use it yet
+BASICloader version : Still in development. Don't use it yet.
 (c) 2017-2019 Richard John Foster Cavell
 https://github.com/richardcavell/BASICloader
 
