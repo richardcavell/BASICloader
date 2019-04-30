@@ -26,37 +26,37 @@
 
         /* User-modifiable values */
 
-#define DEFAULT_OUTPUT_FILENAME       "LOADER.BAS"
-#define DEFAULT_C64LC_OUTPUT_FILENAME "loader"
+#define DEFAULT_OUTPUT_FILENAME            "LOADER.BAS"
+#define DEFAULT_C64LC_OUTPUT_FILENAME      "loader"
 
-#define DEFAULT_ARCHITECTURE      COCO
-#define DEFAULT_INPUT_FILE_FORMAT BINARY
-#define DEFAULT_OUTPUT_CASE       UPPERCASE
+#define DEFAULT_ARCHITECTURE               COCO
+#define DEFAULT_INPUT_FILE_FORMAT          BINARY
+#define DEFAULT_OUTPUT_CASE                UPPERCASE
 
-#define DEFAULT_STARTING_LINE         0
-#define DEFAULT_TYPABLE_STARTING_LINE 10
-#define MAXIMUM_STARTING_LINE         63000
+#define DEFAULT_STARTING_LINE              0
+#define DEFAULT_TYPABLE_STARTING_LINE      10
+#define MAXIMUM_STARTING_LINE              63000
 
-#define DEFAULT_STEP         1
-#define DEFAULT_TYPABLE_STEP 10
-#define MAXIMUM_STEP         60000
+#define DEFAULT_STEP                       1
+#define DEFAULT_TYPABLE_STEP               10
+#define MAXIMUM_STEP                       60000
 
-#define MAXIMUM_LINE_COUNT 1000
+#define MAXIMUM_LINE_COUNT                 1000
 
-#define MAXIMUM_LINE_LENGTH               75
-#define MAXIMUM_CHECKSUMMED_DATA_PER_LINE 10
+#define MAXIMUM_LINE_LENGTH                75
+#define MAXIMUM_CHECKSUMMED_DATA_PER_LINE  10
 
-#define MAXIMUM_BASIC_PROGRAM_SIZE 60000
-#define MAXIMUM_INPUT_FILE_SIZE    65000
-#define MAXIMUM_BINARY_SIZE        65000
+#define MAXIMUM_BASIC_PROGRAM_SIZE         60000
+#define MAXIMUM_INPUT_FILE_SIZE            65000
+#define MAXIMUM_BINARY_SIZE                65000
 
-#define TEXT_BUFFER_SIZE           300
-#define PRINT_WARNINGS_TO_STDERR   0
-#define STDOUT_FILENAME_SUBSTITUTE "-"
+#define TEXT_BUFFER_SIZE                   300
+#define PRINT_WARNINGS_TO_STDERR           0
+#define STDOUT_FILENAME_SUBSTITUTE         "-"
 
-#define   COCO_DEFAULT_START 0x3e00
-#define DRAGON_DEFAULT_START 0x3e00
-#define    C64_DEFAULT_START 0x8000
+#define   COCO_DEFAULT_START               0x3e00
+#define DRAGON_DEFAULT_START               0x3e00
+#define    C64_DEFAULT_START               0x8000
 
         /* End of user-modifiable values */
 
