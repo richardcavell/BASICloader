@@ -1,7 +1,7 @@
 /*
       BASICloader.c
 
-      A program by Richard Cavell (c) 2017-2018
+      A program by Richard Cavell (c) 2017-2019
       https://github.com/richardcavell/BASICloader
 
     Coding standards:
