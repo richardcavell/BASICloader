@@ -15,14 +15,16 @@
       compilers are really limited, and predate *all* C standards.
 */
 
+        /* All of these are from the standard library */
+
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
-#include <ctype.h>
 #include <time.h>
-#include <limits.h>
-#include <errno.h>
 
         /* User-modifiable values */
 
