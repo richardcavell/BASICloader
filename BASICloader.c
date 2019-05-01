@@ -26,6 +26,44 @@
 #include <string.h>
 #include <time.h>
 
+enum architecture
+{
+    NO_ARCHITECTURE_CHOSEN = 0,
+    COCO,
+    DRAGON,
+    C64
+};
+
+#define   COCO_TEXT "coco"
+#define DRAGON_TEXT "dragon"
+#define    C64_TEXT "c64"
+
+enum file_format
+{
+    NO_FILE_FORMAT_CHOSEN = 0,
+    BINARY,
+    RS_DOS,
+    DRAGON_DOS,
+    PRG
+};
+
+#define     BINARY_TEXT "binary"
+#define     RS_DOS_TEXT "rsdos"
+#define DRAGON_DOS_TEXT "dragon"
+#define        PRG_TEXT "prg"
+
+enum case_choice
+{
+    NO_CASE_CHOSEN = 0,
+    UPPERCASE,
+    LOWERCASE,
+    MIXED_CASE
+};
+
+#define  UPPERCASE_TEXT "upper"
+#define  LOWERCASE_TEXT "lower"
+#define MIXED_CASE_TEXT "mixed"
+
         /* User-modifiable values */
 
 #define DEFAULT_OUTPUT_FILENAME            "LOADER.BAS"
@@ -153,44 +191,6 @@ typedef unsigned short int file_size_type;
 #define FILE_SIZE_TYPE_MAX         (file_size_type)         -1
 
         /* End of typedefs and limits macros */
-
-enum architecture
-{
-    NO_ARCHITECTURE_CHOSEN = 0,
-    COCO,
-    DRAGON,
-    C64
-};
-
-#define   COCO_TEXT "coco"
-#define DRAGON_TEXT "dragon"
-#define    C64_TEXT "c64"
-
-enum file_format
-{
-    NO_FILE_FORMAT_CHOSEN = 0,
-    BINARY,
-    RS_DOS,
-    DRAGON_DOS,
-    PRG
-};
-
-#define     BINARY_TEXT "binary"
-#define     RS_DOS_TEXT "rsdos"
-#define DRAGON_DOS_TEXT "dragon"
-#define        PRG_TEXT "prg"
-
-enum case_choice
-{
-    NO_CASE_CHOSEN = 0,
-    UPPERCASE,
-    LOWERCASE,
-    MIXED_CASE
-};
-
-#define  UPPERCASE_TEXT "upper"
-#define  LOWERCASE_TEXT "lower"
-#define MIXED_CASE_TEXT "mixed"
 
 static void
 internal_error(const char *fmt, ...)
