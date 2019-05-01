@@ -13,6 +13,10 @@
     * This code is intended to be capable of being compiled with
       retro machines and compilers. Many of these machines and
       compilers are really limited, and predate *all* C standards.
+
+    Ways you can modify this code:
+
+    * User-modifiable values can be found further down
 */
 
         /* All of these are from the standard library */
