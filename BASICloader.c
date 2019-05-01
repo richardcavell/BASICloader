@@ -16,7 +16,8 @@
 
     Ways you can modify this code:
 
-    * User-modifiable values can be found further down
+    * Customizable values can be found further down
+
 */
 
         /* All of these are from the standard library */
@@ -68,7 +69,7 @@ enum case_choice
 #define  LOWERCASE_TEXT "lower"
 #define MIXED_CASE_TEXT "mixed"
 
-        /* User-modifiable values */
+        /* Customizable values */
 
 #define DEFAULT_OUTPUT_FILENAME            "LOADER.BAS"
 #define DEFAULT_C64LC_OUTPUT_FILENAME      "loader"
