@@ -57,7 +57,7 @@ enum file_format
 #define DRAGON_DOS_TEXT "dragondos"
 #define        PRG_TEXT "prg"
 
-enum case_choice
+enum case_choice    /* Note that "case" is a C keyword */
 {
     NO_CASE_CHOSEN = 0,
     UPPERCASE,
