@@ -54,7 +54,7 @@ enum file_format
 
 #define     BINARY_TEXT "binary"
 #define     RS_DOS_TEXT "rsdos"
-#define DRAGON_DOS_TEXT "dragon"
+#define DRAGON_DOS_TEXT "dragondos"
 #define        PRG_TEXT "prg"
 
 enum case_choice
@@ -590,7 +590,7 @@ print_help_text(void)
     xprintf("  -f  --format    Input file format (%s/%s/%s/%s)\n",
                                                   BINARY_TEXT,
                                                   RS_DOS_TEXT,
-                                                  DRAGON_TEXT,
+                                                  DRAGON_DOS_TEXT,
                                                   PRG_TEXT);
     xprintf("  -c  --case      Output case (%s/%s)\n",
                                             UPPERCASE_TEXT,
