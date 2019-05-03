@@ -84,6 +84,7 @@ enum case_choice    /* Note that "case" is a C keyword */
 
 #define DEFAULT_STEP                       1
 #define DEFAULT_TYPABLE_STEP               10
+    /*  MINIMUM_STEP is defined below */
 #define MAXIMUM_STEP                       60000
 
 #define MAXIMUM_LINE_COUNT                 1000
