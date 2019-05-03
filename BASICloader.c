@@ -39,7 +39,8 @@ enum architecture
     NO_ARCHITECTURE_CHOSEN = 0,
     COCO,
     DRAGON,
-    C64
+    C64,
+    FINAL_VALUE_OF_ARCHITECTURE_ENUM
 };
 
 #define   COCO_TEXT "coco"
@@ -52,7 +53,8 @@ enum file_format
     BINARY,
     RS_DOS,
     DRAGON_DOS,
-    PRG
+    PRG,
+    FINAL_VALUE_OF_FILE_FORMAT_ENUM
 };
 
 #define     BINARY_TEXT "binary"
@@ -65,7 +67,8 @@ enum case_choice    /* Note that "case" is a C keyword */
     NO_CASE_CHOSEN = 0,
     UPPERCASE,
     LOWERCASE,
-    MIXED_CASE
+    MIXED_CASE,
+    FINAL_VALUE_OF_CASE_CHOICE_ENUM
 };
 
 #define  UPPERCASE_TEXT "upper"
