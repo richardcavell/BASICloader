@@ -20,7 +20,7 @@
 
 */
 
-        /* All of these are from the standard library */
+/* All of these #includes are from the standard library */
 
 #include <ctype.h>
 #include <errno.h>
@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+/* End of #includes */
+/* Some important enumerations and associated text #defines */
 
 enum architecture
 {
@@ -69,7 +72,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define  LOWERCASE_TEXT "lower"
 #define MIXED_CASE_TEXT "mixed"
 
-        /* Customizable values */
+/* End of enumerations and associated text #defines */
+/* Customizable values */
 
 #define DEFAULT_OUTPUT_FILENAME            "LOADER.BAS"
 #define DEFAULT_C64LC_OUTPUT_FILENAME      "loader"
@@ -104,10 +108,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define DRAGON_DEFAULT_START               0x3e00
 #define    C64_DEFAULT_START               0x8000
 
-        /* End of user-modifiable values */
-
-        /* Values to help check that the
-         * user-modifiable values are sensible */
+/* End of customizable values */
+/* Values to help check that the customizable values are sensible */
 
 #define MINIMUM_STEP                        1
 #define MINIMUM_MAXIMUM_LINE_COUNT          5
@@ -119,10 +121,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define MINIMUM_TEXT_BUFFER_SIZE          100
 #define LINE_COUNT_BENCHMARK              100
 
-        /* End of values that help check the
-         * user-modifiable values */
-
-        /* Architecture-specific values */
+/* End of values that help check the customizable values */
+/* Architecture-specific values */
 
 #define   COCO_MIN_LINE_NUMBER 0
 #define DRAGON_MIN_LINE_NUMBER 0
@@ -146,9 +146,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define HIGHEST_C64_ADDRESS    HIGHEST_64K_ADDRESS
 #define HIGHEST_RAM_ADDRESS    HIGHEST_64K_ADDRESS
 
-        /* End of architecture-specific values */
-
-        /* File format-specific values */
+/* End of architecture-specific values */
+/* File format-specific values */
 
 #define   RS_DOS_FILE_PREAMBLE_SIZE 5
 #define  RS_DOS_FILE_POSTAMBLE_SIZE 5
@@ -162,9 +161,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define DRAGON_DOS_FILE_SIZE_MINIMUM (DRAGON_DOS_FILE_HEADER_SIZE + 1)
 #define        PRG_FILE_SIZE_MINIMUM (PRG_FILE_HEADER_SIZE + 1)
 
-        /* End of file format-specific values */
-
-        /* 8-bit architecture-specific values */
+/* End of file format-specific values */
+/* 8-bit architecture-specific values */
 
 #define HIGHEST_64K_ADDRESS 0xffff
 #define HIGHEST_32K_ADDRESS 0x7fff
@@ -176,9 +174,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 
 #define FILE_SIZE_MAX 65535
 
-        /* End of 8-bit architecture-specific values */
-
-        /* Typedefs and limits macros */
+/* End of 8-bit architecture-specific values */
+/* Typedefs and limits macros */
 
 typedef unsigned short int boolean_type;
 typedef unsigned short int line_number_type;
@@ -196,7 +193,8 @@ typedef unsigned short int file_size_type;
 #define MEMORY_LOCATION_TYPE_MAX   (memory_location_type)   -1
 #define FILE_SIZE_TYPE_MAX         (file_size_type)         -1
 
-        /* End of typedefs and limits macros */
+/* End of typedefs and limits macros */
+/* Code starts here */
 
 static void
 internal_error(const char *fmt, ...)
