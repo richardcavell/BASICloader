@@ -2084,7 +2084,8 @@ inc_line_count(line_counter_type *line_count)
 
 #if (MAXIMUM_LINE_COUNT < LINE_COUNTER_TYPE_MAX)
     if (*line_count > MAXIMUM_LINE_COUNT)
-        error("Line count has exceeded the set maximum");
+        error("Line count has exceeded the maximum (%lu lines)",
+                                  (unsigned long int) MAXIMUM_LINE_COUNT);
 #endif
 }
 
