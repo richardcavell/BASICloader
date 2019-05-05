@@ -99,9 +99,9 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define MAXIMUM_LINE_LENGTH                75
 #define MAXIMUM_CHECKSUMMED_DATA_PER_LINE  10
 
-#define MAXIMUM_BASIC_PROGRAM_SIZE         60000
 #define MAXIMUM_INPUT_FILE_SIZE            65000
 #define MAXIMUM_BINARY_SIZE                65000
+#define MAXIMUM_BASIC_PROGRAM_SIZE         60000
 
 #define TEXT_BUFFER_SIZE                   300
 #define PRINT_WARNINGS_TO_STDERR           0
