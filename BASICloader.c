@@ -114,9 +114,11 @@ enum case_choice    /* Note that "case" is a C keyword */
 /* End of customizable values */
 /* Values to help check that the customizable values are sensible */
 
-#define MINIMUM_STEP                        1
-#define MINIMUM_MAXIMUM_LINE_COUNT          5
-#define MINIMUM_MAXIMUM_LINE_LENGTH        20
+#define MINIMUM_DEFAULT_FILENAME_LENGTH          1
+#define DEFAULT_STARTING_LINES_MUST_BE_POSITIVE  1
+#define MINIMUM_STEP                             1
+#define MINIMUM_MAXIMUM_LINE_COUNT               5
+#define MINIMUM_MAXIMUM_LINE_LENGTH             20
 #define MINIMUM_CHECKSUMMED_DATA_PER_LINE   1
 #define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE 50
 #define MINIMUM_MAXIMUM_INPUT_FILE_SIZE     1
