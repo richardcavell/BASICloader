@@ -39,8 +39,7 @@ enum architecture
     NO_ARCHITECTURE_CHOSEN = 0,
     COCO,
     DRAGON,
-    C64,
-    FINAL_VALUE_OF_ARCHITECTURE_ENUM
+    C64
 };
 
 #define   COCO_TEXT "coco"
@@ -53,8 +52,7 @@ enum file_format
     BINARY,
     RS_DOS,
     DRAGON_DOS,
-    PRG,
-    FINAL_VALUE_OF_FILE_FORMAT_ENUM
+    PRG
 };
 
 #define     BINARY_TEXT "binary"
@@ -62,13 +60,14 @@ enum file_format
 #define DRAGON_DOS_TEXT "dragondos"
 #define        PRG_TEXT "prg"
 
+static 
+
 enum case_choice    /* Note that "case" is a C keyword */
 {
     NO_CASE_CHOSEN = 0,
     UPPERCASE,
     LOWERCASE,
-    MIXED_CASE,
-    FINAL_VALUE_OF_CASE_CHOICE_ENUM
+    MIXED_CASE
 };
 
 #define  UPPERCASE_TEXT "upper"
@@ -125,6 +124,7 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define MINIMUM_MAXIMUM_BINARY_SIZE                     1
 #define MINIMUM_MAXIMUM_BASIC_PROGRAM_SIZE             50
 #define MINIMUM_TEXT_BUFFER_SIZE                      100
+#define MINIMUM_STDOUT_FILENAME_SUBSTITUTE_LENGTH       1
 #define LINE_COUNT_BENCHMARK                          100
 
 /* End of values that help check the customizable values */
