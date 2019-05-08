@@ -140,7 +140,8 @@ enum case_choice    /* Note that "case" is a C keyword */
 #define    C64_MAX_LINE_NUMBER 63999
 #define        MAX_LINE_NUMBER 63999
 
-/* Not including the \n at the end, and starting counting from 1 */
+/* Not including the \n at the end, or any terminating zero, and
+   starting counting from 1 */
 #define   COCO_MAX_LINE_LENGTH 249
 #define DRAGON_MAX_LINE_LENGTH 249
 #define    C64_MAX_LINE_LENGTH  79
