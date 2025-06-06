@@ -126,6 +126,41 @@ print_version(void)
     exit(EXIT_SUCCESS);
 }
 
+static void
+emit(const char *output_filename, FILE *output_fp, const char *fmt, ...)
+{
+    int vfp_code = 0;
+
+    va_list args;
+    va_start(args, fmt);
+    vfp_code = vfprintf(output_fp, fmt, args);
+    va_end(args);
+
+    if (vfp_code < 0)
+        fail_perror("%s%s%s%i%c", "Couldn't emit a line to the output file, \"",
+                                  output_filename,
+                                  "\".\nError code: ",
+                                  errno,
+                                  '\n');
+}
+
+static long
+get_line_no(long step)
+{
+    static long line_no = 0;
+
+    line_no += step;
+
+    return line_no;
+}
+
+static void
+emit_preamble(const char *output_filename, FILE *output_fp, long step)
+{
+    emit (output_filename, output_fp, "%i REM\n", get_line_no(step));
+    emit (output_filename, output_fp, "%i REM\n", get_line_no(step));
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -137,6 +172,8 @@ main(int argc, char *argv[])
 
     const char *output_fname = "TYPEIN.BAS";
     FILE       *output_fp    = NULL;
+
+    long step = 10;    /* default value */
 
     if (invocation == NULL)  /* The early Amigas would do this */
         fail_msg("Cannot process command line arguments.\n");
@@ -169,6 +206,24 @@ main(int argc, char *argv[])
                          if (output_fname == NULL)
                              fail_msg("%s", "No output filename was provided\n");
                      }
+        else if (strcmp(*argv, "-s") == 0 ||
+                 strcmp(*argv, "--step") == 0)
+                     {
+                         const char *arg = *++argv;
+                         char *endptr = NULL;
+
+                         if (arg == NULL)
+                             fail_msg("%s", "No step size was provided\n");
+
+                         step = strtol(arg, &endptr, 10); /* no need for non-decimals */
+                         if (*endptr != '\0')
+                             fail_msg("%s",
+                               "The provided step size was not a decimal number\n");
+                     }
+        else
+        {
+            fail_msg("%s%s%s", "Unrecognized option \"", *argv, "\".\n");
+        }
 
         ++argv;
     }
@@ -198,6 +253,8 @@ main(int argc, char *argv[])
                                   errno,
                                   '\n');
     }
+
+    emit_preamble(output_fname, output_fp, step);
 
     if (fclose(output_fp) == EOF)
     {
