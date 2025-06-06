@@ -135,6 +135,9 @@ main(int argc, char *argv[])
     const char *input_fname = NULL;
     FILE       *input_fp    = NULL;
 
+    const char *output_fname = "TYPEIN.BAS";
+    FILE       *output_fp    = NULL;
+
     if (invocation == NULL)  /* The early Amigas would do this */
         fail_msg("Cannot process command line arguments.\n");
 
@@ -159,6 +162,14 @@ main(int argc, char *argv[])
                  strcmp(*argv, "--version") == 0)
                      print_version();
 
+        else if (strcmp(*argv, "-o") == 0 ||
+                 strcmp(*argv, "--output") == 0)
+                     {
+                         output_fname = *++argv;
+                         if (output_fname == NULL)
+                             fail_msg("%s", "No output filename was provided\n");
+                     }
+
         ++argv;
     }
 
@@ -168,11 +179,31 @@ main(int argc, char *argv[])
     input_fname  = *argv;
     input_fp     = fopen(*argv, "r");
 
-    if (input_fp==NULL)
+    if (input_fp == NULL)
     {
         fail_perror("%s%s%s%i%c", "Couldn't open file \"",
                                   *argv,
                                   "\".\nError code: ",
+                                  errno,
+                                  '\n');
+    }
+
+    output_fp = fopen(output_fname, "w");
+
+    if (output_fp == NULL)
+    {
+        fail_perror("%s%s%s%i%c", "Couldn't open file \"",
+                                  output_fname,
+                                  "\" for output.\nError code: ",
+                                  errno,
+                                  '\n');
+    }
+
+    if (fclose(output_fp) == EOF)
+    {
+        fail_perror("%s%s%s%i%c", "Closure of file \"",
+                                  output_fname,
+                                  "\" failed.\nError code: ",
                                   errno,
                                   '\n');
     }
@@ -185,6 +216,7 @@ main(int argc, char *argv[])
                                   errno,
                                   '\n');
     }
+
 
     return EXIT_SUCCESS;
 }
