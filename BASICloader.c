@@ -174,7 +174,7 @@ main(int argc, char *argv[])
     }
 
     if (*argv == NULL)
-        fail_msg("%s", "No input file given\n"); /* Exits abnormally */
+        fail_msg("%s", "No input filename was provided\n"); /* Exits abnormally */
 
     input_fname  = *argv;
     input_fp     = fopen(*argv, "r");
@@ -216,7 +216,6 @@ main(int argc, char *argv[])
                                   errno,
                                   '\n');
     }
-
 
     return EXIT_SUCCESS;
 }
