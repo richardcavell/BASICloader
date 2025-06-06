@@ -12,7 +12,8 @@
 
   /* Begin user-modifiable values */
 
-
+#define DEFAULT_STEP 10
+#define DEFAULT_OUTPUT_FILENAME "typein.bas"
 
   /* End user-modifiable values */
 
@@ -69,10 +70,16 @@ print_help(const char *invocation)
 {
     xprintf("%s", "BASICloader v1.0 by Richard Cavell\n");
     xprintf("%s%s%s", "Usage: ", invocation, " [options] input filename\n");
-    xprintf("%s",     "  -h or --help         this help text\n");
-    xprintf("%s",     "  -i or --info         what this program does\n");
-    xprintf("%s",     "  -l or --license      your license to use this software\n");
-    xprintf("%s",     "  -v or --version      version number\n");
+    xprintf("%s",     "  -h or --help      this help text\n");
+    xprintf("%s",     "  -i or --info      what this program does\n");
+    xprintf("%s",     "  -l or --license   your license to use this software\n");
+    xprintf("%s",     "  -v or --version   version number\n");
+    xprintf("%c", '\n');
+    xprintf("%s%s%s",     "  -o or --output    name of output file (default \"",
+                                           DEFAULT_OUTPUT_FILENAME, "\")\n");
+    xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
+                                           DEFAULT_STEP, ")\n");
+    xprintf("%s",     "  --                stop processing options\n");
 
     exit(EXIT_SUCCESS);
 }
@@ -157,8 +164,10 @@ get_line_no(long step)
 static void
 emit_preamble(const char *output_filename, FILE *output_fp, long step)
 {
-    emit (output_filename, output_fp, "%i REM\n", get_line_no(step));
-    emit (output_filename, output_fp, "%i REM\n", get_line_no(step));
+    emit (output_filename, output_fp,
+          "%i rem created by basicloader\n", get_line_no(step));
+    emit (output_filename, output_fp,
+          "%i rem   by richard cavell\n", get_line_no(step));
 }
 
 int
@@ -170,10 +179,12 @@ main(int argc, char *argv[])
     const char *input_fname = NULL;
     FILE       *input_fp    = NULL;
 
-    const char *output_fname = "TYPEIN.BAS";
+    const char *output_fname = DEFAULT_OUTPUT_FILENAME;
     FILE       *output_fp    = NULL;
 
-    long step = 10;    /* default value */
+    long step = DEFAULT_STEP;    /* default value */
+
+    int stop_processing_options = 0;
 
     if (invocation == NULL)  /* The early Amigas would do this */
         fail_msg("Cannot process command line arguments.\n");
@@ -181,7 +192,8 @@ main(int argc, char *argv[])
     (void) argc;  /* we don't use this */
     ++argv;
 
-    while ((*argv != NULL) && (**argv == '-'))
+    while (stop_processing_options == 0 &&
+           (*argv != NULL) && (**argv == '-'))
     {
         if (strcmp(*argv, "-h") == 0 ||
             strcmp(*argv, "--help") == 0)
@@ -220,6 +232,8 @@ main(int argc, char *argv[])
                              fail_msg("%s",
                                "The provided step size was not a decimal number\n");
                      }
+        else if (strcmp(*argv, "--") == 0)
+                     stop_processing_options = 1;
         else
         {
             fail_msg("%s%s%s", "Unrecognized option \"", *argv, "\".\n");
