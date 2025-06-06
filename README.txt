@@ -30,6 +30,8 @@ permission.
 Please don't try to pretend that you wrote the BASIC portion if you didn't. You should give
 me and BASICloader the credit, if you reasonably can.
 
+This program is licensed to you under the "MIT License".
+
 You can see this project any time at https://github.com/richardcavell/BASICloader
 
 You can contact me at richardcavell@mail.com
