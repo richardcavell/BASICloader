@@ -4,6 +4,7 @@
  * BASICloader.c
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -174,7 +175,8 @@ emit_machine_preamble(const char *output_filename, FILE *output_fp, long step, e
         break;  /* There is no standard preamble */
 
     case coco:
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 100, 3896");
+        /* I'm unable to find a value for the second parameter to CLEAR that suits all Cocos */
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20\n");
         break;
 
     default:
@@ -209,7 +211,7 @@ emit_loop(const char *output_filename, FILE *output_fp, long step,
     emit (output_filename, output_fp,
            "%i read a\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i i = poke i, a\n", get_line_no(step));
+           "%i poke i, a\n", get_line_no(step));
     emit (output_filename, output_fp,
            "%i i = i + 1\n", get_line_no(step));
     emit (output_filename, output_fp,
@@ -281,6 +283,40 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
                                              '\n');
             data_count = 0;
         }
+    }
+}
+
+static void
+convert_output_to_uppercase(const char *output_fname)
+{
+    FILE *output_fp = fopen(output_fname, "r+");
+    int ch;
+    long pos;
+
+    if (output_fp == NULL)
+    {
+        fail_perror("%s%s%s%i%c", "Couldn't open file \"",
+                                  *output_fname,
+                                  "\" for uppercase substitution.\nError code: ",
+                                  errno,
+                                  '\n');
+    }
+
+    while ((ch = fgetc(output_fp)) != EOF)
+    {
+        pos = ftell(output_fp);
+        fseek(output_fp, pos-1, SEEK_SET);
+        fputc(toupper(ch), output_fp);
+        fseek(output_fp, pos, SEEK_SET);
+    }
+
+    if (fclose(output_fp) == EOF)
+    {
+        fail_perror("%s%s%s%i%c", "Closure of file \"",
+                                  output_fname,
+                                  "\" failed.\nError code: ",
+                                  errno,
+                                  '\n');
     }
 }
 
@@ -468,6 +504,16 @@ main(int argc, char *argv[])
                                   "\" failed.\nError code: ",
                                   errno,
                                   '\n');
+    }
+
+    switch(target)
+    {
+    case none:
+    case coco:
+        convert_output_to_uppercase(output_fname);
+        break;
+    default:  /* Leave it as lowercase */
+        break;
     }
 
     return EXIT_SUCCESS;
