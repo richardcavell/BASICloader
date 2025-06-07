@@ -19,7 +19,7 @@
 
   /* End user-modifiable values */
 
-enum target_arch { none = 0, coco };
+enum target_arch { none = 0, coco, coco_extended, coco_disk_extended };
 
 static void
 fail_msg(const char *fmt, ...)
@@ -177,6 +177,21 @@ emit_machine_preamble(const char *output_filename, FILE *output_fp, long step, e
     case coco:
         /* I'm unable to find a value for the second parameter to CLEAR that suits all Cocos */
         emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20\n");
+        break;
+
+    case coco_extended: /* You can assume 16 kilobytes of RAM */
+        /* This second parameter to clear is about the lowest that any Coco can handle */
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20, 9850\n");
+                                   /* pclear 0 doesn't work */
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " pclear 1\n");
+        break;
+
+    case coco_disk_extended: /* You can assume 16 kilobytes of RAM */
+        /* This second parameter to clear is about the lowest that any Coco can handle */
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20, 9850\n");
+                                   /* pclear 0 doesn't work */
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " pclear 1\n");
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " files 0\n");
         break;
 
     default:
@@ -418,6 +433,10 @@ main(int argc, char *argv[])
                              target = none;
                          if (strcmp(*argv, "coco") == 0)
                              target = coco;
+                         if (strcmp(*argv, "coco-extended") == 0)
+                             target = coco_extended;
+                         if (strcmp(*argv, "coco-disk-extended") == 0)
+                             target = coco_disk_extended;
                          else
                              fail_msg("%s%s%s", "Target architecture", *argv, "unknown\n");
                      }
@@ -510,6 +529,8 @@ main(int argc, char *argv[])
     {
     case none:
     case coco:
+    case coco_extended:
+    case coco_disk_extended:
         convert_output_to_uppercase(output_fname);
         break;
     default:  /* Leave it as lowercase */
