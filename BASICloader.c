@@ -18,6 +18,8 @@
 
   /* End user-modifiable values */
 
+enum target_arch { none, coco };
+
 static void
 fail_msg(const char *fmt, ...)
 {
@@ -281,6 +283,8 @@ main(int argc, char *argv[])
 
     long step   = DEFAULT_STEP;
 
+    enum target_arch target = none;
+
     int stop_processing_options = 0;
 
     if (invocation == NULL)  /* The early Amigas would do this */
@@ -328,6 +332,10 @@ main(int argc, char *argv[])
                          if (*endptr != '\0')
                              fail_msg("%s",
                                "The provided step size was not a decimal number\n");
+                         else if (step < 1 || step > 59999)
+                             fail_msg("%s%i%s", "The provided step size of ",
+                                                step,
+                                                " was outside of the range 1...59999");
                      }
         else if (strcmp(*argv, "-b") == 0 ||
                  strcmp(*argv, "--begin") == 0)
@@ -342,6 +350,21 @@ main(int argc, char *argv[])
                          if (*endptr != '\0')
                              fail_msg("%s",
                                "The provided beginning line number was not a decimal number\n");
+                     }
+        else if (strcmp(*argv, "-t") == 0 ||
+                 strcmp(*argv, "--target") == 0)
+                     {
+                         const char *arg = *++argv;
+
+                         if (arg == NULL)
+                             fail_msg("%s", "No target architecture was provided\n");
+
+                         if (strcmp(*argv, "none") == 0)
+                             target = none;
+                         if (strcmp(*argv, "coco") == 0)
+                             target = coco;
+                         else
+                             fail_msg("%s%s%s", "Target architecture", *argv, "unknown\n");
                      }
         else if (strcmp(*argv, "--") == 0)
                      stop_processing_options = 1;

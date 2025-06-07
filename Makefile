@@ -55,5 +55,5 @@ test-coco: $(BLDRNAME)
 	@./$(BLDRNAME) --target coco --begin 4000 -o Tests/testcoco.bas Tests/testcoco.bin
 	@echo "Done"
 	@echo "Now running XRoar..."
-	@xroar Tests/testcoco.bas
+	@xroar -machine coco -run Tests/testcoco.bas
 	@echo "Done"
