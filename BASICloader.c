@@ -238,7 +238,7 @@ This is what we should end up with:
 }
 
 static void
-emit_data(const char *output_filename, FILE *output_fp, long step)
+emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long step)
 {
     int  data_count = 0;
     long line_no    = 0;
@@ -247,9 +247,9 @@ emit_data(const char *output_filename, FILE *output_fp, long step)
 
     while(d != EOF)
     {
-        d = fgetc(output_fp);
+        d = fgetc(input_fp); /* should be a value from 0-255 or EOF*/
 
-        if (data_count == 0) /* starting a new line */
+        if (data_count == 0 && d != EOF) /* starting a new line */
         {
             emit (output_filename, output_fp,
                   "%i data ",
@@ -257,13 +257,16 @@ emit_data(const char *output_filename, FILE *output_fp, long step)
 
             checksum = 0;
         }
-        else
+        else if (d != EOF)
         {
             emit (output_filename, output_fp, ", ");
         }
 
-        emit(output_filename, output_fp, "%i", d);
-        data_count++;
+        if (d != EOF)
+        {
+            emit(output_filename, output_fp, "%i", d);
+            data_count++;
+        }
 
         if (data_count == 10 || d == EOF)
         {
@@ -422,7 +425,7 @@ main(int argc, char *argv[])
 
     emit_preamble(output_fname, output_fp, step);
     emit_loop(output_fname, output_fp, step, begin, end);
-    emit_data(output_fname, output_fp, step);
+    emit_data(input_fp, output_fname, output_fp, step);
 
     if (fclose(output_fp) == EOF)
     {
