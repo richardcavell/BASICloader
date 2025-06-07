@@ -1,0 +1,34 @@
+BASICloader
+by Richard Cavell
+FAQ.txt
+
+What is the preamble?
+
+  Some machines have instructions that can modify the memory map. When
+  designing your program, you can take these instructions into account.
+
+  For example, the Color Computer has the instruction "CLEAR". Extended
+  Color BASIC has "PCLEAR", and Disk Extended Color BASIC has "FILES".
+
+  The Commodore 64 has pointers within the first 256 bytes of RAM that
+  can be adjusted to ensure that some memory is reserved for your
+  program.
+
+I'm having trouble using the output directly with an emulator
+
+  The output of BASICloader is designed to be printed on paper and then
+  distributed to users, who would type them in by hand.
+
+  On a modern machine, you can use the output file directly in an
+  emulator. If you do, be aware of case sensitivity.
+
+  The filename "typein.bas" might need to be capitalized to work with
+  some tools. As to the contents of the file, BASICloader produces
+  uppercase output by default, but that can be changed by giving
+  --lowercase on the command line.
+
+Are there license restrictions on the output of BASICloader?
+
+  Yes. Please ensure that credit is given to me and the BASICloader
+  program. Other than that, you can do as you please with the generated
+  type-in programs.
