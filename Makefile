@@ -24,7 +24,7 @@ CFLAGS   += -fstack-protector-strong
 CFLAGS   += -g -O2
 LDFLAGS   = -Wl,-z,defs -Wl,-O1 -Wl,--gc-sections -Wl,-z,relro
 
-.PHONY: all clean help info license
+.PHONY: all clean help info license test-coco
 all: $(BLDRNAME)
 
 $(BLDRNAME): BASICloader.c
@@ -41,6 +41,19 @@ help info:
 	@echo "make clean"
 	@echo "make info"
 	@echo "make license"
+	@echo "make test-coco"
 
 license:
 	@cat LICENSE
+
+# This assumes that you have installed asm6809 and XRoar, both by Ciaran Anscomb
+test-coco: $(BLDRNAME)
+	@echo "Building testcoco.bin..."
+	@asm6809 -o Tests/testcoco.bin Tests/testcoco.asm
+	@echo "Done"
+	@echo "Now running BASICloader..."
+	@./$(BLDRNAME) --target coco --begin 4000 -o Tests/testcoco.bas Tests/testcoco.bin
+	@echo "Done"
+	@echo "Now running XRoar..."
+	@xroar Tests/testcoco.bas
+	@echo "Done"
