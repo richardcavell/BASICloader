@@ -14,7 +14,7 @@
   /* Begin user-modifiable values */
 
 #define DEFAULT_STEP  10
-
+#define DEFAULT_UPPERCASE 0
 #define DEFAULT_OUTPUT_FILENAME "typein.bas"
 
   /* End user-modifiable values */
@@ -85,6 +85,7 @@ print_help(const char *invocation)
     xprintf("%s",         "  -p or --preamble  Initial commands at the top of the program\n");
     xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
                                            DEFAULT_STEP, ")\n");
+    xprintf("%s",         "  -u or --uppercase Output the program in uppercase (default is lowercase)\n");
     xprintf("%s",         "  --                stop processing options\n");
 
     exit(EXIT_SUCCESS);
@@ -332,6 +333,8 @@ main(int argc, char *argv[])
 
     long step   = DEFAULT_STEP;
 
+    int uppercase = DEFAULT_UPPERCASE;
+
     enum target_arch target = none;
 
     const char *preamble = NULL;
@@ -370,6 +373,14 @@ main(int argc, char *argv[])
                          if (output_fname == NULL)
                              fail_msg("%s", "No output filename was provided\n");
                      }
+
+        else if (strcmp(*argv, "-u") == 0 ||
+                 strcmp(*argv, "--uppercase") == 0)
+                     uppercase = 1;
+
+        else if (strcmp(*argv, "--lowercase") == 0)
+                     uppercase = 0;
+
         else if (strcmp(*argv, "-s") == 0 ||
                  strcmp(*argv, "--step") == 0)
                      {
@@ -497,6 +508,8 @@ main(int argc, char *argv[])
     emit_loop(output_fname, output_fp, step, begin, end);
     emit_data(input_fp, output_fname, output_fp, step);
 
+    (void) target;
+
     if (fclose(output_fp) == EOF)
     {
         fail_perror("%s%s%s%i%c", "Closure of file \"",
@@ -515,17 +528,8 @@ main(int argc, char *argv[])
                                   '\n');
     }
 
-    switch(target)
-    {
-    case none:
-    case coco:
-    case coco_extended:
-    case coco_disk_extended:
+    if (uppercase)
         convert_output_to_uppercase(output_fname);
-        break;
-    default:  /* Leave it as lowercase */
-        break;
-    }
 
     return EXIT_SUCCESS;
 }
