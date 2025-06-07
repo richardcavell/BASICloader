@@ -12,8 +12,6 @@
 
   /* Begin user-modifiable values */
 
-#define DEFAULT_BEGIN 8192
-#define DEFAULT_END   8192
 #define DEFAULT_STEP  10
 
 #define DEFAULT_OUTPUT_FILENAME "typein.bas"
@@ -335,10 +333,6 @@ main(int argc, char *argv[])
     if (begin == -1)
         fail_msg("No beginning memory location was provided\n");
 
-/* measure length */
-
-    end = begin + length - 1;
-
     input_fname  = *argv;
     input_fp     = fopen(*argv, "r");
 
@@ -350,6 +344,29 @@ main(int argc, char *argv[])
                                   errno,
                                   '\n');
     }
+
+    if (fseek(input_fp, 0, SEEK_END) == -1)
+    {
+        fail_perror("%s%s%s%i%c", "Couldn't seek the end of file \"",
+                                  *argv,
+                                  "\".\nError code: ",
+                                  errno,
+                                  '\n');
+    }
+
+    length = ftell(input_fp);
+    if (length == -1)
+    {
+        fail_perror("%s%s%s%i%c", "Couldn't get size of input file \"",
+                                  *argv,
+                                  "\".\nError code: ",
+                                  errno,
+                                  '\n');
+    }
+
+    rewind(input_fp);
+
+    end = begin + length - 1;
 
     output_fp = fopen(output_fname, "w");
 
