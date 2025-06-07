@@ -408,10 +408,10 @@ main(int argc, char *argv[])
                          if (arg == NULL)
                              fail_msg("%s", "No beginning line number was provided\n");
 
-                         begin = strtol(arg, &endptr, 10); /* no need for non-decimals */
+                         begin = strtol(arg, &endptr, 0); /* we can use non-decimals */
                          if (*endptr != '\0')
                              fail_msg("%s",
-                               "The provided beginning line number was not a decimal number\n");
+                               "The provided begin memory location is unclear\n");
                      }
         else if (strcmp(*argv, "-p") == 0 ||
                  strcmp(*argv, "--preamble") == 0)
