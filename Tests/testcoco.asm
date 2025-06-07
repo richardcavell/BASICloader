@@ -23,5 +23,5 @@ loop:
 end:	clra
 	rts
 
-msg:	FCN "TEST SUCCEEDED"
+msg:	FCN "TEST SUCCEEDED\n"
 	END
