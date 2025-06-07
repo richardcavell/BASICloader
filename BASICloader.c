@@ -14,7 +14,7 @@
   /* Begin user-modifiable values */
 
 #define DEFAULT_STEP  10
-#define DEFAULT_UPPERCASE 0
+#define DEFAULT_LOWERCASE 0
 #define DEFAULT_OUTPUT_FILENAME "typein.bas"
 
   /* End user-modifiable values */
@@ -85,8 +85,9 @@ print_help(const char *invocation)
     xprintf("%s",         "  -p or --preamble  Initial commands at the top of the program\n");
     xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
                                            DEFAULT_STEP, ")\n");
-    xprintf("%s",         "  -u or --uppercase Output the program in uppercase (default is lowercase)\n");
+    xprintf("%s",         "  -w or --lowercase Output the program in lowercase (default is uppercase)\n");
     xprintf("%s",         "  --                stop processing options\n");
+                  /* There is also --uppercase but it's not listed here */
 
     exit(EXIT_SUCCESS);
 }
@@ -94,12 +95,12 @@ print_help(const char *invocation)
 static void
 print_info(void)
 {
-    xprintf("This program is a type-in generator.\n\n");
-    xprintf("You supply a machine-language program, and\n");
-    xprintf("this program will create a BASIC program\n");
-    xprintf("that will poke the machine-language program\n");
-    xprintf("into the computer's memory.\n\n");
-    xprintf("See https://github.com/richardcavell/BASICloader\n");
+    xprintf("%s", "This program is a type-in generator.\n\n");
+    xprintf("%s", "You supply a machine-language program, and\n");
+    xprintf("%s", "this program will create a BASIC program\n");
+    xprintf("%s", "that will poke the machine-language program\n");
+    xprintf("%s", "into the computer's memory.\n\n");
+    xprintf("%s", "See https://github.com/richardcavell/BASICloader\n");
 
     exit(EXIT_SUCCESS);
 }
@@ -107,8 +108,8 @@ print_info(void)
 static void
 print_license(void)
 {
-    xprintf("Copyright 2025 Richard Cavell\n\n");
-    xprintf("Permission is hereby granted, free of charge,"
+    xprintf("%s", "Copyright 2025 Richard Cavell\n\n");
+    xprintf("%s", "Permission is hereby granted, free of charge,"
             " to any person obtaining a copy of this software"
             " and associated documentation files (the “Software”),"
             " to deal in the Software without restriction,"
@@ -117,10 +118,10 @@ print_license(void)
             " sell copies of the Software, and to permit persons to"
             " whom the Software is furnished to do so, subject to"
             " the following conditions:\n\n");
-    xprintf("The above copyright notice and this permission notice"
+    xprintf("%s", "The above copyright notice and this permission notice"
             " shall be included in all copies or substantial"
             " portions of the Software.\n\n");
-    xprintf("THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF"
+    xprintf("%s", "THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF"
             " ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT"
             " LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS"
             " FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO"
@@ -136,7 +137,7 @@ print_license(void)
 static void
 print_version(void)
 {
-    xprintf("1.0\n");
+    xprintf("%s", "1.0\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -178,9 +179,9 @@ static void
 emit_preamble(const char *output_filename, FILE *output_fp, long step)
 {
     emit (output_filename, output_fp,
-          "%i%s", get_line_no(step), " rem created by basicloader\n");
+          "%i%s", get_line_no(step), " REM CREATED BY BASICLOADER\n");
     emit (output_filename, output_fp,
-          "%i%s", get_line_no(step), " rem   by richard cavell\n");
+          "%i%s", get_line_no(step), " REM    BY RICHARD CAVELL\n");
 }
 
 static void
@@ -191,43 +192,43 @@ emit_loop(const char *output_filename, FILE *output_fp, long step,
     long begin_loop = 0;
 
     emit (output_filename, output_fp,
-           "%i i = %i\n", get_line_no(step), begin);
+           "%i I = %i\n", get_line_no(step), begin);
     emit (output_filename, output_fp,
-           "%i cs = 0\n", begin_loop = get_line_no(step));
+           "%i CS = 0\n", begin_loop = get_line_no(step));
     emit (output_filename, output_fp,
-           "%i for x = 1 to 10\n", get_line_no(step));
+           "%i FOR X = 1 TO 10\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i read a\n", get_line_no(step));
+           "%i READ A\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i poke i, a\n", get_line_no(step));
+           "%i POKE I, A\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i cs = cs + a\n", get_line_no(step));
+           "%i CS = CS + A\n", get_line_no(step));
     line_no = get_line_no(step);
     emit (output_filename, output_fp,
-           "%i if (i=%i) then goto %i\n", line_no,
+           "%i IF (I=%i) THEN GOTO %i\n", line_no,
                                           end,
                                           line_no + 3 * step);
     emit (output_filename, output_fp,
-           "%i i = i + 1\n", get_line_no(step));
+           "%i I = I + 1\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i next x\n", get_line_no(step));
+           "%i NEXT X\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i read l: read s\n", get_line_no(step));
+           "%i READ L: READ S\n", get_line_no(step));
 
     line_no = get_line_no(step);
     emit (output_filename, output_fp,
-           "%i if (cs <> s) then %i\n", line_no,
+           "%i IF (CS <> S) THEN %i\n", line_no,
                                         line_no + 3 * step);
     emit (output_filename, output_fp,
-           "%i if (i<%i) then %i\n", get_line_no(step), end, begin_loop);
+           "%i IF (I<%i) THEN %i\n", get_line_no(step), end, begin_loop);
     emit (output_filename, output_fp,
-           "%i exec %i\n", get_line_no(step), begin);
+           "%i EXEC %i\n", get_line_no(step), begin);
     emit (output_filename, output_fp,
-           "%i end\n", get_line_no(step));
+           "%i END\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i print \"checksum error in line\";l\n", get_line_no(step));
+           "%i PRINT \"CHECKSUM ERROR IN LINE\";L\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i end\n", get_line_no(step));
+           "%i END\n", get_line_no(step));
 }
 
 static void
@@ -244,7 +245,7 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
         if (data_count == 0)  /* start a new line */
         {
             emit(output_filename, output_fp,
-                 "%i data ",
+                 "%i DATA ",
                  line_no = get_line_no(step));
 
             checksum = 0;
@@ -282,7 +283,7 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
 }
 
 static void
-convert_output_to_uppercase(const char *output_fname)
+convert_output_to_lowercase(const char *output_fname)
 {
     FILE *output_fp = fopen(output_fname, "r+");
     int ch;
@@ -292,7 +293,7 @@ convert_output_to_uppercase(const char *output_fname)
     {
         fail_perror("%s%s%s%i%c", "Couldn't open file \"",
                                   *output_fname,
-                                  "\" for uppercase substitution.\nError code: ",
+                                  "\" for lowercase substitution.\nError code: ",
                                   errno,
                                   '\n');
     }
@@ -301,7 +302,7 @@ convert_output_to_uppercase(const char *output_fname)
     {
         pos = ftell(output_fp);
         fseek(output_fp, pos-1, SEEK_SET);
-        fputc(toupper(ch), output_fp);
+        fputc(tolower(ch), output_fp);
         fseek(output_fp, pos, SEEK_SET);
     }
 
@@ -333,7 +334,7 @@ main(int argc, char *argv[])
 
     long step   = DEFAULT_STEP;
 
-    int uppercase = DEFAULT_UPPERCASE;
+    int lowercase = DEFAULT_LOWERCASE;
 
     enum target_arch target = none;
 
@@ -374,12 +375,12 @@ main(int argc, char *argv[])
                              fail_msg("%s", "No output filename was provided\n");
                      }
 
-        else if (strcmp(*argv, "-u") == 0 ||
-                 strcmp(*argv, "--uppercase") == 0)
-                     uppercase = 1;
+        else if (strcmp(*argv, "-w") == 0 ||
+                 strcmp(*argv, "--lowercase") == 0)
+                     lowercase = 1;
 
-        else if (strcmp(*argv, "--lowercase") == 0)
-                     uppercase = 0;
+        else if (strcmp(*argv, "--uppercase") == 0)  /* This is for symmetry */
+                     lowercase = 0;
 
         else if (strcmp(*argv, "-s") == 0 ||
                  strcmp(*argv, "--step") == 0)
@@ -453,7 +454,7 @@ main(int argc, char *argv[])
         fail_msg("%s", "No input filename was provided\n"); /* Exits abnormally */
 
     if (begin == -1)
-        fail_msg("No beginning memory location was provided\n");
+        fail_msg("%s", "No beginning memory location was provided\n");
 
     input_fname  = *argv;
     input_fp     = fopen(*argv, "r");
@@ -528,8 +529,8 @@ main(int argc, char *argv[])
                                   '\n');
     }
 
-    if (uppercase)
-        convert_output_to_uppercase(output_fname);
+    if (lowercase)
+        convert_output_to_lowercase(output_fname);
 
     return EXIT_SUCCESS;
 }
