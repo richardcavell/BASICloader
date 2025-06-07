@@ -19,8 +19,6 @@
 
   /* End user-modifiable values */
 
-enum target_arch { none = 0, coco, coco_extended, coco_disk_extended };
-
 static void
 fail_msg(const char *fmt, ...)
 {
@@ -79,9 +77,9 @@ print_help(const char *invocation)
     xprintf("%s",         "  -l or --license   your license to use this software\n");
     xprintf("%s",         "  -v or --version   version number\n");
     xprintf("%c", '\n');
+    xprintf("%s",         "  -b or --begin     Beginning memory location\n");
     xprintf("%s%s%s",     "  -o or --output    name of output file (default \"",
                                            DEFAULT_OUTPUT_FILENAME, "\")\n");
-    xprintf("%s",         "  -b or --begin     Beginning memory location\n");
     xprintf("%s",         "  -p or --preamble  Initial commands at the top of the program\n");
     xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
                                            DEFAULT_STEP, ")\n");
@@ -336,8 +334,6 @@ main(int argc, char *argv[])
 
     int lowercase = DEFAULT_LOWERCASE;
 
-    enum target_arch target = none;
-
     const char *preamble = NULL;
 
     int stop_processing_options = 0;
@@ -421,25 +417,6 @@ main(int argc, char *argv[])
                          if (preamble == NULL)
                              fail_msg("%s", "No preamble was provided\n");
                      }
-        else if (strcmp(*argv, "-t") == 0 ||
-                 strcmp(*argv, "--target") == 0)
-                     {
-                         const char *arg = *++argv;
-
-                         if (arg == NULL)
-                             fail_msg("%s", "No target architecture was provided\n");
-
-                         else if (strcmp(*argv, "none") == 0)
-                             target = none;
-                         else if (strcmp(*argv, "coco") == 0)
-                             target = coco;
-                         else if (strcmp(*argv, "coco-extended") == 0)
-                             target = coco_extended;
-                         else if (strcmp(*argv, "coco-disk-extended") == 0)
-                             target = coco_disk_extended;
-                         else
-                             fail_msg("%s%s%s", "Target architecture \"", *argv, "\" unknown\n");
-                     }
         else if (strcmp(*argv, "--") == 0)
                      stop_processing_options = 1;
         else
@@ -508,8 +485,6 @@ main(int argc, char *argv[])
     emit_preamble(output_fname, output_fp, step);
     emit_loop(output_fname, output_fp, step, begin, end);
     emit_data(input_fp, output_fname, output_fp, step);
-
-    (void) target;
 
     if (fclose(output_fp) == EOF)
     {
