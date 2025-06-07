@@ -296,7 +296,7 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
         }
     }
 
-    if ((data_count < 10) && (d == EOF))
+    if ((data_count > 0) && (d == EOF))
     {
         /* Add the line number and checksum to the last line */
         emit(output_filename, output_fp, "%s%li%s%i%c",
