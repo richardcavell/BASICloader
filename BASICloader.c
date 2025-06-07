@@ -82,6 +82,7 @@ print_help(const char *invocation)
     xprintf("%s%s%s",     "  -o or --output    name of output file (default \"",
                                            DEFAULT_OUTPUT_FILENAME, "\")\n");
     xprintf("%s",         "  -b or --begin     Beginning memory location\n");
+    xprintf("%s",         "  -p or --preamble  Initial commands at the top of the program\n");
     xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
                                            DEFAULT_STEP, ")\n");
     xprintf("%s",         "  --                stop processing options\n");
@@ -167,38 +168,9 @@ get_line_no(long step)
 }
 
 static void
-emit_machine_preamble(const char *output_filename, FILE *output_fp, long step, enum target_arch target)
+emit_given_preamble(const char *output_filename, FILE *output_fp, long step, const char *preamble)
 {
-    switch(target)
-    {
-    case none:
-        break;  /* There is no standard preamble */
-
-    case coco:
-        /* I'm unable to find a value for the second parameter to CLEAR that suits all Cocos */
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20\n");
-        break;
-
-    case coco_extended: /* You can assume 16 kilobytes of RAM */
-        /* This second parameter to clear is about the lowest that any Coco can handle */
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20, 9850\n");
-                                   /* pclear 0 doesn't work */
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " pclear 1\n");
-        break;
-
-    case coco_disk_extended: /* You can assume 16 kilobytes of RAM */
-        /* This second parameter to clear is about the lowest that any Coco can handle */
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 20, 9850\n");
-                                   /* pclear 0 doesn't work */
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " pclear 1\n");
-        emit(output_filename, output_fp, "%i%s", get_line_no(step), " files 0\n");
-        break;
-
-    default:
-        fail_msg("%s", "Unknown target");
-        break;
-    }
-
+    emit(output_filename, output_fp, "%i%s%c", get_line_no(step), preamble, '\n');
 }
 
 static void
@@ -362,6 +334,8 @@ main(int argc, char *argv[])
 
     enum target_arch target = none;
 
+    const char *preamble = NULL;
+
     int stop_processing_options = 0;
 
     if (invocation == NULL)  /* The early Amigas would do this */
@@ -427,6 +401,13 @@ main(int argc, char *argv[])
                          if (*endptr != '\0')
                              fail_msg("%s",
                                "The provided beginning line number was not a decimal number\n");
+                     }
+        else if (strcmp(*argv, "-p") == 0 ||
+                 strcmp(*argv, "--preamble") == 0)
+                     {
+                         preamble = *++argv;
+                         if (preamble == NULL)
+                             fail_msg("%s", "No preamble was provided\n");
                      }
         else if (strcmp(*argv, "-t") == 0 ||
                  strcmp(*argv, "--target") == 0)
@@ -509,7 +490,9 @@ main(int argc, char *argv[])
                                   '\n');
     }
 
-    emit_machine_preamble(output_fname, output_fp, step, target);
+    if (preamble)
+        emit_given_preamble(output_fname, output_fp, step, preamble);
+
     emit_preamble(output_fname, output_fp, step);
     emit_loop(output_fname, output_fp, step, begin, end);
     emit_data(input_fp, output_fname, output_fp, step);
