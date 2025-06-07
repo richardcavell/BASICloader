@@ -12,7 +12,10 @@
 
   /* Begin user-modifiable values */
 
-#define DEFAULT_STEP 10
+#define DEFAULT_BEGIN 8192
+#define DEFAULT_END   8192
+#define DEFAULT_STEP  10
+
 #define DEFAULT_OUTPUT_FILENAME "typein.bas"
 
   /* End user-modifiable values */
@@ -77,6 +80,7 @@ print_help(const char *invocation)
     xprintf("%c", '\n');
     xprintf("%s%s%s",     "  -o or --output    name of output file (default \"",
                                            DEFAULT_OUTPUT_FILENAME, "\")\n");
+    xprintf("%s%i%s",     "  -b or --begin     Beginning memory location\n");
     xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
                                            DEFAULT_STEP, ")\n");
     xprintf("%s",     "  --                stop processing options\n");
@@ -170,6 +174,71 @@ emit_preamble(const char *output_filename, FILE *output_fp, long step)
           "%i rem   by richard cavell\n", get_line_no(step));
 }
 
+static void
+emit_loop(const char *output_filename, FILE *output_fp, long step,
+          long begin, long end)
+{
+/*
+This is what we should end up with:
+
+30 I = 8192
+40 CS = 0
+50 FOR X = 1 TO 10
+60 READ A
+70 POKE I, A
+80 I = I + 1
+90 CS = CS + A
+100 IF (I=8193) THEN 120
+110 NEXT X
+120 READ L: READ S
+130 IF (CS <> S) THEN 150
+140 IF (I<8193) THEN 40
+150 EXEC 8192
+160 PRINT "CHECKSUM ERROR IN LINE ";L
+170 END
+*/
+    long line_no = 0;
+    long begin_loop = 0;
+
+    emit (output_filename, output_fp,
+           "%i i = %i\n", get_line_no(step), begin);
+    emit (output_filename, output_fp,
+           "%i cs = 0\n", begin_loop = get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i for x = 1 to 10\n", get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i read a\n", get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i i = poke i, a\n", get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i i = i + 1\n", get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i cs = cs + a\n", get_line_no(step));
+
+    line_no = get_line_no(step);
+    emit (output_filename, output_fp,
+           "%i if (i=%i) then goto %i\n", line_no,
+                                          end,
+                                          line_no + 2 * step);
+    emit (output_filename, output_fp,
+           "%i next x\n", get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i read l: read s\n", get_line_no(step));
+
+    line_no = get_line_no(step);
+    emit (output_filename, output_fp,
+           "%i if (cs <> s) then %i\n", line_no,
+                                        line_no + 2 * step);
+    emit (output_filename, output_fp,
+           "%i if (i<%i) then %i\n", get_line_no(step), end, begin_loop);
+    emit (output_filename, output_fp,
+           "%i exec %i\n", get_line_no(step), begin);
+    emit (output_filename, output_fp,
+           "%i print \"checksum error in line\";l\n", get_line_no(step));
+    emit (output_filename, output_fp,
+           "%i end", get_line_no(step));
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -182,7 +251,11 @@ main(int argc, char *argv[])
     const char *output_fname = DEFAULT_OUTPUT_FILENAME;
     FILE       *output_fp    = NULL;
 
-    long step = DEFAULT_STEP;    /* default value */
+    long begin  = -1;         /* This must be provided */
+    long length = -1;         /* This is measurable */
+    long end    = -1;         /* This is calculated from the first two */
+
+    long step   = DEFAULT_STEP;
 
     int stop_processing_options = 0;
 
@@ -232,6 +305,20 @@ main(int argc, char *argv[])
                              fail_msg("%s",
                                "The provided step size was not a decimal number\n");
                      }
+        else if (strcmp(*argv, "-b") == 0 ||
+                 strcmp(*argv, "--begin") == 0)
+                     {
+                         const char *arg = *++argv;
+                         char *endptr = NULL;
+
+                         if (arg == NULL)
+                             fail_msg("%s", "No beginning line number was provided\n");
+
+                         begin = strtol(arg, &endptr, 10); /* no need for non-decimals */
+                         if (*endptr != '\0')
+                             fail_msg("%s",
+                               "The provided beginning line number was not a decimal number\n");
+                     }
         else if (strcmp(*argv, "--") == 0)
                      stop_processing_options = 1;
         else
@@ -244,6 +331,13 @@ main(int argc, char *argv[])
 
     if (*argv == NULL)
         fail_msg("%s", "No input filename was provided\n"); /* Exits abnormally */
+
+    if (begin == -1)
+        fail_msg("No beginning memory location was provided\n");
+
+/* measure length */
+
+    end = begin + length - 1;
 
     input_fname  = *argv;
     input_fp     = fopen(*argv, "r");
@@ -269,6 +363,7 @@ main(int argc, char *argv[])
     }
 
     emit_preamble(output_fname, output_fp, step);
+    emit_loop(output_fname, output_fp, step, begin, end);
 
     if (fclose(output_fp) == EOF)
     {
