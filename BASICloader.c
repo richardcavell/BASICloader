@@ -71,17 +71,17 @@ print_help(const char *invocation)
 {
     xprintf("%s", "BASICloader v1.0 by Richard Cavell\n");
     xprintf("%s%s%s", "Usage: ", invocation, " [options] input filename\n");
-    xprintf("%s",     "  -h or --help      this help text\n");
-    xprintf("%s",     "  -i or --info      what this program does\n");
-    xprintf("%s",     "  -l or --license   your license to use this software\n");
-    xprintf("%s",     "  -v or --version   version number\n");
+    xprintf("%s",         "  -h or --help      this help text\n");
+    xprintf("%s",         "  -i or --info      what this program does\n");
+    xprintf("%s",         "  -l or --license   your license to use this software\n");
+    xprintf("%s",         "  -v or --version   version number\n");
     xprintf("%c", '\n');
     xprintf("%s%s%s",     "  -o or --output    name of output file (default \"",
                                            DEFAULT_OUTPUT_FILENAME, "\")\n");
-    xprintf("%s%i%s",     "  -b or --begin     Beginning memory location\n");
+    xprintf("%s",         "  -b or --begin     Beginning memory location\n");
     xprintf("%s%i%s",     "  -s or --step      BASIC line numbers step size (default ",
                                            DEFAULT_STEP, ")\n");
-    xprintf("%s",     "  --                stop processing options\n");
+    xprintf("%s",         "  --                stop processing options\n");
 
     exit(EXIT_SUCCESS);
 }
@@ -226,7 +226,7 @@ This is what we should end up with:
     line_no = get_line_no(step);
     emit (output_filename, output_fp,
            "%i if (cs <> s) then %i\n", line_no,
-                                        line_no + 2 * step);
+                                        line_no + 3 * step);
     emit (output_filename, output_fp,
            "%i if (i<%i) then %i\n", get_line_no(step), end, begin_loop);
     emit (output_filename, output_fp,
@@ -234,7 +234,7 @@ This is what we should end up with:
     emit (output_filename, output_fp,
            "%i print \"checksum error in line\";l\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i end", get_line_no(step));
+           "%i end\n", get_line_no(step));
 }
 
 int
