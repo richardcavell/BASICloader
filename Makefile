@@ -49,11 +49,11 @@ license:
 # This assumes that you have installed asm6809 and XRoar, both by Ciaran Anscomb
 test-coco: $(BLDRNAME)
 	@echo "Building testcoco.bin..."
-	@asm6809 -o Tests/testcoco.bin Tests/testcoco.asm
+	@asm6809 -o Test/testcoco.bin Test/testcoco.asm
 	@echo "Done"
 	@echo "Now running BASICloader..."
-	@./$(BLDRNAME) --begin 0x0F00 -o Tests/testcoco.bas --uppercase Tests/testcoco.bin
+	@./$(BLDRNAME) --begin 0x0F00 -o Test/testcoco.bas --uppercase Test/testcoco.bin
 	@echo "Done"
 	@echo "Now running XRoar..."
-	@xroar -machine coco -run Tests/testcoco.bas
+	@xroar -machine coco -run Test/testcoco.bas
 	@echo "Done"
