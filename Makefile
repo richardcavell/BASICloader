@@ -52,7 +52,7 @@ test-coco: $(BLDRNAME)
 	@asm6809 -o Tests/testcoco.bin Tests/testcoco.asm
 	@echo "Done"
 	@echo "Now running BASICloader..."
-	@./$(BLDRNAME) --target coco --begin 4000 -o Tests/testcoco.bas Tests/testcoco.bin
+	@./$(BLDRNAME) --target coco --begin 4000 -o Tests/testcoco.bas --uppercase Tests/testcoco.bin
 	@echo "Done"
 	@echo "Now running XRoar..."
 	@xroar -machine coco -run Tests/testcoco.bas
