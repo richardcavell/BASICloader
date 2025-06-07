@@ -176,25 +176,6 @@ static void
 emit_loop(const char *output_filename, FILE *output_fp, long step,
           long begin, long end)
 {
-/*
-This is what we should end up with:
-
-30 I = 8192
-40 CS = 0
-50 FOR X = 1 TO 10
-60 READ A
-70 POKE I, A
-80 I = I + 1
-90 CS = CS + A
-100 IF (I=8193) THEN 120
-110 NEXT X
-120 READ L: READ S
-130 IF (CS <> S) THEN 150
-140 IF (I<8193) THEN 40
-150 EXEC 8192
-160 PRINT "CHECKSUM ERROR IN LINE ";L
-170 END
-*/
     long line_no = 0;
     long begin_loop = 0;
 
