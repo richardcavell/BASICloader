@@ -8,7 +8,7 @@
 *
 *  June 2025
 
-	ORG $7F00
+	ORG 0x0F00
 
 start:	ldx #$6f 	; DEVNUM
         lda #0          ; 0 means the screen
@@ -20,7 +20,7 @@ loop:
         beq end
 	jsr [$A002]     ; CHROUT
         bra loop
-end:	clra
+end:	lda #0
 	rts
 
 msg:	FCN "TEST SUCCEEDED\n"
