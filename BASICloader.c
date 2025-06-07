@@ -18,7 +18,7 @@
 
   /* End user-modifiable values */
 
-enum target_arch { none, coco };
+enum target_arch { none = 0, coco };
 
 static void
 fail_msg(const char *fmt, ...)
@@ -166,12 +166,31 @@ get_line_no(long step)
 }
 
 static void
+emit_machine_preamble(const char *output_filename, FILE *output_fp, long step, enum target_arch target)
+{
+    switch(target)
+    {
+    case none:
+        break;  /* There is no standard preamble */
+
+    case coco:
+        emit(output_filename, output_fp, "%i%s", get_line_no(step), " clear 100, 3896");
+        break;
+
+    default:
+        fail_msg("%s", "Unknown target");
+        break;
+    }
+
+}
+
+static void
 emit_preamble(const char *output_filename, FILE *output_fp, long step)
 {
     emit (output_filename, output_fp,
-          "%i rem created by basicloader\n", get_line_no(step));
+          "%i%s", get_line_no(step), " rem created by basicloader\n");
     emit (output_filename, output_fp,
-          "%i rem   by richard cavell\n", get_line_no(step));
+          "%i%s", get_line_no(step), " rem   by richard cavell\n");
 }
 
 static void
@@ -428,6 +447,7 @@ main(int argc, char *argv[])
                                   '\n');
     }
 
+    emit_machine_preamble(output_fname, output_fp, step, target);
     emit_preamble(output_fname, output_fp, step);
     emit_loop(output_fname, output_fp, step, begin, end);
     emit_data(input_fp, output_fname, output_fp, step);
