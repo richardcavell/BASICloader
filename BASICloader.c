@@ -247,31 +247,32 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
 
     while(d != EOF)
     {
-        d = fgetc(input_fp); /* should be a value from 0-255 or EOF*/
+        d = fgetc(input_fp);  /* should be a value from 0-255 or EOF */
 
-        if (data_count == 0 && d != EOF) /* starting a new line */
+        if (data_count == 0 && d != EOF)  /* start a new line */
         {
-            emit (output_filename, output_fp,
-                  "%i data ",
-                  line_no = get_line_no(step));
+            emit(output_filename, output_fp,
+                 "%i data ",
+                 line_no = get_line_no(step));
 
             checksum = 0;
         }
-        else if (d != EOF)
-        {
-            emit (output_filename, output_fp, ", ");
-        }
+
+        if (data_count != 0 && d != EOF)
+            emit(output_filename, output_fp, "%s", ", ");
 
         if (d != EOF)
         {
             emit(output_filename, output_fp, "%i", d);
+            checksum += d;
             data_count++;
         }
 
         if (data_count == 10 || d == EOF)
         {
             /* Add the line number and checksum */
-            emit(output_filename, output_fp, "%i%s%i%c",
+            emit(output_filename, output_fp, "%s%li%s%i%c",
+                                             ", ",
                                              line_no,
                                              ", ",
                                              checksum,
