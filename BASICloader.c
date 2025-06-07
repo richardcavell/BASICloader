@@ -237,6 +237,47 @@ This is what we should end up with:
            "%i end\n", get_line_no(step));
 }
 
+static void
+emit_data(const char *output_filename, FILE *output_fp, long step)
+{
+    int  data_count = 0;
+    long line_no    = 0;
+    int  checksum   = 0;
+    int  d          = 0;
+
+    while(d != EOF)
+    {
+        d = fgetc(output_fp);
+
+        if (data_count == 0) /* starting a new line */
+        {
+            emit (output_filename, output_fp,
+                  "%i data ",
+                  line_no = get_line_no(step));
+
+            checksum = 0;
+        }
+        else
+        {
+            emit (output_filename, output_fp, ", ");
+        }
+
+        emit(output_filename, output_fp, "%i", d);
+        data_count++;
+
+        if (data_count == 10 || d == EOF)
+        {
+            /* Add the line number and checksum */
+            emit(output_filename, output_fp, "%i%s%i%c",
+                                             line_no,
+                                             ", ",
+                                             checksum,
+                                             '\n');
+            data_count = 0;
+        }
+    }
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -381,6 +422,7 @@ main(int argc, char *argv[])
 
     emit_preamble(output_fname, output_fp, step);
     emit_loop(output_fname, output_fp, step, begin, end);
+    emit_data(output_fname, output_fp, step);
 
     if (fclose(output_fp) == EOF)
     {
