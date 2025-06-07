@@ -1,6 +1,6 @@
 basicldr
 typein.bas
-Tests/testcoco.bas
-Tests/testcoco.bin
-Tests/testcoco.lst
+Test/testcoco.bas
+Test/testcoco.bin
+Test/testcoco.lst
 .*.swp
