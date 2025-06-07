@@ -228,15 +228,14 @@ emit_loop(const char *output_filename, FILE *output_fp, long step,
     emit (output_filename, output_fp,
            "%i poke i, a\n", get_line_no(step));
     emit (output_filename, output_fp,
-           "%i i = i + 1\n", get_line_no(step));
-    emit (output_filename, output_fp,
            "%i cs = cs + a\n", get_line_no(step));
-
     line_no = get_line_no(step);
     emit (output_filename, output_fp,
            "%i if (i=%i) then goto %i\n", line_no,
                                           end,
-                                          line_no + 2 * step);
+                                          line_no + 3 * step);
+    emit (output_filename, output_fp,
+           "%i i = i + 1\n", get_line_no(step));
     emit (output_filename, output_fp,
            "%i next x\n", get_line_no(step));
     emit (output_filename, output_fp,
@@ -251,6 +250,8 @@ emit_loop(const char *output_filename, FILE *output_fp, long step,
     emit (output_filename, output_fp,
            "%i exec %i\n", get_line_no(step), begin);
     emit (output_filename, output_fp,
+           "%i end\n", get_line_no(step));
+    emit (output_filename, output_fp,
            "%i print \"checksum error in line\";l\n", get_line_no(step));
     emit (output_filename, output_fp,
            "%i end\n", get_line_no(step));
@@ -264,11 +265,10 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
     int  checksum   = 0;
     int  d          = 0;
 
-    while(d != EOF)
+    /* Should be a value from 0-255 or EOF */
+    while((d = fgetc(input_fp)) != EOF)
     {
-        d = fgetc(input_fp);  /* should be a value from 0-255 or EOF */
-
-        if (data_count == 0 && d != EOF)  /* start a new line */
+        if (data_count == 0)  /* start a new line */
         {
             emit(output_filename, output_fp,
                  "%i data ",
@@ -276,18 +276,14 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
 
             checksum = 0;
         }
-
-        if (data_count != 0 && d != EOF)
+        else
             emit(output_filename, output_fp, "%s", ", ");
 
-        if (d != EOF)
-        {
-            emit(output_filename, output_fp, "%i", d);
-            checksum += d;
-            data_count++;
-        }
+        emit(output_filename, output_fp, "%i", d);
+        checksum += d;
+        data_count++;
 
-        if (data_count == 10 || d == EOF)
+        if (data_count == 10)
         {
             /* Add the line number and checksum */
             emit(output_filename, output_fp, "%s%li%s%i%c",
@@ -298,6 +294,17 @@ emit_data(FILE *input_fp, const char *output_filename, FILE *output_fp, long ste
                                              '\n');
             data_count = 0;
         }
+    }
+
+    if ((data_count < 10) && (d == EOF))
+    {
+        /* Add the line number and checksum to the last line */
+        emit(output_filename, output_fp, "%s%li%s%i%c",
+                                         ", ",
+                                         line_no,
+                                         ", ",
+                                         checksum,
+                                         '\n');
     }
 }
 
@@ -429,16 +436,16 @@ main(int argc, char *argv[])
                          if (arg == NULL)
                              fail_msg("%s", "No target architecture was provided\n");
 
-                         if (strcmp(*argv, "none") == 0)
+                         else if (strcmp(*argv, "none") == 0)
                              target = none;
-                         if (strcmp(*argv, "coco") == 0)
+                         else if (strcmp(*argv, "coco") == 0)
                              target = coco;
-                         if (strcmp(*argv, "coco-extended") == 0)
+                         else if (strcmp(*argv, "coco-extended") == 0)
                              target = coco_extended;
-                         if (strcmp(*argv, "coco-disk-extended") == 0)
+                         else if (strcmp(*argv, "coco-disk-extended") == 0)
                              target = coco_disk_extended;
                          else
-                             fail_msg("%s%s%s", "Target architecture", *argv, "unknown\n");
+                             fail_msg("%s%s%s", "Target architecture \"", *argv, "\" unknown\n");
                      }
         else if (strcmp(*argv, "--") == 0)
                      stop_processing_options = 1;
