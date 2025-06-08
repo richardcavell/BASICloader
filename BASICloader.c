@@ -160,9 +160,12 @@ emit(const char *output_filename, FILE *output_fp, const char *fmt, ...)
 static long
 get_line_no(long step)
 {
-    static long line_no = 0;
+    static long line_no = 0; /* int doesn't have the range */
 
     line_no += step;
+
+    if (line_no >= 65000) /* MS BASIC from that era would not allow line numbers over 65000 */
+        fail_msg("The generated line numbers exceeded 65000\n");
 
     return line_no;
 }
@@ -176,10 +179,10 @@ emit_given_preamble(const char *output_filename, FILE *output_fp, long step, con
 static void
 emit_preamble(const char *output_filename, FILE *output_fp, long step)
 {
-    emit (output_filename, output_fp,
-          "%i%s", get_line_no(step), " REM CREATED BY BASICLOADER\n");
-    emit (output_filename, output_fp,
-          "%i%s", get_line_no(step), " REM    BY RICHARD CAVELL\n");
+    emit(output_filename, output_fp,
+         "%i%s", get_line_no(step), " REM CREATED BY BASICLOADER\n");
+    emit(output_filename, output_fp,
+         "%i%s", get_line_no(step), " REM    BY RICHARD CAVELL\n");
 }
 
 static void
@@ -189,44 +192,44 @@ emit_loop(const char *output_filename, FILE *output_fp, long step,
     long line_no = 0;
     long begin_loop = 0;
 
-    emit (output_filename, output_fp,
-           "%i I = %i\n", get_line_no(step), begin);
-    emit (output_filename, output_fp,
-           "%i CS = 0\n", begin_loop = get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i FOR X = 1 TO 10\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i READ A\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i POKE I, A\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i CS = CS + A\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i I = %i\n", get_line_no(step), begin);
+    emit(output_filename, output_fp,
+         "%i CS = 0\n", begin_loop = get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i FOR X = 1 TO 10\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i READ A\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i POKE I, A\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i CS = CS + A\n", get_line_no(step));
     line_no = get_line_no(step);
-    emit (output_filename, output_fp,
-           "%i IF (I=%i) THEN GOTO %i\n", line_no,
+    emit(output_filename, output_fp,
+        "%i IF (I=%i) THEN GOTO %i\n", line_no,
                                           end,
                                           line_no + 3 * step);
-    emit (output_filename, output_fp,
-           "%i I = I + 1\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i NEXT X\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i READ L: READ S\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i I = I + 1\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i NEXT X\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i READ L: READ S\n", get_line_no(step));
 
     line_no = get_line_no(step);
-    emit (output_filename, output_fp,
-           "%i IF (CS <> S) THEN GOTO %i\n", line_no,
+    emit(output_filename, output_fp,
+         "%i IF (CS <> S) THEN GOTO %i\n", line_no,
                                         line_no + 4 * step);
-    emit (output_filename, output_fp,
-           "%i IF (I<%i) THEN GOTO %i\n", get_line_no(step), end, begin_loop);
-    emit (output_filename, output_fp,
-           "%i EXEC %i\n", get_line_no(step), begin);
-    emit (output_filename, output_fp,
-           "%i END\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i PRINT \"CHECKSUM ERROR IN LINE\";L\n", get_line_no(step));
-    emit (output_filename, output_fp,
-           "%i END\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i IF (I<%i) THEN GOTO %i\n", get_line_no(step), end, begin_loop);
+    emit(output_filename, output_fp,
+         "%i EXEC %i\n", get_line_no(step), begin);
+    emit(output_filename, output_fp,
+         "%i END\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i PRINT \"CHECKSUM ERROR IN LINE\";L\n", get_line_no(step));
+    emit(output_filename, output_fp,
+         "%i END\n", get_line_no(step));
 }
 
 static void
