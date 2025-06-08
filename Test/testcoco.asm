@@ -4,7 +4,7 @@
 *  This is used to test BASICloader.
 *  Assume the least powerful Coco (Coco 1 with 4 kilobytes of RAM, no extended BASIC, no disk drive)
 *
-*  This program is intended to be input to XRoar
+*  This program is intended to be assembled with asm6809 and then input to XRoar
 *
 *  June 2025
 
