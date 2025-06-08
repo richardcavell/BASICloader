@@ -2,6 +2,10 @@ BASICloader
 by Richard Cavell
 FAQ.txt
 
+Why is the output not working on my Commodore machine?
+
+  You need to change the "EXEC" command to "SYS"
+
 What is the preamble?
 
   Some machines have instructions that can modify the memory map. When
