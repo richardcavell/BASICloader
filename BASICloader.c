@@ -216,7 +216,7 @@ emit_loop(const char *output_filename, FILE *output_fp, long step,
     line_no = get_line_no(step);
     emit (output_filename, output_fp,
            "%i IF (CS <> S) THEN GOTO %i\n", line_no,
-                                        line_no + 3 * step);
+                                        line_no + 4 * step);
     emit (output_filename, output_fp,
            "%i IF (I<%i) THEN GOTO %i\n", get_line_no(step), end, begin_loop);
     emit (output_filename, output_fp,
