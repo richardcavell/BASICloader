@@ -5,7 +5,7 @@ FAQ.txt
 What is the preamble?
 
   Some machines have instructions that can modify the memory map. When
-  designing your program, you can take these instructions into account.
+  designing your program, you can use these instructions.
 
   For example, the Color Computer has the instruction "CLEAR". Extended
   Color BASIC has "PCLEAR", and Disk Extended Color BASIC has "FILES".
@@ -26,6 +26,9 @@ I'm having trouble using the output directly with an emulator
   some tools. As to the contents of the file, BASICloader produces
   uppercase output by default, but that can be changed by giving
   --lowercase on the command line.
+
+  VICE (the Commodore emulator) needs lowercase input to work
+  properly.
 
 Are there license restrictions on the output of BASICloader?
 
