@@ -29,7 +29,7 @@ all: $(BLDRNAME)
 
 $(BLDRNAME): BASICloader.c
 	@echo "Building" $(BLDRNAME) "..."
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $< -o $(BLDRNAME)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $(BLDRNAME) $<
 	@echo "Finished building" $(BLDRNAME)
 
 clean:
