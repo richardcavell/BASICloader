@@ -1,5 +1,5 @@
 /* BASICloader by Richard Cavell
- * (in development, don't use it yet)
+ * version 1.0
  *
  * BASICloader.c
  */
